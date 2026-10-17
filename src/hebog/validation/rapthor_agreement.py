@@ -17,9 +17,9 @@ so a fitted-Gaussian population stands in for them: every distinct pixel
 that holds the centre of a Gaussian the reference or any Hebog
 configuration fitted, one set for every lane, so the lanes are compared on
 the same components. Each component is tagged with the safety strata of
-:func:`component_strata`; :func:`gate_outcome` passes a lane only when its
-agreement reaches the threshold overall and in every stratum, and
-:func:`rapthor_profile` chooses ``compact`` only for a passing lane.
+:func:`component_strata`, which the truth-based gate of
+:mod:`hebog.validation.truth_measures` also applies in; agreement is
+reported, not gated.
 
 Two diagnostic populations are reported beside it: injected truth, and
 :func:`emission_pixels`, every pixel WSClean's auto-threshold would clean
@@ -65,7 +65,7 @@ SAFETY_STRATA = (
     "true-sky",
     "apparent",
 )
-"""The strata in which a lane must reach the agreement threshold."""
+"""The strata reported and gated beside every component."""
 
 RAPTHOR_MAXIMUM_SIZE_DEGREES = 10.0 / 3600.0
 """Rapthor's astrometry and photometry checks keep ``DC_Maj`` below 10″."""
@@ -92,7 +92,7 @@ def _islands(mask: npt.ArrayLike) -> npt.NDArray[np.int32]:
     return labels
 
 
-def _pooled[Counts](first: Counts, second: Counts) -> Counts:
+def pooled[Counts](first: Counts, second: Counts) -> Counts:
     """Return a counts record holding the field-wise sums of two."""
     return type(first)(
         *(
@@ -263,7 +263,7 @@ class DecisionCounts:
 
     def __add__(self, other: DecisionCounts) -> DecisionCounts:
         """Pool the counts of two populations."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
     @property
     def agreement(self) -> float | None:
@@ -337,45 +337,6 @@ def _grouped_alike(
 
 
 @dataclass(frozen=True, slots=True)
-class GateOutcome:
-    """Whether a lane reached the agreement threshold everywhere.
-
-    A lane with an empty stratum and no failing one is ``incomplete``: an
-    unmeasured stratum cannot pass.
-    """
-
-    status: Literal["passed", "failed", "incomplete"]
-    failing_strata: tuple[str, ...]
-    empty_strata: tuple[str, ...]
-
-
-def gate_outcome(
-    counts: Mapping[str, DecisionCounts], threshold: float
-) -> GateOutcome:
-    """Apply the agreement threshold overall and in every stratum."""
-    failing = tuple(
-        name
-        for name, measured in counts.items()
-        if measured.agreement is not None and measured.agreement < threshold
-    )
-    empty = tuple(
-        name for name, measured in counts.items() if not measured.components
-    )
-    return GateOutcome(
-        status="failed" if failing else "incomplete" if empty else "passed",
-        failing_strata=failing,
-        empty_strata=empty,
-    )
-
-
-def rapthor_profile(
-    compact: GateOutcome,
-) -> Literal["compact", "continuum"]:
-    """Apply plan task 21's rule: ``compact`` only when its lane passes."""
-    return "compact" if compact.status == "passed" else "continuum"
-
-
-@dataclass(frozen=True, slots=True)
 class WeightedAgreement:
     """Flux on which two masks agree, out of the population's flux."""
 
@@ -384,7 +345,7 @@ class WeightedAgreement:
 
     def __add__(self, other: WeightedAgreement) -> WeightedAgreement:
         """Pool two populations measured in the same units."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
     @property
     def agreement(self) -> float | None:
@@ -522,7 +483,7 @@ class CatalogueCutCounts:
 
     def __add__(self, other: CatalogueCutCounts) -> CatalogueCutCounts:
         """Pool the counts of two catalogues."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
 
 def compare_catalogue_cuts(
@@ -722,6 +683,71 @@ class EmissionSettings(_AgreementModel):
     seed_sigma: float = Field(gt=0)
 
 
+class InjectionSettings(_AgreementModel):
+    """Sources injected into the real images, per image.
+
+    See :func:`hebog.validation.truth_measures.plan_injection`.
+    """
+
+    snr_levels: tuple[float, ...] = Field(min_length=1)
+    per_level: int = Field(gt=0)
+    spacing_beams: float = Field(gt=0)
+    margin_beams: float = Field(ge=0)
+    clear_beams: float = Field(ge=0)
+    clear_sigma: float = Field(gt=0)
+    seed: int
+
+    @model_validator(mode="after")
+    def _distinct_positive_levels(self) -> Self:
+        """Refuse a level that would double its sources or have none."""
+        if len(set(self.snr_levels)) != len(self.snr_levels):
+            raise ValueError("injection levels must be distinct")
+        if min(self.snr_levels) <= 0:
+            raise ValueError("injection levels must be positive")
+        return self
+
+
+class NoiseSettings(_AgreementModel):
+    """The negative-pixel noise and the RMS maps' tolerance against it.
+
+    See :func:`hebog.validation.truth_measures.negative_pixel_noise`.
+    """
+
+    box_beams: float = Field(gt=0)
+    minimum_pixels: int = Field(gt=0)
+    tolerance: float = Field(gt=0)
+
+
+class TruthGateSettings(_AgreementModel):
+    """The truth-based gate's limits, set by the maintainer on 17 October.
+
+    See :class:`hebog.validation.truth_measures.TruthGateLimits`.
+    """
+
+    lost_real_overall: float = Field(ge=0, le=1)
+    lost_real_stratum: float = Field(ge=0, le=1)
+    injected_margin: float = Field(ge=0, le=1)
+    injected_from_snr: float = Field(gt=0)
+    complete_from_snr: float = Field(gt=0)
+    false_island_fraction: float = Field(ge=0)
+
+
+class TruthSettings(_AgreementModel):
+    """How the check measures each finder's correctness.
+
+    ``real_emission_sigma`` is how far above the negative-pixel noise a
+    component on a real image must lie to count as real emission when its
+    decision is split by truth. Nearer the 5-sigma threshold, finders' RMS
+    estimates differ by more than the margin, so a decision there says
+    little; the injected sources measure completeness there instead.
+    """
+
+    injection: InjectionSettings
+    noise: NoiseSettings
+    real_emission_sigma: float = Field(gt=0)
+    gate: TruthGateSettings
+
+
 class AgreementCase(_AgreementModel):
     """An image beyond the quick check's, and the kind Rapthor gives it."""
 
@@ -730,14 +756,14 @@ class AgreementCase(_AgreementModel):
 
 
 class RapthorAgreementConfiguration(_AgreementModel):
-    """Versioned lanes, strata, gate and cases of the agreement check.
+    """Versioned lanes, strata, truth measures, gate and cases of the check.
 
     ``quick_check`` names the quick-check configuration whose cases,
     dataset manifest and pinned-``master`` reference the check reuses, so
     its cached reference outputs serve both checks.
     """
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     check_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     quick_check: str = Field(min_length=1)
     threshpix: float = Field(gt=0)
@@ -746,8 +772,8 @@ class RapthorAgreementConfiguration(_AgreementModel):
     control: ControlReference
     strata: StratumSettings
     emission: EmissionSettings
-    agreement_threshold: float = Field(gt=0, le=1)
     budget_seconds: float = Field(gt=0)
+    truth: TruthSettings
     cases: tuple[AgreementCase, ...]
 
     @model_validator(mode="after")

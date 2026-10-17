@@ -33,6 +33,8 @@ case unmeasured, and 0 otherwise, whatever the gate decides::
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import runpy
 import subprocess
@@ -45,6 +47,9 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
+import numpy.typing as npt
+from astropy.io import fits
+from astropy.wcs import WCS
 from astropy.wcs.utils import proj_plane_pixel_scales
 
 import hebog
@@ -56,9 +61,16 @@ from hebog.algorithms.astrometry import celestial_wcs_from_metadata
 from hebog.data_models import ImageMetadata, SourceCatalogue
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource, read_catalogue_fits_product
+from hebog.science.catalogue_rows import CatalogueSource
+from hebog.validation import truth_measures
+from hebog.validation.datasets import (
+    generate_synthetic_emission,
+    generate_synthetic_noise_rms,
+)
 from hebog.validation.products import (
     load_fits_plane,
     load_mask_plane,
+    load_pybdsf_catalogue,
     load_pybdsf_gaussian_catalogue,
 )
 from hebog.validation.quick_benchmark import SINGLE_THREAD_ENVIRONMENT
@@ -67,9 +79,11 @@ from hebog.validation.quick_check import (
     GeneratedCase,
     ImageCase,
     PreparedCase,
+    _staged,
     file_sha256,
     load_quick_check_configuration,
     prepare_case,
+    public_catalogue_sources,
     reference_identity,
     write_report,
 )
@@ -78,20 +92,41 @@ from hebog.validation.rapthor_agreement import (
     CatalogueCutCounts,
     ComponentPixels,
     DecisionCounts,
-    GateOutcome,
     Lane,
+    NoiseSettings,
     RapthorAgreementConfiguration,
+    TruthSettings,
     WeightedAgreement,
     compare_catalogue_cuts,
     compare_decisions,
     component_strata,
     emission_pixels,
-    gate_outcome,
     hebog_cut_catalogue,
     load_agreement_configuration,
     pybdsf_cut_catalogue,
-    rapthor_profile,
     weighted_agreement,
+)
+from hebog.validation.truth_measures import (
+    EmissionRecall,
+    InjectedSources,
+    InjectionOutcome,
+    LevelRecovery,
+    MaskIslands,
+    NoiseComparison,
+    RealEmissionDecisions,
+    TruthGateLimits,
+    compare_noise,
+    emission_recall,
+    ideal_mask,
+    inject_point_sources,
+    injected_recovery,
+    mask_islands,
+    negative_pixel_noise,
+    plan_injection,
+    real_emission_decisions,
+    recovery_by_level,
+    significant_emission,
+    truth_gate,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -106,6 +141,9 @@ _CONTROL = "released-pybdsf"
 _BEAM_AREA_FACTOR = 1.1331
 
 ImageKind = Literal["true-sky", "apparent"] | None
+DerivedKind = Literal["injected", "negated"]
+FloatArray = npt.NDArray[np.float64]
+BoolArray = npt.NDArray[np.bool_]
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +154,7 @@ class LaneRun:
     seconds: float
     error: str | None = None
     mask_path: Path | None = None
+    rms_path: Path | None = None
     catalogue_path: Path | None = None
     view_path: Path | None = None
 
@@ -211,6 +250,7 @@ def _run_lane(
         status="success",
         seconds=time.perf_counter() - started,
         mask_path=result.mask.path,
+        rms_path=result.rms.path,
         catalogue_path=result.catalogue.path,
         view_path=view,
     )
@@ -270,6 +310,116 @@ def _beam_pixels(metadata: ImageMetadata) -> tuple[float, float]:
     return float(np.sqrt(major * minor)), _BEAM_AREA_FACTOR * major * minor
 
 
+def _real_noise(
+    image: FloatArray, beam_fwhm_pixels: float, settings: NoiseSettings
+) -> FloatArray:
+    """Return the negative-pixel noise in boxes sized by the beam."""
+    return negative_pixel_noise(
+        image,
+        box_pixels=max(1, round(settings.box_beams * beam_fwhm_pixels)),
+        minimum_pixels=settings.minimum_pixels,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class DerivedCase:
+    """A real image changed so that its truth is known.
+
+    An ``injected`` image holds ``injected``'s sources besides its own; a
+    ``negated`` image is the original with its sign flipped, so every
+    island a finder finds on it is false.
+    """
+
+    prepared: PreparedCase
+    source_case_id: str
+    kind: DerivedKind
+    injected: InjectedSources | None
+
+
+def _derivation_key(truth: TruthSettings) -> str:
+    """Name an injected image by what makes it: settings and code."""
+    noise = truth.noise.model_dump(include={"box_beams", "minimum_pixels"})
+    digest = hashlib.sha256(
+        json.dumps(
+            {"injection": truth.injection.model_dump(), "noise": noise},
+            sort_keys=True,
+        ).encode()
+    )
+    digest.update(Path(truth_measures.__file__).read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def _derived_cases(
+    prepared: PreparedCase, truth: TruthSettings
+) -> list[DerivedCase]:
+    """Return a real case's injected and negated images, written once.
+
+    Both start from the input PyBDSF reads, which carries every keyword
+    either finder needs, and keep its header and axes. Each file is named
+    by what it holds, so a cached one is reused only for the same content.
+    """
+    source = prepared.reference_input_path
+    with fits.open(source, mode="readonly") as hdus:
+        primary = cast(Any, hdus[0])
+        header = primary.header.copy()
+        data = np.asarray(primary.data)
+    plane = np.asarray(data.reshape(data.shape[-2:]), dtype=np.float64)
+    metadata = FitsImageSource(source, prepared.supplied_metadata).metadata()
+    beam_fwhm_pixels, _ = _beam_pixels(metadata)
+    settings = truth.injection
+    injected = plan_injection(
+        plane,
+        _real_noise(plane, beam_fwhm_pixels, truth.noise),
+        beam_fwhm_pixels=beam_fwhm_pixels,
+        snr_levels=settings.snr_levels,
+        per_level=settings.per_level,
+        spacing_beams=settings.spacing_beams,
+        margin_beams=settings.margin_beams,
+        clear_beams=settings.clear_beams,
+        clear_sigma=settings.clear_sigma,
+        seed=settings.seed,
+    )
+    stem = file_sha256(source)[:16]
+    images: dict[DerivedKind, tuple[Callable[[], FloatArray], str]] = {
+        "injected": (
+            lambda: inject_point_sources(
+                plane, injected, public_api._beam_shape_pixels(metadata)
+            ),
+            f"{stem}-{_derivation_key(truth)}.fits",
+        ),
+        "negated": (lambda: -plane, f"{stem}.fits"),
+    }
+    derived: list[DerivedCase] = []
+    for kind, (values, name) in images.items():
+        case_id = f"{prepared.case_id}-{kind}"
+        path = _QUICK_CHECK_ROOT / "inputs" / case_id / name
+        if not path.exists():
+            with _staged(path) as staged:
+                fits.PrimaryHDU(
+                    data=values().astype(data.dtype).reshape(data.shape),
+                    header=header,
+                ).writeto(staged)
+        derived.append(
+            DerivedCase(
+                prepared=PreparedCase(
+                    case_id=case_id,
+                    input_path=path,
+                    input_sha256=file_sha256(path),
+                    reference_input_path=path,
+                    supplied_metadata=prepared.supplied_metadata,
+                    truth=None,
+                    noise_rms_jy_per_beam=None,
+                    published_rms_path=None,
+                    published_mask_path=None,
+                ),
+                source_case_id=prepared.case_id,
+                kind=kind,
+                injected=injected if kind == "injected" else None,
+            )
+        )
+    return derived
+
+
 def _counts_record(counts: Mapping[str, DecisionCounts]) -> dict[str, Any]:
     return {
         name: asdict(value)
@@ -312,6 +462,109 @@ def _component_positions(
             right_ascensions.append(component.position.right_ascension_degrees)
             declinations.append(component.position.declination_degrees)
     return right_ascensions, declinations
+
+
+def _with_ratios(counts: Any, *names: str) -> dict[str, Any]:
+    """Return a counts record with its derived ratios beside the counts."""
+    return asdict(counts) | {name: getattr(counts, name) for name in names}
+
+
+_NOISE_RATIOS = (
+    "inflated_fraction",
+    "deflated_fraction",
+    "geometric_mean_ratio",
+)
+_RECALL_RATIOS = ("recall", "flux_recall", "off_emission_fraction")
+
+
+def _case_correctness(  # noqa: PLR0913
+    prepared: PreparedCase,
+    *,
+    image: FloatArray,
+    pixels: ComponentPixels,
+    strata: Mapping[str, BoolArray],
+    masks: Mapping[str, BoolArray],
+    rms_maps: Mapping[str, FloatArray],
+    beam_fwhm_pixels: float,
+    configuration: RapthorAgreementConfiguration,
+) -> dict[str, Any]:
+    """Measure every finder's correctness on one case.
+
+    A generated case's RMS maps are compared with the noise it was made
+    with, and its masks with the ideal mask of its noiseless emission; a
+    real case's RMS maps are compared with its negative-pixel noise. Each
+    finder's disagreements with ``master`` are split by whether the
+    component is real: on the ideal mask, or at least the configured
+    ``real_emission_sigma`` times the negative-pixel noise.
+    """
+    tolerance = configuration.truth.noise.tolerance
+    ideal_record: dict[str, Any] | None = None
+    if prepared.recipe is not None:
+        noise = generate_synthetic_noise_rms(prepared.recipe)
+        emission = generate_synthetic_emission(prepared.recipe)
+        ideal = ideal_mask(
+            emission,
+            noise,
+            threshisl=configuration.threshisl,
+            threshpix=configuration.threshpix,
+        )
+        ideal_record = {
+            name: {
+                "decisions": _counts_record(
+                    compare_decisions(mask, ideal, pixels, strata)
+                ),
+                "emission": asdict(
+                    emission_recall(
+                        mask, ideal=ideal, emission=emission, noise=noise
+                    )
+                ),
+            }
+            for name, mask in masks.items()
+        }
+        real = pixels.kept_by(ideal)
+    else:
+        noise = _real_noise(image, beam_fwhm_pixels, configuration.truth.noise)
+        real = significant_emission(
+            pixels,
+            image=image,
+            noise=noise,
+            threshold_sigma=configuration.truth.real_emission_sigma,
+        )
+    return {
+        "versus_master_by_truth": {
+            name: {
+                stratum: asdict(counts)
+                for stratum, counts in real_emission_decisions(
+                    mask, masks[_MASTER], pixels, strata, real=real
+                ).items()
+            }
+            for name, mask in masks.items()
+            if name != _MASTER
+        },
+        "noise_reference": (
+            "injected" if prepared.recipe is not None else "negative-pixels"
+        ),
+        "islands": {
+            name: asdict(mask_islands(mask)) for name, mask in masks.items()
+        },
+        "noise": {
+            name: {
+                "components": asdict(
+                    compare_noise(
+                        rms_maps[name],
+                        noise,
+                        tolerance=tolerance,
+                        pixels=pixels,
+                    )
+                ),
+                "pixels": asdict(
+                    compare_noise(rms_maps[name], noise, tolerance=tolerance)
+                ),
+            }
+            for name in masks
+        },
+        "ideal_mask": ideal_record,
+    }
 
 
 def _measure_case(  # noqa: PLR0913
@@ -420,8 +673,26 @@ def _measure_case(  # noqa: PLR0913
             metadata.beam.major_fwhm_degrees * metadata.beam.minor_fwhm_degrees
         )
     )
+    rms_maps = {
+        name: load_fits_plane(cast(Path, run.rms_path))
+        for name, run in succeeded.items()
+    } | {_MASTER: load_fits_plane(_artifact(root, result, "rms-map-fits"))}
+    if control is not None:
+        rms_maps[_CONTROL] = load_fits_plane(
+            _artifact(*control, "rms-map-fits")
+        )
     record |= {
         "status": "measured",
+        "correctness": _case_correctness(
+            prepared,
+            image=image,
+            pixels=pixels,
+            strata=strata,
+            masks={_MASTER: reference_mask} | masks,
+            rms_maps=rms_maps,
+            beam_fwhm_pixels=beam_fwhm_pixels,
+            configuration=configuration,
+        ),
         "components": len(pixels),
         "stratum_sizes": {
             name: int(selection.sum()) for name, selection in strata.items()
@@ -491,10 +762,279 @@ def _measure_case(  # noqa: PLR0913
     return record
 
 
-def _pooled_lane(
-    records: list[dict[str, Any]], name: str, threshold: float
+def _finite_or_none(values: FloatArray) -> list[float | None]:
+    """Return values for a JSON report, NaN as ``None``."""
+    return [float(value) if np.isfinite(value) else None for value in values]
+
+
+def _pixel_positions(
+    rows: tuple[CatalogueSource, ...], wcs: WCS
+) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """Return sources' zero-based pixel positions and integrated fluxes."""
+    if not rows:
+        empty = np.zeros(0, dtype=np.float64)
+        return empty, empty, empty
+    x, y = wcs.wcs_world2pix(
+        [row.right_ascension_degrees for row in rows],
+        [row.declination_degrees for row in rows],
+        0,
+    )
+    flux = np.asarray([row.integrated_flux_jy for row in rows])
+    return np.asarray(x), np.asarray(y), flux
+
+
+def _measure_derived(
+    derived: DerivedCase,
+    *,
+    references: Mapping[str, tuple[Path, dict[str, Any]] | None],
+    runs: Mapping[str, LaneRun],
+    match_radius_beams: float,
 ) -> dict[str, Any]:
-    """Pool one lane's counts over every measured case and apply the gate."""
+    """Measure every finder on one injected or negated image.
+
+    Every island on a negated image is false. On an injected image each
+    finder's mask decides which injected sources Rapthor keeps, and its
+    source catalogue which it publishes and at what flux.
+    """
+    prepared = derived.prepared
+    record: dict[str, Any] = {
+        "case_id": prepared.case_id,
+        "source_case_id": derived.source_case_id,
+        "kind": derived.kind,
+        "input_sha256": prepared.input_sha256,
+        "lane_status": {
+            name: {"status": run.status, "seconds": run.seconds}
+            | ({"error": run.error} if run.error else {})
+            for name, run in runs.items()
+        },
+        "reference_available": {
+            name: value is not None for name, value in references.items()
+        },
+    }
+    if references[_MASTER] is None or any(
+        run.status != "success" for run in runs.values()
+    ):
+        record["status"] = "unmeasured"
+        return record
+    masks = {
+        name: load_mask_plane(cast(Path, run.mask_path))
+        for name, run in runs.items()
+    }
+    pybdsf = {
+        name: reference
+        for name, reference in references.items()
+        if reference is not None
+    }
+    for name, reference in pybdsf.items():
+        masks[name] = load_mask_plane(
+            _artifact(*reference, "island-mask-fits")
+        )
+    record["status"] = "measured"
+    if derived.injected is None:
+        record["islands"] = {
+            name: asdict(mask_islands(mask)) for name, mask in masks.items()
+        }
+        return record
+    metadata = FitsImageSource(
+        prepared.input_path, prepared.supplied_metadata
+    ).metadata()
+    wcs = celestial_wcs_from_metadata(metadata)
+    beam_fwhm_pixels, _ = _beam_pixels(metadata)
+    catalogues = {
+        name: public_catalogue_sources(
+            read_catalogue_fits_product(cast(Path, run.catalogue_path)),
+            level="sources",
+        )
+        for name, run in runs.items()
+    } | {
+        name: load_pybdsf_catalogue(
+            _artifact(*reference, "source-catalogue-fits")
+        )
+        for name, reference in pybdsf.items()
+    }
+    injected = derived.injected
+    record["injected"] = {
+        "x": injected.x.tolist(),
+        "y": injected.y.tolist(),
+        "snr": injected.snr.tolist(),
+        "peak_jy_per_beam": injected.peak_jy_per_beam.tolist(),
+    }
+    recovery: dict[str, Any] = {}
+    for name, mask in masks.items():
+        x, y, flux = _pixel_positions(catalogues[name], wcs)
+        outcome = injected_recovery(
+            injected,
+            mask=mask,
+            catalogue_x=x,
+            catalogue_y=y,
+            catalogue_flux=flux,
+            match_radius_pixels=match_radius_beams * beam_fwhm_pixels,
+        )
+        recovery[name] = {
+            "kept": outcome.kept.tolist(),
+            "matched": outcome.matched.tolist(),
+            "flux_ratio": _finite_or_none(outcome.flux_ratio),
+        }
+    record["recovery"] = recovery
+    return record
+
+
+def _add_strata[Counts](
+    pooled: dict[str, Counts],
+    strata: Mapping[str, Any],
+    read: Callable[[Mapping[str, Any]], Counts],
+) -> None:
+    """Add one case's counts to the pooled counts, stratum by stratum."""
+    for stratum, counts in strata.items():
+        value = read(counts)
+        pooled[stratum] = (
+            cast(Any, pooled[stratum]) + value if stratum in pooled else value
+        )
+
+
+def _injection_outcome(
+    record: Mapping[str, Any], recovered: Mapping[str, Any]
+) -> InjectionOutcome:
+    """Read one finder's recovery back from an injected case's record."""
+    return InjectionOutcome(
+        snr=np.asarray(record["injected"]["snr"], dtype=np.float64),
+        kept=np.asarray(recovered["kept"], dtype=np.bool_),
+        matched=np.asarray(recovered["matched"], dtype=np.bool_),
+        flux_ratio=np.asarray(
+            [
+                np.nan if value is None else value
+                for value in recovered["flux_ratio"]
+            ],
+            dtype=np.float64,
+        ),
+    )
+
+
+def _pooled_derived(
+    derived_records: list[dict[str, Any]],
+    original_islands: Mapping[str, MaskIslands],
+    name: str,
+) -> tuple[MaskIslands, MaskIslands, list[InjectionOutcome]]:
+    """Pool one finder's false islands and injected-source recovery.
+
+    The false islands are paired with the islands the finder finds on the
+    same images unnegated, so their rate can be read.
+    """
+    false_islands = MaskIslands()
+    unnegated = MaskIslands()
+    outcomes: list[InjectionOutcome] = []
+    for record in derived_records:
+        if record["status"] != "measured":
+            continue
+        if record["kind"] == "negated" and name in record["islands"]:
+            false_islands += MaskIslands(**record["islands"][name])
+            unnegated += original_islands.get(
+                record["source_case_id"], MaskIslands()
+            )
+        elif record["kind"] == "injected" and name in record["recovery"]:
+            outcomes.append(
+                _injection_outcome(record, record["recovery"][name])
+            )
+    return false_islands, unnegated, outcomes
+
+
+def _pooled_injected(
+    derived_records: list[dict[str, Any]], name: str
+) -> dict[float, LevelRecovery]:
+    """Pool one finder's recovery of the injected sources by level."""
+    _, _, outcomes = _pooled_derived(derived_records, {}, name)
+    return recovery_by_level(outcomes) if outcomes else {}
+
+
+def _pooled_correctness(
+    records: list[dict[str, Any]],
+    derived_records: list[dict[str, Any]],
+    name: str,
+    *,
+    gate: tuple[TruthGateLimits, Mapping[float, LevelRecovery]] | None,
+) -> dict[str, Any]:
+    """Pool one finder's correctness over every measured case.
+
+    ``gate`` holds the truth-based gate's limits and ``master``'s injected
+    recovery, against which a lane or the control is gated; ``master``
+    itself is not.
+    """
+    ideal: dict[str, DecisionCounts] = {}
+    by_truth: dict[str, RealEmissionDecisions] = {}
+    emission = EmissionRecall()
+    noise: dict[str, dict[str, NoiseComparison]] = {}
+    islands: dict[str, MaskIslands] = {}
+    for record in records:
+        correctness = record.get("correctness")
+        if correctness is None or name not in correctness["noise"]:
+            continue
+        _add_strata(
+            noise.setdefault(correctness["noise_reference"], {}),
+            correctness["noise"][name],
+            lambda counts: NoiseComparison(**counts),
+        )
+        islands[record["case_id"]] = MaskIslands(
+            **correctness["islands"][name]
+        )
+        _add_strata(
+            by_truth,
+            correctness["versus_master_by_truth"].get(name, {}),
+            lambda counts: RealEmissionDecisions(**counts),
+        )
+        if correctness["ideal_mask"] is not None:
+            measured = correctness["ideal_mask"][name]
+            _add_strata(ideal, measured["decisions"], _decision_counts)
+            emission += EmissionRecall(**measured["emission"])
+    false_islands, original_islands, outcomes = _pooled_derived(
+        derived_records, islands, name
+    )
+    levels = recovery_by_level(outcomes) if outcomes else {}
+    gated: dict[str, Any] = {}
+    if gate is not None:
+        limits, reference_injected = gate
+        gated["gate"] = asdict(
+            truth_gate(
+                lost=by_truth,
+                injected=levels,
+                reference_injected=reference_injected,
+                false_islands=false_islands,
+                original_islands=original_islands,
+                limits=limits,
+            )
+        )
+    return gated | {
+        "versus_master_by_truth": {
+            stratum: _with_ratios(
+                counts, "lost_real_fraction", "gained_real_fraction"
+            )
+            for stratum, counts in by_truth.items()
+        },
+        "ideal_mask": {
+            "decisions": _counts_record(ideal),
+            "emission": _with_ratios(emission, *_RECALL_RATIOS),
+        },
+        "noise": {
+            reference: {
+                where: _with_ratios(counts, *_NOISE_RATIOS)
+                for where, counts in comparisons.items()
+            }
+            for reference, comparisons in noise.items()
+        },
+        "injected": {
+            f"{level:g}": _with_ratios(
+                summary, "kept_fraction", "matched_fraction"
+            )
+            for level, summary in levels.items()
+        },
+        "negated": {
+            "false_islands": asdict(false_islands),
+            "original_islands": asdict(original_islands),
+        },
+    }
+
+
+def _pooled_lane(records: list[dict[str, Any]], name: str) -> dict[str, Any]:
+    """Pool one lane's agreement with ``master`` over every measured case."""
     measured = [record for record in records if record["status"] == "measured"]
     strata: dict[str, DecisionCounts] = {}
     emission = DecisionCounts()
@@ -517,10 +1057,8 @@ def _pooled_lane(
         if record["truth"] is not None:
             truth += DecisionCounts(**record["truth"][name])
         cuts += CatalogueCutCounts(**record["catalogue_cuts"][name])
-    outcome = gate_outcome(strata, threshold)
     return {
         "strata": _counts_record(strata),
-        "gate": asdict(outcome),
         "emission_pixels": asdict(emission)
         | {
             "agreement": emission.agreement,
@@ -558,8 +1096,47 @@ def _print_summary(report: Mapping[str, Any]) -> None:
             else f"{lane['strata'][stratum]['agreement']:>11.4f}"
             for stratum in strata
         )
-        print(f"{name:22s}{cells}  {lane['gate']['status']}")
-    print(f"profile rule: {report['profile_rule']}")
+        print(f"{name:22s}{cells}")
+    print(
+        f"{'finder':22s}{'recall':>8s}{'off':>8s}{'kept5':>8s}"
+        f"{'kept7':>8s}{'flux10':>8s}{'false':>8s}{'inflated':>10s}"
+        "  truth gate"
+    )
+    for name, correctness in report["correctness"].items():
+        emission = correctness["ideal_mask"]["emission"]
+        injected = correctness["injected"]
+        noise = correctness["noise"].get("negative-pixels", {})
+        cells = (
+            emission["recall"],
+            emission["off_emission_fraction"],
+            injected.get("5", {}).get("kept_fraction"),
+            injected.get("7", {}).get("kept_fraction"),
+            injected.get("10", {}).get("median_flux_ratio"),
+        )
+        print(
+            f"{name:22s}"
+            + "".join(
+                f"{'-':>8s}" if value is None else f"{value:>8.3f}"
+                for value in cells
+            )
+            + f"{correctness['negated']['false_islands']['islands']:>8d}"
+            + (
+                f"{'-':>10s}"
+                if noise.get("components", {}).get("inflated_fraction") is None
+                else f"{noise['components']['inflated_fraction']:>10.3f}"
+            )
+            + _gate_summary(correctness.get("gate"))
+        )
+
+
+def _gate_summary(gate: Mapping[str, Any] | None) -> str:
+    """Return a lane's truth-gate status and what it failed, if gated."""
+    if gate is None:
+        return "  reference"
+    reasons = gate["failures"] or gate["unmeasured"]
+    return f"  {gate['status']}" + (
+        f": {'; '.join(reasons)}" if reasons else ""
+    )
 
 
 def _references(
@@ -634,6 +1211,26 @@ def main() -> int:
             engine=args.engine,
             run_missing=not args.skip_references,
         )
+    real_cases = {item.case.case_id for item in configuration.cases}
+    derived = [
+        item
+        for case, _ in cases
+        if case.case_id in real_cases
+        for item in _derived_cases(prepared[case.case_id], configuration.truth)
+    ]
+    for item in derived:
+        case_id = item.prepared.case_id
+        prepared[case_id] = item.prepared
+        case_references[case_id] = _references(
+            item.prepared,
+            {
+                name: (reference, identities[name])
+                for name, reference in references.items()
+            },
+            reference_result,
+            engine=args.engine,
+            run_missing=not args.skip_references,
+        )
     runs = _run_lanes(prepared, configuration, run_root, args.jobs)
     records = [
         _measure_case(
@@ -649,14 +1246,29 @@ def main() -> int:
         )
         for case, image_kind in cases
     ]
-    threshold = configuration.agreement_threshold
+    derived_records = [
+        _measure_derived(
+            item,
+            references=case_references[item.prepared.case_id],
+            runs={
+                lane.name: runs[(item.prepared.case_id, lane.name)]
+                for lane in configuration.lanes
+            },
+            match_radius_beams=quick_check.maximum_separation_beams,
+        )
+        for item in derived
+    ]
     lanes = {
-        lane.name: _pooled_lane(records, lane.name, threshold)
+        lane.name: _pooled_lane(records, lane.name)
         for lane in configuration.lanes
     }
+    gate = (
+        TruthGateLimits(**configuration.truth.gate.model_dump()),
+        _pooled_injected(derived_records, _MASTER),
+    )
     elapsed = time.perf_counter() - started
     report: dict[str, Any] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "check_id": configuration.check_id,
         "label": label,
         "created_at": datetime.now(UTC).isoformat(),
@@ -668,9 +1280,8 @@ def main() -> int:
         "quick_check_configuration_sha256": file_sha256(quick_check_path),
         "reference_identities": identities,
         "population": "fitted-gaussian-pixels",
-        "agreement_threshold": threshold,
         "lanes": lanes,
-        "control": _pooled_lane(records, _CONTROL, threshold),
+        "control": _pooled_lane(records, _CONTROL),
         "compact_versus_continuum": {
             background: _pooled_pair(records, background)
             for background in ("estimated", "zero")
@@ -685,17 +1296,24 @@ def main() -> int:
                 CatalogueCutCounts(),
             )
         ),
-        "profile_rule": {
-            background: rapthor_profile(
-                GateOutcome(**lanes[f"compact-{background}"]["gate"])
+        "correctness": {
+            name: _pooled_correctness(
+                records,
+                derived_records,
+                name,
+                gate=None if name == _MASTER else gate,
             )
-            for background in ("estimated", "zero")
-            if f"compact-{background}" in lanes
+            for name in (
+                *(lane.name for lane in configuration.lanes),
+                _MASTER,
+                _CONTROL,
+            )
         },
         "elapsed_seconds": elapsed,
         "budget_seconds": configuration.budget_seconds,
         "within_budget": elapsed <= configuration.budget_seconds,
         "cases": records,
+        "derived_cases": derived_records,
     }
     write_report(report_path, report)
     _print_summary(report)

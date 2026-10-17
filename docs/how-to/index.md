@@ -39,7 +39,7 @@ demonstration notebook is
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
-| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
+| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background, and each finder's correctness against known truth ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
 | `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
@@ -157,10 +157,11 @@ one realization and no confidence interval is claimed.
 
 ## Measure Rapthor-profile agreement
 
-The agreement check chooses the Hebog profile and background Rapthor runs by how
-often Rapthor's filter step keeps the same sky-model components with
-Hebog's mask as with pinned PyBDSF `master`'s. Rerun it when the science,
-the Rapthor or LSMTool pins, or the reference changes:
+The agreement check measures how often Rapthor's filter step keeps the
+same sky-model components with Hebog's mask as with pinned PyBDSF
+`master`'s, and gates each Hebog profile and background on known truth.
+Rerun it when the science, the Rapthor or LSMTool pins, or the reference
+changes:
 
 ```console
 just rapthor-agreement --jobs 4
@@ -185,8 +186,7 @@ lane fitted, the same set for every lane. Each component is tagged bright
 border), masked (within three FWHM of a blank pixel), crowded (another
 component within two FWHM) or sparse, extended (on an island of all the
 masks together larger than ten beam areas), and true-sky or apparent.
-A lane passes at 99.5% agreement overall and in every stratum, and the
-rule chooses `compact` for a background only when its lane passes.
+Agreement is reported, not gated.
 
 The report, `benchmark-results/rapthor-agreement/runs/<label>/report.json`,
 also gives each lane's agreement with `master` on two diagnostic
@@ -197,6 +197,35 @@ cuts on matched sources (`DC_Maj` below 10″ and `E_RA`, `E_DEC` below 2″),
 counting the sources a lane drops because they have several components
 and those it keeps as unresolved from a fit 10″ or wider. Use `--cases` for
 a subset and `--skip-references` to use cached references only.
+
+Agreement with `master` is not correctness, so the report's `correctness`
+section measures every lane, `master` and the control against known truth:
+
+- on the generated cases, each mask against the ideal one, the noiseless
+  emission at `threshisl` sigma or more connected to a `threshpix` peak:
+  the components each keeps against the ideal's, the share of the ideal's
+  pixels and flux it covers, and the share of the mask on emission below
+  one sigma;
+- on each real image with 240 beam-shaped sources injected, 30 at each of
+  eight signal-to-noise ratios from 3 to 50 and clear of existing emission,
+  which sources Rapthor keeps, which each finder publishes within a beam
+  FWHM, and their flux;
+- the islands each finder finds on the negated real images, all false;
+- each RMS map against the noise: the injected noise on generated cases,
+  and on real images the RMS of the negative pixels in boxes 20 beams wide,
+  which faint sources cannot inflate;
+- each finder's disagreements with `master`, split by whether the component
+  is real: on the ideal mask, or at least 7 sigma above the negative-pixel
+  noise, clear of the threshold where the finders' RMS estimates decide.
+
+A lane, or the control, passes the truth-based gate when it rejects at
+most 1% of the real components `master` keeps, and 2% in every stratum;
+keeps at least `master`'s share of the injected sources less 5 points at
+every level from 6 sigma, and all of them from 10 sigma; and finds at
+most 1% as many false islands on the negated images as islands on the
+originals. The configuration's `truth` section sets these measures and
+limits. The injected and negated images, and their PyBDSF references, are
+cached with the quick check's inputs and references.
 
 ## Run the quick benchmark
 
