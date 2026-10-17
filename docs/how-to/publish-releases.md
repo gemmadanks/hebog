@@ -64,7 +64,7 @@ project page afterwards, then install the release into a fresh environment.
 <!-- x-release-please-start-version -->
 
 ```console
-pip install hebog==0.21.0
+pip install hebog==0.22.0
 hebog --version
 ```
 
