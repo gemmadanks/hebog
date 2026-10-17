@@ -68,7 +68,7 @@ jobs:
     needs: build-release
     runs-on: ubuntu-latest
     # Experimental 0.x releases go to PyPI from 0.22.0, so Rapthor's optional
-    # Hebog dependency installs from the usual index (plan task 13).
+    # Hebog dependency installs from the usual index.
     environment:
       name: pypi
       url: https://pypi.org/project/hebog/
