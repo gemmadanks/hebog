@@ -35,8 +35,8 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
-* record the scaling decisions of 15 October and close task 74 ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
-* record v0.21.0 and ready the plan for task 20 ([#159](https://github.com/gemmadanks/hebog/issues/159)) ([ab62da0](https://github.com/gemmadanks/hebog/commit/ab62da0a45f3a1a8da6ab3bcd38621bcb55d2426))
+* record the scaling decisions ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
+* record v0.21.0 and update the plan ([#159](https://github.com/gemmadanks/hebog/issues/159)) ([ab62da0](https://github.com/gemmadanks/hebog/commit/ab62da0a45f3a1a8da6ab3bcd38621bcb55d2426))
 * rewrite the glossary and correct stale integration and schema claims ([2bb0dcf](https://github.com/gemmadanks/hebog/commit/2bb0dcf675055f5f57c24bd34d78180adfe2504d))
 
 
@@ -157,7 +157,7 @@ All notable changes to this project will be documented in this file.
 * condense the developer guide and add a progress page ([#118](https://github.com/gemmadanks/hebog/issues/118)) ([d67fdec](https://github.com/gemmadanks/hebog/commit/d67fdec0840fb808d63b5b96f7e96735d6b65cc8))
 * record decisions on the review tasks ([#104](https://github.com/gemmadanks/hebog/issues/104)) ([5a028bf](https://github.com/gemmadanks/hebog/commit/5a028bf26b3b80bd1136926e37148798de7f884d))
 * record repair decisions ([#117](https://github.com/gemmadanks/hebog/issues/117)) ([d585832](https://github.com/gemmadanks/hebog/commit/d5858325729fe31c93ddebb34af771c7cdd60083))
-* record the 0.19.0 release check after task 69 ([#137](https://github.com/gemmadanks/hebog/issues/137)) ([2c913ea](https://github.com/gemmadanks/hebog/commit/2c913ead01ad3b676fd1ba5a28bade6b84accaa9))
+* record the 0.19.0 release check ([#137](https://github.com/gemmadanks/hebog/issues/137)) ([2c913ea](https://github.com/gemmadanks/hebog/commit/2c913ead01ad3b676fd1ba5a28bade6b84accaa9))
 * release 0.19.0 check ([#135](https://github.com/gemmadanks/hebog/issues/135)) ([45e14c3](https://github.com/gemmadanks/hebog/commit/45e14c3698afea507d78a0c9c085a65441acebd4))
 
 
