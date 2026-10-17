@@ -49,11 +49,12 @@ patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/
 adds the native task on today's worker layout; its distributed path is
 planned. The [integration evidence](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/integration-summary.json)
 records the upstream audit, real Prefect/LSMTool/subprocess tests and the
-frozen-field checkpoint under both profiles and background settings. The final
-container passes 39 native/CLI tests; the broader native/settings suite passes
-94, with full branch-aware coverage of the new native module, and Rapthor's
-library, operation and image-flow suites pass 662 (14 October). Its parset defaults to
-the `compact` profile with a zero background. The 18-case
+frozen-field checkpoint under both profiles and background settings. At the
+pins of 17 October (Rapthor `aff26023`, LSMTool `156ae6a`), the integration
+container with Hebog 0.22.0 from PyPI passes 39 native/CLI tests; the broader
+native/settings suite passes 94, with full branch-aware coverage of the new
+native module, and Rapthor's library, operation and image-flow suites pass
+662. Its parset defaults to the `compact` profile with a zero background. The 18-case
 quick science check has no regressions and all 54 FITS products match the
 previous baseline byte for byte. That
 three-source smoke check did not decide the profile; the agreement check did, below.

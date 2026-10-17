@@ -52,7 +52,7 @@ evidence for that exact candidate:
   and PyBDSF fallback. The standalone public API remains usable without
   Rapthor, Prefect, LSMTool or Dask.
 - **Science.** The Rapthor profile passes the truth-based retained/rejected
-  component gate (decision 3 below), and the frozen candidate passes
+  component gate (decision 2 below), and the frozen candidate passes
   prospective, powered, held-out parity/retention against pinned PyBDSF
   `master` (`c70103b`) on full LOFAR images inside the envelope, SDC1
   simulations with truth and a MeerKAT MIGHTEE image; a single check
@@ -89,26 +89,20 @@ is a separate Rapthor decision taken after an operational soak of the
 
 Each decision names the maintainer's call and the agent's recommendation.
 A decision taken here is recorded in the affected row and in the commit,
-never in `LOG.md`. Decided on 16 October and recorded in the rows: the
-1.0.0 scope above; the gate's finder-part form and its measurement on the
-cluster; the retirement of the 99.5% agreement target; task 11 before
-task 56, whose completion-record split joins task 72 and whose local-noise
-term waits for the 45,000 tier; task 72 as four releases; the cluster
-benchmark as one sector at 1, 2, 5 and 10 nodes; task 15 as measurement
-and documentation, with a PSF-map input after 1.0.0.
+never in `LOG.md`. Decided on 17 October: the Rapthor and LSMTool pins
+move to their heads before the patch is published, done the same day.
+Decided on 16 October and recorded in the rows: the 1.0.0 scope above; the
+gate's finder-part form and its measurement on the cluster; the retirement
+of the 99.5% agreement target; task 11 before task 56, whose
+completion-record split joins task 72 and whose local-noise term waits for
+the 45,000 tier; task 72 as four releases; the cluster benchmark as one
+sector at 1, 2, 5 and 10 nodes; task 15 as measurement and documentation,
+with a PSF-map input after 1.0.0.
 
-1. **The pins.** Since the 13 October checkpoint Rapthor's `main` has moved
-   one commit (`aff26023`, an array-beam option) and LSMTool's `master`
-   twelve, including a `_get_xy` optimisation that changes LSMTool's share
-   of the step; PyBDSF's `master` is 91 commits past `c70103b`.
-   *Recommendation:* move the Rapthor and LSMTool pins at task 79, before
-   the patch is published, with the contract audit, the acceptance
-   scenarios and `just rapthor-agreement` re-run and the reference timings
-   re-cached; keep PyBDSF at `c70103b` until the freeze (task 28).
-2. **Independent acceptance (task 33).** Reviewers have not been named.
+1. **Independent acceptance (task 33).** Reviewers have not been named.
    *Recommendation:* approach the radio-astronomy and engineering reviewers
    when the patch is published, so their review runs beside Rapthor's.
-3. **The truth-based gate's limits.** Task 76 adds the measures; the
+2. **The truth-based gate's limits.** Task 76 adds the measures; the
    limits are the maintainer's. *Recommendation:* of the components
    `master`'s mask keeps and Hebog's rejects, the share that injected truth
    or the negative-pixel noise shows to be real emission is bounded per
@@ -116,7 +110,7 @@ and documentation, with a PSF-map input after 1.0.0.
    emission that `master` misses, are reported beside it, not gated. The
    agent proposes the limits from task 76's run; the maintainer approves
    them before the freeze.
-4. **The scaling floor.** "Scales well across nodes" needs a number before
+3. **The scaling floor.** "Scales well across nodes" needs a number before
    the cluster session. *Recommendation:* task 27 proposes a strong-scaling
    efficiency floor at 10 nodes from the local curve and the contract's
    per-topology floors, and the maintainer approves it with the contract
@@ -161,9 +155,9 @@ and documentation, with a PSF-map input after 1.0.0.
   ELAIS-N1 apparent and primary-beam-corrected pair is the representative
   two-branch Rapthor input. SDC1 cut-outs serve science checks for SKA-Mid.
   See [reference images](#reference-images).
-- **Pins.** Rapthor `main` at `d0e7e148` (the Prefect/Dask line since the
+- **Pins.** Rapthor `main` at `aff26023` (the Prefect/Dask line since the
   9 October 2026 merge; `master` is the CWL/Toil release line and not a
-  target), LSMTool `master` at `9bac2f7` (v1.9.0 plus 15 commits) and
+  target), LSMTool `master` at `156ae6a` (v1.9.0 plus 27 commits) and
   PyBDSF `master` at `c70103b` (`v1.14.1-40`). Rapthor and LSMTool pins
   move only at the checkpoints the [risks](#risks) name, with the contract
   audit, the acceptance scenarios and the agreement check re-run and the
@@ -329,13 +323,13 @@ The order, set on 9 October 2026 and amended through 17 October:
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 79 | Human publishes, agent prepares | Publish the Rapthor patch upstream. | The pins move to Rapthor's and LSMTool's current heads (decision 1), the contract audit, acceptance scenarios and `just rapthor-agreement` are re-run at them and the integration container is rebuilt and its summary re-recorded. The patch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching patch change. Done when the merge request is open against Rapthor's `main` with the dual-run mode and the PyBDSF fallback described, and Rapthor's maintainers have been asked to run a dual run on a production field, which seeds task 32. Until it merges, the integration container installs the recorded local commit. |
+| 79 | Human publishes, agent prepares | Publish the Rapthor patch upstream. | The pins moved to Rapthor `aff26023` and LSMTool `156ae6a` on 17 October, with the patch rebased, the integration container rebuilt and its summary re-recorded; they move again before publication only if upstream changes the filter step. The patch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching patch change. Done when the merge request is open against Rapthor's `main` with the dual-run mode and the PyBDSF fallback described, and Rapthor's maintainers have been asked to run a dual run on a production field, which seeds task 32. Until it merges, the integration container installs the recorded local commit. |
 
 ### Truth measures and the next tier
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 76 | Agent | Measure each lane's correctness beside its agreement with `master`. | `just rapthor-agreement` also reports, for every lane, `master` and the released control: mask decisions and emission recall against injected truth on the generated cases, the ideal mask being the noiseless emission at `threshisl` sigma or more connected to a `threshpix` peak; completeness and flux of sources injected into the real LOFAR images (the LoTSS-DR3 window and the ELAIS-N1 pair) by SNR; false islands on the negated real images; and each RMS map against the RMS of negative pixels, which faint sources cannot inflate. Exploratory scripts of 13 October found 34, 55 and 9 false islands on ELAIS-N1 for `master`, `compact`/zero and `continuum`. Done when these are tested pure functions within the release-check budget, the progress page summarises them, and the agent has proposed the truth-based gate's limits from them (decision 3). |
+| 76 | Agent | Measure each lane's correctness beside its agreement with `master`. | `just rapthor-agreement` also reports, for every lane, `master` and the released control: mask decisions and emission recall against injected truth on the generated cases, the ideal mask being the noiseless emission at `threshisl` sigma or more connected to a `threshpix` peak; completeness and flux of sources injected into the real LOFAR images (the LoTSS-DR3 window and the ELAIS-N1 pair) by SNR; false islands on the negated real images; and each RMS map against the RMS of negative pixels, which faint sources cannot inflate. Exploratory scripts of 13 October found 34, 55 and 9 false islands on ELAIS-N1 for `master`, `compact`/zero and `continuum`. Done when these are tested pure functions within the release-check budget, the progress page summarises them, and the agent has proposed the truth-based gate's limits from them (decision 2). |
 | 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
 
 ### One sector across the cluster
@@ -421,7 +415,7 @@ invariants, as in ADR-005.
 | --- | --- | --- | --- |
 | 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies, including the kept records that grow with the image and the sources found. |
 | 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Zarr v3's sharding codec is evaluated against one file per chunk, since a run writes 19,373 chunk files at 10,000² and thousands of tasks on a cluster's shared filesystem mean many small files; the completion record's split by tile (task 72) is reviewed with it. Shared-storage throughput is measured by the cluster benchmark. |
-| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one Rapthor sector at its default size at 1, 2, 5 and 10 nodes: through Rapthor's native task on the layout the patch documents, and standalone on the same cluster, which is the scaling evidence if Rapthor has not yet given each node several task slots. They record evidence, the hardware, a scaling-model fit, the finder-part ratio against PyBDSF on one node and the strong-scaling efficiency against the floor decision 4 fixes. `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and that benchmark, keeping the 50, 100 and 200-node gates as design targets (task 26, folded in). A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
+| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one Rapthor sector at its default size at 1, 2, 5 and 10 nodes: through Rapthor's native task on the layout the patch documents, and standalone on the same cluster, which is the scaling evidence if Rapthor has not yet given each node several task slots. They record evidence, the hardware, a scaling-model fit, the finder-part ratio against PyBDSF on one node and the strong-scaling efficiency against the floor decision 3 fixes. `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and that benchmark, keeping the 50, 100 and 200-node gates as design targets (task 26, folded in). A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
 
 ### Science before the freeze
 
@@ -441,10 +435,10 @@ reopens its item at once. All three close before the candidate is frozen.
 | --- | --- | --- | --- |
 | 28 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed; a later change restarts only the affected qualification tasks. The Rapthor, LSMTool and PyBDSF pins move forward here for the last time. |
 | 29 | Agent designs, human approves | Run one powered parity/retention study with fresh held-out and public-survey data, sized to finish overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the limitations that block 1.0.0, a per-noise-class check of the `Total_flux` rows, the truth-based retained/rejected gate at its approved limits, and full LOFAR images inside the envelope, SDC1 simulations with truth and a MeerKAT MIGHTEE image. Closed failed campaigns are never reused as confirmation. |
-| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's finder part at 1, 2, 5 and 10 nodes keeps falling to the floor decision 4 fixed, with invariant products; its ratio against PyBDSF's finder part on one node passes the gate like for like at one node and in Rapthor's deployed configuration, under the confidence rule, for the envelope's sizes. A failure becomes a normal `0.x` repair task. |
+| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's finder part at 1, 2, 5 and 10 nodes keeps falling to the floor decision 3 fixed, with invariant products; its ratio against PyBDSF's finder part on one node passes the gate like for like at one node and in Rapthor's deployed configuration, under the confidence rule, for the envelope's sizes. A failure becomes a normal `0.x` repair task. |
 | 31 | Agent | Check released PyBDSF 1.14.1 once. | One matched run against 1.14.1, cached for reuse, confirms Hebog's finder part ≤0.50 times the release's on the deployment envelope and Rapthor-profile agreement against it. A failure is reported with its cause before the 1.0.0 decision. |
 | 32 | Human runs in Rapthor, agent supports | Run the operational trial behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
-| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, a dependency and licence audit, packaging and current documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance from the reviewers decision 2 names. |
+| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, a dependency and licence audit, packaging and current documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance from the reviewers decision 1 names. |
 | 34 | Human | Release 1.0.0. | Release Please produces 1.0.0 (for example through a `Release-As: 1.0.0` commit footer) and the package publishes to PyPI. Release notes state the envelope, the 1.x compatibility policy, and that 100,000² images and 100 to 200+ nodes are designed for but not demonstrated. |
 
 ### After 1.0.0
@@ -467,15 +461,15 @@ allow.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | Hebog's finder part stays slower than PyBDSF's: 2.43 times pinned `master`'s on the thread path at 3,000² and 1.23 on four Dask workers at 10,000², where both finders burn about the same CPU, so few cores cannot pass the gate whatever the occupancy. | Task 30 fails, or passes only at node counts Rapthor does not deploy. | Task 72 raises occupancy and cuts the Dask path's CPU overhead; task 23 cuts the largest constant factors; the gate is measured where PyBDSF's fitting stops scaling and Hebog's tiles do not; use the native-code gates only for a profiled kernel; report the gap honestly at each milestone. |
-| Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate (decision 3) fails where Hebog loses real sources. | Task 76 measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors; task 75 repairs `continuum`; `just rapthor-agreement` re-measures every lane at each pin move and science change. |
+| Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate (decision 2) fails where Hebog loses real sources. | Task 76 measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors; task 75 repairs `continuum`; `just rapthor-agreement` re-measures every lane at each pin move and science change. |
 | One sector's speed-up is capped: a 20% serial share on the 10,000² anchor caps it near five; a worker needs about 2 GB a core for the multiscale tasks, so a node short of memory swaps before its cores are busy; rounds hold 7 to 25 tasks and a 3,000² sector only four tiles; Python's global lock throttles a process with many threads; concurrent sectors could deadlock workers that run one task each. | Rapthor's cluster cores go unused, and the gate is missed on occupancy rather than work. | Task 72's cost model sizes tiles and task counts from the core budget and the memory a core needs, with single-threaded tasks on several worker processes a node, resource annotations and seceding while waiting; the cluster benchmark reports where one sector stops scaling. |
 | Scaling across nodes inside Rapthor needs Rapthor to give each node several task slots, which is Rapthor's change to make. | The Rapthor run of the cluster benchmark uses one core a node. | The patch documents the layout; the standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
 | The passes keep records from every tile, growing the traced peak about 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS, and the analysis's own records grow with the sources found, about 42 KB each. | At those slopes the multiscale peak is about 2.1 GiB at 22,500², within the envelope's budget, and 4.3 GiB at 45,000² with background/RMS about 6 GiB; a dense sector's analysis (about 5.1 GiB for 123,186 sources) must be reserved by its Rapthor worker. | Task 56 before the 45,000² tier; shard, stream or drop kept records such as candidates that can never become islands; task 24's planner bounds include them; `hebog.analysis_memory_bytes` states the analysis's memory from an expected source count meanwhile. |
 | An object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds, at up to 186 bytes a pixel: about 44 GB for a field-filling object at 15,402². No real LoTSS-DR3 object comes within a factor of ten of the budget. | Driver memory scales with the wide segments of a round, not the tile. | Deferred: associative partial sums on the cores first, then a reviewed design for the local-noise median; reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. A connected network of narrow filaments is the diagnostic that would measure its growth. |
 | Source association costs more than the image grows; a dense Rapthor sector (ELAIS-N1, 123,186 sources) took 8.5 h serially on 11 October. | A dense sector takes hours inside the envelope. | Tasks 55 and 54 removed the quadratic hierarchy decision and the strip-shaped reads; under the same `continuum` profile the sector took 2.0 h on 17 October against 8.5 h, and 1.3 h under the `compact` default. Profile the anchors again within task 23. |
 | The development machine's 18 GiB RAM, free disk (30 GiB on 16 October) and 16 GB container VM limit local tiers and matched benchmarks: `master` cannot run a 15,402² sector in the VM. | Local evidence stops at the 10,000² anchor for matched runs and at 22,500² for tiers. | The cluster measures the gate; about 60 GB free before 45,000². |
-| Rapthor and LSMTool change frequently; both have moved since the 13 October pin, and PyBDSF's `master` is 91 commits past the binding reference. | Adapter, contract, benchmark or reference churn, or a backend that only works on a stale revision. | Move the Rapthor and LSMTool pins only before the patch is published (task 79), before the matched benchmarks (task 23) and at the freeze (task 28), re-running the contract audit, the acceptance scenarios and the agreement check and recording the outcome in the commit; keep PyBDSF at `c70103b` until the freeze. |
-| The Rapthor patch depends on upstream acceptance, the cluster benchmark on hardware not yet scheduled, and acceptance on reviewers not yet named. | The native backend cannot be selected from released Rapthor until the patch merges; 1.0.0 waits on a session and on reviews. | The integration container installs the prepared patch at a recorded commit; Rapthor calls Hebog directly, so no LSMTool registry patch is required; the cluster session is one sector at four node counts after a local dry run (task 27); reviewers are approached when the patch is published (decision 2). |
+| Rapthor and LSMTool change frequently; their pins moved to the upstream heads on 17 October, and PyBDSF's `master` is 91 commits past the binding reference. | Adapter, contract, benchmark or reference churn, or a backend that only works on a stale revision. | Move the Rapthor and LSMTool pins again only if upstream changes the filter step before the patch is published (task 79), before the matched benchmarks (task 23) and at the freeze (task 28), re-running the contract audit, the acceptance scenarios and the agreement check and recording the outcome in the commit; keep PyBDSF at `c70103b` until the freeze. |
+| The Rapthor patch depends on upstream acceptance, the cluster benchmark on hardware not yet scheduled, and acceptance on reviewers not yet named. | The native backend cannot be selected from released Rapthor until the patch merges; 1.0.0 waits on a session and on reviews. | The integration container installs the prepared patch at a recorded commit; Rapthor calls Hebog directly, so no LSMTool registry patch is required; the cluster session is one sector at four node counts after a local dry run (task 27); reviewers are approached when the patch is published (decision 1). |
 | Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate a scientific trade-off to the human rather than weakening invariance silently. |
 | Large public images have minimal or non-standard headers, and no large public SKA-Low image exists. | Anchors cannot run unmodified, their science comparison is weak, or SKA-Low coverage relies on precursor data after 1.0.0. | Headers checked against the input header contract before download; explicit request metadata; per-facet LOFAR-HD catalogues for science; GLEAM-X DR1 with its PSF maps at the 45,000² release, and SKA-Low science-verification data once released (expected from 2027). |
 | Short checks miss a rare regression, or scientific campaigns absorb the schedule again. | A defect reaches a `0.x` release, or performance and scale slip. | Releases stay experimental and each escaped defect adds a fixed case; iteration budgets, cached references and endpoints limited to Rapthor-consumed fields hold the schedule; the one powered study at task 29 is the backstop. |
@@ -532,7 +526,7 @@ executors and external finders.
 
 | Measurement | Target |
 | --- | --- |
-| Rapthor retained/rejected components | Truth-based: of the components `master`'s mask keeps and Hebog's rejects, the share that truth or the negative-pixel noise shows to be real emission is bounded per stratum at the limits decision 3 fixes; agreement percentages are reported beside it |
+| Rapthor retained/rejected components | Truth-based: of the components `master`'s mask keeps and Hebog's rejects, the share that truth or the negative-pixel noise shows to be real emission is bounded per stratum at the limits decision 2 fixes; agreement percentages are reported beside it |
 | Reference recovery, SNR ≥10 | ≥99% |
 | SNR ≥5 | Report the compatibility curve; no single pass fraction |
 | False-discovery rate | ≤1 percentage point above reference |
