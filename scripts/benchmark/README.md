@@ -149,8 +149,8 @@ the times are emulated.
 
 `--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
 mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
-single-threaded Dask worker processes instead of Rapthor's threads. The
-patched Rapthor has no Dask path for Hebog yet, so such a run
+single-threaded Dask worker processes instead of Rapthor's threads. Rapthor's
+Hebog branch has no Dask path for Hebog yet, so such a run
 screens what one could give and never counts towards the gate.
 
 ## Phase 0 PyBDSF baselines

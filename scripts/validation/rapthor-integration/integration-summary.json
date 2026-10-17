@@ -24,8 +24,7 @@
     "hebog_version": "0.22.0, the wheel published on PyPI (its SHA-256 matches PyPI's)",
     "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
     "memory_reservation": "hebog.analysis_memory_bytes for the sources hebog.expected_source_count estimates from the detection image at threshpix; an ExecutorAdmissionError, when no memory remains for the tile tasks or one needs more than remains, falls back to PyBDSF (Hebog plan task 77, decided 14 October 2026)",
-    "patch_sha256": "9f10f70d12c4d694032d6772926e8bf119093fd1fe63af2074edaf2d4a67110f",
-    "publication": "Local commits only; upstream publication and merge pending",
+    "publication": "On a branch of https://git.astron.nl/RD/rapthor; not merged",
     "rapthor_commit": "5e5d9dcde342061fef340c01d31ff7e45d479470",
     "rapthor_tree": "879249628867dc71ea223360e9567583b6e8eed4"
   },
@@ -130,7 +129,7 @@
   },
   "reproduce": {
     "native_integration": "See scripts/validation/containers/rapthor/README.md; tests are archived in the pinned Rapthor commit",
-    "profile_smoke": "See the frozen-field checkpoint in scripts/validation/patches/README.md",
+    "profile_smoke": "See the frozen-field checkpoint in scripts/validation/rapthor-integration/README.md",
     "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
   },
   "schema_version": 1,
@@ -139,7 +138,7 @@
   "upstream_audit": {
     "lsmtool": "156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2",
     "rapthor": "aff260233a9a8c2ee19ce6616ea009402ecb86f0",
-    "result": "Pin move of 17 October 2026. Rapthor main gained one commit (aff26023, an array-beam option) that changes nothing in the filter step. LSMTool master gained twelve commits that refactor skymodel.py and tableio.py (private helpers renamed, _get_xy faster) and leave filter_skymodel/, the mask lookup and the test resources unchanged; its declared dependencies are the same. The patch rebases onto aff26023 without conflict."
+    "result": "Pin move of 17 October 2026. Rapthor main gained one commit (aff26023, an array-beam option) that changes nothing in the filter step. LSMTool master gained twelve commits that refactor skymodel.py and tableio.py (private helpers renamed, _get_xy faster) and leave filter_skymodel/, the mask lookup and the test resources unchanged; its declared dependencies are the same. The change rebases onto aff26023 without conflict."
   },
   "validation": {
     "archived_container_tests": {
@@ -175,7 +174,6 @@
       "passed": 8,
       "scope": "Run in the task79 image"
     },
-    "patch_replay": "git am on aff26023 reproduced tree 879249628867dc71ea223360e9567583b6e8eed4 exactly",
     "rapthor_agreement": {
       "command": "just rapthor-agreement --jobs 4 --label task79-pin --skip-references",
       "report_sha256": "85690145e3e2b625c65fe3e6874ed7fb2a5a3d8d9f9be66767b22ae3991644fd",
@@ -185,7 +183,7 @@
       "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task79 python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
       "passed": 662
     },
-    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going), with numpydoc 1.11.0 and sphinxcontrib-mermaid 2.1.1, of the archived patched source in the image succeeds with no warning",
+    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going), with numpydoc 1.11.0 and sphinxcontrib-mermaid 2.1.1, of the archived Rapthor source in the image succeeds with no warning",
     "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
   }
 }

@@ -1,4 +1,4 @@
-# Rapthor aff26023 (with the patch), Hebog 0.22.0 and LSMTool 156ae6a dependencies,
+# Rapthor's Hebog branch on aff26023, Hebog 0.22.0 and LSMTool 156ae6a dependencies,
 # plus optional native thread control and the isolated validation tools.
 astropy
 bdsf

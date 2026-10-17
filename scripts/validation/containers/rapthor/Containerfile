@@ -1,6 +1,7 @@
 # Build the pinned LSMTool base first, following ../lsmtool/README.md.
-# rapthor.tar is the reviewed patched commit; hebog-*.whl is an exact local
-# build. Archive identities and this image ID belong in the run's evidence.
+# rapthor.tar is a commit of Rapthor's Hebog branch; hebog-*.whl is an exact
+# local build or release. Archive identities and this image ID belong in the
+# run's evidence.
 FROM localhost/hebog-lsmtool:156ae6a
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
 COPY requirements-build.txt requirements.txt /tmp/

@@ -1,10 +1,10 @@
 # Native Rapthor integration container
 
-This isolated Linux image installs the reviewed local Rapthor patch, a Hebog
-wheel and pinned LSMTool. It exercises the actual Prefect task, native Hebog,
-LSMTool filtering, and the PyBDSF subprocess without adding those workflow
-packages to Hebog's dependencies. The patch and its provenance are in
-[the patch guide](../../patches/README.md).
+This isolated Linux image installs a commit of Rapthor's Hebog branch, a
+Hebog wheel and pinned LSMTool. It exercises the actual Prefect task, native
+Hebog, LSMTool filtering, and the PyBDSF subprocess without adding those
+workflow packages to Hebog's dependencies. The branch and its provenance are
+in [the Rapthor branch guide](../../rapthor-integration/README.md).
 
 Build the `localhost/hebog-lsmtool:156ae6a` base using
 [the LSMTool recipe](../lsmtool/README.md) first. Its pin moved to LSMTool's
@@ -17,11 +17,14 @@ performance gate against pinned `master`.
 
 ## Build and verify
 
-From the Hebog checkout, with a local Rapthor checkout containing the patch:
+From the Hebog checkout, with any clone of Rapthor and the full hash of the
+commit to test; the integration summary's `rapthor_commit` rebuilds the image
+it records:
 
 ```bash
-rapthor_checkout=/path/to/patched/rapthor
-rapthor_revision=$(git -C "$rapthor_checkout" rev-parse HEAD)
+rapthor_checkout=/path/to/rapthor
+rapthor_revision=<rapthor_commit>
+git -C "$rapthor_checkout" fetch origin "$rapthor_revision"
 context=$(mktemp -d)
 cp scripts/validation/containers/rapthor/Containerfile \
   scripts/validation/containers/rapthor/requirements*.txt "$context"
@@ -64,7 +67,7 @@ for name in (
 PYTHON
 ```
 
-The image archives the patched source, including its tests, and installs it
+The image archives the Rapthor source, including its tests, and installs it
 without dependency re-resolution. The image label records the actual Rapthor
 commit. Python 3.12 and Linux x86-64 match the existing LSMTool image; Podman
 uses Rosetta on Apple silicon. No Measurement Set or external astronomy

@@ -1,11 +1,16 @@
-# Native Hebog task for Rapthor
+# Rapthor's Hebog branch
 
-This upstream patch is prepared for human publication. It targets Rapthor
-`main` at `aff260233a9a8c2ee19ce6616ea009402ecb86f0` and LSMTool `master` at
-`156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2`, the pins of 17 October 2026.
+Rapthor's native Hebog task is on a branch of
+[Rapthor](https://git.astron.nl/RD/rapthor), not yet merged. The
+[integration summary](integration-summary.json) records the tested commit,
+based on Rapthor `main` at `aff260233a9a8c2ee19ce6616ea009402ecb86f0` and
+tested with LSMTool `master` at `156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2`,
+the pins of 17 October 2026.
 Rapthor declares `lsmtool>=1.9.0`; validation uses the pinned `master`.
+Testing, trials and benchmarks use the branch; merging it matters only for
+users of released Rapthor.
 
-The patch adds `source_finder = hebog` to Rapthor's existing Prefect filter
+The branch adds `source_finder = hebog` to Rapthor's existing Prefect filter
 task, using a caller-owned ThreadExecutor on its current one-single-threaded-
 worker-per-node layout. It retains the PyBDSF subprocess for the default
 backend and typed Hebog refusals, and adds dual-run reporting, memory
@@ -18,30 +23,26 @@ releases also bump the minor version, so a narrower range would block them.
 The distributed executor and resource annotations are later work. No LSMTool
 registry entry is needed.
 
-The patch modifies GPL-3.0 Rapthor and remains under Rapthor's licence. It
+The change is GPL-3.0 Rapthor code and stays in Rapthor's repository. It
 contains no copied PyBDSF implementation. The small dummy-position record
 adapts the two attributes LSMTool's existing dummy writer requires, preserving
 that writer rather than duplicating its output format.
 
-## Apply and test
+## Install and test
 
-Use a clean Rapthor checkout or a new worktree. Do not apply over unrelated work:
+Install Rapthor at the summary's `rapthor_commit`, with Hebog from PyPI:
 
 ```bash
-git switch --no-track -c feat/hebog-native-task aff260233a9a8c2ee19ce6616ea009402ecb86f0
-git am /path/to/hebog/scripts/validation/patches/rapthor-native-hebog.patch
+python -m pip install "rapthor[hebog] @ git+https://git.astron.nl/RD/rapthor.git@<rapthor_commit>"
 ```
 
-A replayed commit can have a different committer/hash. Record its actual
-identity when archiving it for the
-[container](../containers/rapthor/README.md). The versioned integration
-summary records the tested commit and tree. The patch is prepared locally; upstream
-publication and merge remain human actions. Its parset defaults,
-`hebog_profile = compact` and `hebog_background = zero`, are the interim
-choice for Rapthor, which the adapter also defaults to: of the four settings,
-they made LSMTool keep the sky-model components pinned PyBDSF `master`'s mask
-keeps most often. They are not scientifically qualified, and the matched
-benchmark measures the step's performance.
+The [container guide](../containers/rapthor/README.md) builds and tests
+that commit. The branch's parset defaults, `hebog_profile = compact` and
+`hebog_background = zero`, are the interim choice for Rapthor, which the
+adapter also defaults to: of the four settings, they made LSMTool keep the
+sky-model components pinned PyBDSF `master`'s mask keeps most often. They are
+not scientifically qualified, and the matched benchmark measures the step's
+performance.
 
 ## Frozen-field checkpoint
 
