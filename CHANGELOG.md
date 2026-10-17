@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0](https://github.com/gemmadanks/hebog/compare/v0.22.0...v0.23.0) (2026-10-17)
+
+
+### 🚀 Features
+
+* measure each Hebog profile against known truth in the Rapthor agreement check ([#183](https://github.com/gemmadanks/hebog/issues/183)) ([0768b31](https://github.com/gemmadanks/hebog/commit/0768b315cfa5a8afc54bf9afaf3cac186e7ac0db))
+
+
+### 📚 Documentation
+
+* explain how to withdraw a release and write commits for the changelog ([#178](https://github.com/gemmadanks/hebog/issues/178)) ([f1a0978](https://github.com/gemmadanks/hebog/commit/f1a097818e196d60e842930c4e4a398e63ba056f))
+* install Rapthor's Hebog task from Rapthor's repository, not a patch ([#182](https://github.com/gemmadanks/hebog/issues/182)) ([0e2783b](https://github.com/gemmadanks/hebog/commit/0e2783b4b486b748f36376354f660670c90cacf2))
+* plan a stage profile before scaling one sector across a cluster ([#184](https://github.com/gemmadanks/hebog/issues/184)) ([fd66221](https://github.com/gemmadanks/hebog/commit/fd662217775dbd026f3035efaad39a93c9afcd5c))
+* record the 0.22.0 release and the deep-field speed-up ([#177](https://github.com/gemmadanks/hebog/issues/177)) ([50e4599](https://github.com/gemmadanks/hebog/commit/50e459957a467c7d02da0ce6300a6cd2d77e56fb))
+* simplify PR template ([#179](https://github.com/gemmadanks/hebog/issues/179)) ([032ca90](https://github.com/gemmadanks/hebog/commit/032ca90dc058bfbd719a2a13bca4a51fedc2fd25))
+
+
+### 🧩 CI
+
+* bump the actions group across 1 directory with 2 updates ([#161](https://github.com/gemmadanks/hebog/issues/161)) ([e99c8da](https://github.com/gemmadanks/hebog/commit/e99c8daf84b54bcd850a88024a216d43fbce18c7))
+
+
+### 📦 Build
+
+* let Hebog and its Rapthor patch install beside newer releases ([#180](https://github.com/gemmadanks/hebog/issues/180)) ([b223e76](https://github.com/gemmadanks/hebog/commit/b223e76cfd26d2712b7e24a8cc1487bb093007f7))
+
 ## [0.22.0](https://github.com/gemmadanks/hebog/compare/v0.21.0...v0.22.0) (2026-10-17)
 
 
