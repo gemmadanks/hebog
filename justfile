@@ -82,7 +82,7 @@ test-slow:
 quick-science-check *args:
     uv run python scripts/validation/quick_science_check.py {{args}}
 
-# Measure Rapthor's retained/rejected agreement for each profile (task 21)
+# Measure Rapthor's retained/rejected agreement and each finder's correctness
 rapthor-agreement *args:
     uv run python scripts/validation/measure_rapthor_agreement.py {{args}}
 

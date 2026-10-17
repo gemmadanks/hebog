@@ -737,3 +737,42 @@ def test_a_configuration_with_an_unknown_field_is_refused(
 
     with pytest.raises(ValidationError):
         load_agreement_configuration(path)
+
+
+def test_the_checked_in_configuration_sets_the_truth_measures() -> None:
+    """Injection levels around Rapthor's 5-sigma peak and the noise check."""
+    truth = load_agreement_configuration(_CONFIGURATION).truth
+
+    assert truth.injection.snr_levels == (3, 4, 5, 6, 7, 10, 20, 50)
+    assert truth.injection.per_level == 30
+    assert truth.noise.box_beams == 20.0
+    assert truth.noise.tolerance == 0.2
+    assert truth.real_emission_sigma == 7.0
+
+
+def test_a_configuration_of_the_first_schema_is_refused(
+    tmp_path: Path,
+) -> None:
+    """A configuration without the truth measures fails, not runs without."""
+    document = json.loads(_CONFIGURATION.read_text(encoding="utf-8"))
+    document["schema_version"] = 1
+    del document["truth"]
+    path = tmp_path / "configuration.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValidationError):
+        load_agreement_configuration(path)
+
+
+@pytest.mark.parametrize("levels", [[5, 5], [0, 5], []])
+def test_injection_levels_must_be_distinct_and_positive(
+    tmp_path: Path, levels: list[float]
+) -> None:
+    """A repeated level would double its sources; a zero level has none."""
+    document = json.loads(_CONFIGURATION.read_text(encoding="utf-8"))
+    document["truth"]["injection"]["snr_levels"] = levels
+    path = tmp_path / "configuration.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValidationError):
+        load_agreement_configuration(path)

@@ -39,7 +39,7 @@ demonstration notebook is
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
-| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
+| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background, and each finder's correctness against known truth ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
 | `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
@@ -197,6 +197,30 @@ cuts on matched sources (`DC_Maj` below 10″ and `E_RA`, `E_DEC` below 2″),
 counting the sources a lane drops because they have several components
 and those it keeps as unresolved from a fit 10″ or wider. Use `--cases` for
 a subset and `--skip-references` to use cached references only.
+
+Agreement with `master` is not correctness, so the report's `correctness`
+section measures every lane, `master` and the control against known truth:
+
+- on the generated cases, each mask against the ideal one, the noiseless
+  emission at `threshisl` sigma or more connected to a `threshpix` peak:
+  the components each keeps against the ideal's, the share of the ideal's
+  pixels and flux it covers, and the share of the mask on emission below
+  one sigma;
+- on each real image with 240 beam-shaped sources injected, 30 at each of
+  eight signal-to-noise ratios from 3 to 50 and clear of existing emission,
+  which sources Rapthor keeps, which each finder publishes within a beam
+  FWHM, and their flux;
+- the islands each finder finds on the negated real images, all false;
+- each RMS map against the noise: the injected noise on generated cases,
+  and on real images the RMS of the negative pixels in boxes 20 beams wide,
+  which faint sources cannot inflate;
+- each finder's disagreements with `master`, split by whether the component
+  is real: on the ideal mask, or at least 7 sigma above the negative-pixel
+  noise, clear of the threshold where the finders' RMS estimates decide.
+
+The configuration's `truth` section sets these. The injected and negated
+images, and their PyBDSF references, are cached with the quick check's
+inputs and references.
 
 ## Run the quick benchmark
 

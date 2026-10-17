@@ -78,7 +78,7 @@
     }
   ],
   "quick_check": "config/checks/quick-science-check.json",
-  "schema_version": 1,
+  "schema_version": 2,
   "strata": {
     "bright_snr": 75.0,
     "crowded_beams": 2.0,
@@ -87,5 +87,31 @@
     "masked_beams": 3.0
   },
   "threshisl": 3.0,
-  "threshpix": 5.0
+  "threshpix": 5.0,
+  "truth": {
+    "injection": {
+      "clear_beams": 2.0,
+      "clear_sigma": 3.0,
+      "margin_beams": 5.0,
+      "per_level": 30,
+      "seed": 76,
+      "snr_levels": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        10,
+        20,
+        50
+      ],
+      "spacing_beams": 8.0
+    },
+    "noise": {
+      "box_beams": 20.0,
+      "minimum_pixels": 500,
+      "tolerance": 0.2
+    },
+    "real_emission_sigma": 7.0
+  }
 }

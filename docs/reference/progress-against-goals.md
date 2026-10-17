@@ -16,7 +16,7 @@ history; none is scientific qualification. User-facing limits are in
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid for 1.0.0 and on SKA-Low precursor data at the later release whose envelope admits it | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run; MeerKAT MIGHTEE images fit the envelope; the only SKA-Low precursor mosaic (GLEAM-X) needs the 45,000-pixel tier and a position-dependent PSF, whose effect is to be measured and documented. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `compact` profile and a zero background, Rapthor's choice from the agreement check, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
-| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.8% of sky-model components under the chosen `compact` profile with a zero background; released PyBDSF reaches 99.29%, so the former 99.5% target was retired on 16 October for a truth-based gate whose measures are not yet in the check. | Development evidence only |
+| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.8% of sky-model components under the chosen `compact` profile with a zero background; released PyBDSF reaches 99.29%, so the former 99.5% target was retired on 16 October for a truth-based gate. Against truth, that profile keeps injected sources as often as `master` or more and measures their flux within 1.5% from 10σ, but loses 5.1% of `master`'s real components on extended sources and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%; the gate's limits await the maintainer. | Development evidence only |
 | Performance | The source-finding part of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's `filter_sources` call, ≤0.50 of pinned PyBDSF `master`'s, like for like on one node and across the nodes Rapthor deploys, for sectors up to the 1.0.0 envelope; the complete step reported beside it | The gate fails. On a 3,000² LoTSS-DR3 window with four cores (emulated x86-64), Hebog's finder part is 2.43 times `master`'s on Rapthor's thread path (162 s against 67 s; complete step 2.03) and 1.99 on four Dask workers in one repetition (171 s against 86 s); both burn about the same CPU, so four cores cannot pass the gate whatever the occupancy. On the 10,000² anchor with four Dask workers (16 October, one repetition) the finder part is 1.23 (1,249 s against 1,019 s; complete step 1.19), both finders keeping about three of four cores busy and Hebog using 11% more CPU; PyBDSF could not run the 15,402² mosaic in the 16 GB container VM. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association; with the same settings it takes 2.0 h at 0.22.0, and 1.3 h under the `compact` default. On a local Dask cluster one sector takes 0.36 of one worker's time at four workers and 0.32 at six, with a 20% serial share; twelve threads are barely faster than one, and four Dask workers gain nothing on a 3,000² sector of four tiles. No regression on the Hebog curve. | Gate failing |
 | Scalability | The 22,500² tier for 1.0.0, covering Rapthor's default sectors, with one sector scaling across 1, 2, 5 and 10 nodes with invariant products; 45,000² on the 18 GiB development machine and 90,000² on the cluster as later minor releases; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel, which forecasts about 2.1 GiB at 22,500². Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 22,500 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.22.0 (17 October 2026) is the first release on PyPI, published with attestations; it passed its release check on 15 October and installs from PyPI on Python 3.12 and 3.14. Earlier releases are on GitHub and TestPyPI. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
@@ -175,24 +175,38 @@ too, so it was retired on 16 October for a truth-based gate; the maintainer
 chose `compact` with a zero background as an interim choice, to be made
 again after the local-noise repair.
 
-Agreement with `master` is compatibility, not correctness. Exploratory
-scripts on 13 October, to become part of the check, measured
-three things `master` cannot tell:
+Agreement with `master` is compatibility, not correctness, so the check
+also measures every finder against known truth (run `t76-truth-5`,
+17 October, 1,222 s with cached references, inside its one-hour budget).
+A component is real when it lies on the ideal mask of a generated image
+or at least 7 times the negative-pixel noise above zero on a real one;
+nearer the 5σ threshold the finders' RMS estimates decide. Each level of
+injected sources holds 90, 30 in each real image.
 
-| Measure | `master` | `continuum`, estimated | `compact`, zero |
-| --- | --- | --- | --- |
-| Generated cases: emission at 3σ or more inside the mask | 0.76 | 0.87 | 0.64 |
-| Generated cases: mask on no emission | 0.77% | 0.05% | 0.07% |
-| Generated cases: injected sources at SNR ≥ 5 kept, of 1,133 | 1,121 | 1,115 | 1,111 |
-| ELAIS-N1 2,048²: islands, and false islands on the negated image | 5,762, 34 | 5,101, 9 | 5,665, 55 |
+| Measure | `compact`, zero (Rapthor's) | `compact`, estimated | `continuum`, zero | `continuum`, estimated | `master` | Released 1.14.1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Real components `master` keeps that the finder rejects: all, and worst strata | 0.79% of 12,993; extended 5.1%, edge 3.5% | 1.36%; extended 8.5%, edge 3.9% | 12.1%; edge 13.9% | 12.2%; edge 13.7% | – | 0.02%; extended 0.2% |
+| Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 49, 62, 77% | 49, 61, 77% | 76, 89, 100% | 76, 89, 100% |
+| Injected flux, median ratio at 10, 20 and 50σ | 0.990, 0.986, 0.989 | 0.998, 0.992, 0.993 | 0.999, 0.989, 0.990 | 1.020, 0.998, 0.993 | 0.984, 0.976, 0.985 | 0.984, 0.976, 0.985 |
+| Generated: components decided as the ideal mask decides, of 1,273 | 97.9% | 95.5% | 98.7% | 98.7% | 99.1% | 99.1% |
+| Generated: ideal-mask pixels and flux covered | 0.64, 0.81 | 0.60, 0.76 | 0.94, 0.99 | 0.87, 0.97 | 0.76, 0.90 | 0.77, 0.90 |
+| Generated: mask on no emission | 0.07% | 0.17% | 0.06% | 0.05% | 0.77% | 0.47% |
+| Negated real images: false islands, of the islands on the originals | 126 of 12,207 | 121 of 12,296 | 25 of 11,004 | 19 of 11,071 | 79 of 12,389 | 76 of 12,333 |
+| Real images: RMS more than 20% above, and below, the negative-pixel noise at components | 22.5%, 2.6% | 22.5%, 2.6% | 30.1%, 14.4% | 30.1%, 14.4% | 30.5%, 1.9% | 30.5%, 1.9% |
 
-`master` covers 38% of the wide extended source, where `continuum` covers
-74% with the estimated background, and a fifth of its mask on the
-`varying-noise` case holds no emission. On ELAIS-N1 the islands `continuum`
-loses peak at a median 7.3 times the RMS of negative pixels, which faint
-sources cannot inflate, and 96% at 5 or more, while `continuum`'s RMS there
-is 2.3 times that noise and `master`'s 1.13 times: they are real sources,
-lost to the local-noise defect.
+`compact` keeps injected sources as often as `master` or more at every
+level and measures their flux within 1.5% from 10σ. Most of its
+disagreements with `master` lie between 5 and 7σ, where it also keeps
+sources `master` drops. Above 7σ it loses real components on extended
+sources, where its masks cover 64% of the ideal mask's pixels against
+`master`'s 76%, and where the image edge cuts a source. Its RMS reads more
+than 20% low at 3.0% of real-image pixels against `master`'s 1.9%, which
+gives it 60% more false islands on the negated images. `continuum` covers
+the most emission and finds the fewest false islands, but keeps 62% of
+injected 7σ sources and 77% at 10σ: its 35-pixel local-noise windows take
+faint sources for noise. The plan's
+[decisions pending](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#decisions-pending)
+propose the gate's limits from these figures.
 
 ### Open scientific defects
 
@@ -270,15 +284,14 @@ list what the maintainer has still to decide, each with a recommendation.
 
 The next actions, as the plan orders them on 17 October:
 
-1. Agent: add the truth measures to the agreement check and propose the
-   truth-based gate's limits from them; raise the 22,500² tier unattended;
-   then one sector across the cluster, starting with a stage profile of
-   the 10,000² anchor in the matched container and sizing tiles and task
-   counts from the core budget and the memory a core needs, in four
-   increments that each release.
+1. Agent: raise the 22,500² tier unattended; then one sector across the
+   cluster, starting with a stage profile of the 10,000² anchor in the
+   matched container and sizing tiles and task counts from the core budget
+   and the memory a core needs, in four increments that each release.
 2. Human: push Rapthor's Hebog branch, which testing and trials use
-   without waiting for a merge; file the Astropy report drafted on 5 October;
-   take the pending decisions.
+   without waiting for a merge; approve or change the truth-based gate's
+   proposed limits; file the Astropy report drafted on 5 October; take the
+   other pending decisions.
 3. Agent: the deployment envelope, the matched benchmarks on the cells the
    VM holds, the store and planner work and the cluster benchmark's
    packaging; the gate itself is measured on the cluster. Scientific

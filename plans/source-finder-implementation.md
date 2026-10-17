@@ -24,9 +24,9 @@ progress page; the two change together.
 | Candidate | Public composition v23. The quick check's catalogue, RMS and mask are byte-identical to v0.19.0's; only the composition hash has moved. Development-unqualified. |
 | Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 15,402² envelope. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.22.0 on PyPI the branch is ready to push (task 79). |
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October) and fails. On the 3,000² sector Hebog's finder part is 2.43 times pinned `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
-| Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate whose limits task 76's measures set (decision of 16 October). `continuum` loses real faint sources on deep fields (task 75). |
+| Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). The check now measures every lane against truth, and decision 2 proposes the gate's limits, which `compact` with a zero background fails on extended sources and at image edges and narrowly on false islands. `continuum` loses real faint sources on deep fields (task 75). |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, which only many cores can close; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: add the truth measures to the agreement check (task 76), raise the 22,500² tier unattended (task 11) and start task 72 with a stage profile of the 10,000² anchor in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Next action | Agent: raise the 22,500² tier unattended (task 11) and start task 72 with a stage profile of the 10,000² anchor in the matched container. Human: push Rapthor's Hebog branch (task 79), approve the truth-based gate's limits (decision 2), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
 | Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October): tasks 75, 68 and 15 sit before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
@@ -105,14 +105,24 @@ with a PSF-map input after 1.0.0.
 1. **Independent acceptance (task 33).** Reviewers have not been named.
    *Recommendation:* approach the radio-astronomy and engineering reviewers
    when the Rapthor branch is pushed, so their review runs beside Rapthor's.
-2. **The truth-based gate's limits.** Task 76 adds the measures; the
-   limits are the maintainer's. *Recommendation:* of the components
-   `master`'s mask keeps and Hebog's rejects, the share that injected truth
-   or the negative-pixel noise shows to be real emission is bounded per
-   stratum; agreement percentages, and the components Hebog keeps on real
-   emission that `master` misses, are reported beside it, not gated. The
-   agent proposes the limits from task 76's run; the maintainer approves
-   them before the freeze.
+2. **The truth-based gate's limits.** `just rapthor-agreement` now
+   measures every lane, `master` and the control against truth; the limits
+   are the maintainer's, approved before the freeze. *Recommendation:* gate
+   three measures. (a) Of the real components `master` keeps, those on the
+   ideal mask of a generated image or at least 7 sigma above the
+   negative-pixel noise of a real one, a lane rejects at most 1% overall
+   and 2% in every stratum; nearer the threshold the finders' RMS
+   estimates decide. (b) Of the sources injected into the real images, a
+   lane keeps at least `master`'s share less 5 points at every level from
+   6 sigma, and all of them from 10 sigma. (c) On the negated real images a
+   lane finds at most 1% as many false islands as islands on the
+   originals. Agreement with `master`, the real components a lane gains,
+   its ideal-mask coverage, its injected flux and its RMS against the
+   negative-pixel noise are reported beside them. Released PyBDSF passes
+   all three widely; `compact` with a zero background passes (b) but fails
+   (a) on extended sources (5.1%) and at image edges (3.5%), and (c)
+   narrowly (1.03%), so if these limits are approved the agent adds those
+   repairs as tasks before the freeze.
 3. **The scaling floor.** "Scales well across nodes" needs a number before
    the cluster session. *Recommendation:* task 27 proposes a strong-scaling
    efficiency floor at 10 nodes from the local curve and the contract's
@@ -307,10 +317,9 @@ The order, set on 9 October 2026 and amended through 17 October:
    and trials install Rapthor from it, with Hebog from PyPI. The integration waits on no tier: its inputs are inside the
    15,402² envelope, and Rapthor's 3,000² demonstration sector is refused
    for its 30-pixel synthetic beam, not its size.
-2. **Truth measures and the 22,500² tier** (tasks 76 and 11), beside
-   task 72. The screening of 16 October found a finder-part ratio of 1.23
-   on four Dask workers at the 10,000² anchor, which sends the work on to
-   task 72.
+2. **The 22,500² tier** (task 11), beside task 72. The screening of
+   16 October found a finder-part ratio of 1.23 on four Dask workers at
+   the 10,000² anchor, which sends the work on to task 72.
 3. **One sector across the cluster** (task 72). Rapthor usually images one
    sector, 17,000 to 20,000 pixels a side, on nodes of up to 192 cores;
    its interim thread path cannot use a node's cores, and only many cores
@@ -332,7 +341,6 @@ The order, set on 9 October 2026 and amended through 17 October:
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 76 | Agent | Measure each lane's correctness beside its agreement with `master`. | `just rapthor-agreement` also reports, for every lane, `master` and the released control: mask decisions and emission recall against injected truth on the generated cases, the ideal mask being the noiseless emission at `threshisl` sigma or more connected to a `threshpix` peak; completeness and flux of sources injected into the real LOFAR images (the LoTSS-DR3 window and the ELAIS-N1 pair) by SNR; false islands on the negated real images; and each RMS map against the RMS of negative pixels, which faint sources cannot inflate. Exploratory scripts of 13 October found 34, 55 and 9 false islands on ELAIS-N1 for `master`, `compact`/zero and `continuum`. Done when these are tested pure functions within the release-check budget, the progress page summarises them, and the agent has proposed the truth-based gate's limits from them (decision 2). |
 | 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
 
 ### One sector across the cluster
@@ -434,7 +442,7 @@ reopens its item at once. All three close before the candidate is frozen.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 75 | Agent, human dispositions | Stop `continuum`'s local-noise refinement taking faint sources for noise. | `continuum` refines the local noise on 35-pixel windows everywhere, and a window that holds faint sources reads their emission as noise: on the ELAIS-N1 deep field it loses 1,346 of pinned `master`'s 5,762 islands (`compact` 257) with an RMS a median twice `master`'s there and 2.3 times the negative-pixel noise, and the islands it loses peak at a median 7.3 times that noise, so they are real; it also misses one of five injected sources on the quick check's varying-noise case. Task 68 measures the same windows' clipping bias. Done when a repair's effect on `just rapthor-agreement` with task 76's truth measures and on the quick check is measured, with `continuum` losing no more of `master`'s islands on the ELAIS-N1 cases than `compact` without losing injected sources; the maintainer has decided whether to apply it; and the Rapthor profile is decided again from agreement and truth (decision of 13 October). |
+| 75 | Agent, human dispositions | Stop `continuum`'s local-noise refinement taking faint sources for noise. | `continuum` refines the local noise on 35-pixel windows everywhere, and a window that holds faint sources reads their emission as noise: on the ELAIS-N1 deep field it loses 1,346 of pinned `master`'s 5,762 islands (`compact` 257) with an RMS a median twice `master`'s there and 2.3 times the negative-pixel noise, and the islands it loses peak at a median 7.3 times that noise, so they are real; it also misses one of five injected sources on the quick check's varying-noise case. Task 68 measures the same windows' clipping bias. Done when a repair's effect on `just rapthor-agreement`, its truth measures included, and on the quick check is measured, with `continuum` losing no more of `master`'s islands on the ELAIS-N1 cases than `compact` without losing injected sources; the maintainer has decided whether to apply it; and the Rapthor profile is decided again from agreement and truth (decision of 13 October). |
 | 68 | Agent measures, human decides | Measure a truncation correction for the clipped window RMS. | The window statistic clips at 3σ around the median and takes the standard deviation of what remains, with no correction: 35-pixel windows read 1.6% low on white noise and 3.2 to 3.9% low on beam-correlated noise, and `empty-noise` publishes 0.959 of the injected noise, where PyBDSF applies the PySE correction, about 1.4% at κ = 3. Done when the correction's effect on the quick check, the equivalence lane and the position and flux uncertainty calibration is measured, and the maintainer has decided whether to apply it. |
 | 15 | Agent measures, human dispositions | Measure and document a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF the header beam cannot describe. Done when the effect on fluxes and sizes is measured with injected truth and documented as a limitation with its measured effect; a PSF-map input is work after 1.0.0 unless the effect changes a Rapthor-consumed field (decision of 16 October). |
 
@@ -470,7 +478,7 @@ allow.
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | Hebog's finder part stays slower than PyBDSF's: 2.43 times pinned `master`'s on the thread path at 3,000² and 1.23 on four Dask workers at 10,000², where both finders burn about the same CPU, so few cores cannot pass the gate whatever the occupancy. | Task 30 fails, or passes only at node counts Rapthor does not deploy. | Task 72 raises occupancy and cuts the Dask path's CPU overhead; task 23 cuts the largest constant factors; the gate is measured where PyBDSF's fitting stops scaling and Hebog's tiles do not; use the native-code gates only for a profiled kernel; report the gap honestly at each milestone. |
-| Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate (decision 2) fails where Hebog loses real sources. | Task 76 measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors; task 75 repairs `continuum`; `just rapthor-agreement` re-measures every lane at each pin move and science change. |
+| Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate (decision 2) fails where Hebog loses real sources. | `just rapthor-agreement` measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors; task 75 repairs `continuum`; `just rapthor-agreement` re-measures every lane at each pin move and science change. |
 | One sector's speed-up is capped: a 20% serial share on the 10,000² anchor caps it near five; a worker needs about 2 GB a core for the multiscale tasks, so a node short of memory swaps before its cores are busy; rounds hold 7 to 25 tasks and a 3,000² sector only four tiles; Python's global lock throttles a process with many threads; concurrent sectors could deadlock workers that run one task each. | Rapthor's cluster cores go unused, and the gate is missed on occupancy rather than work. | Task 72's cost model sizes tiles and task counts from the core budget and the memory a core needs, with single-threaded tasks on several worker processes a node, resource annotations and seceding while waiting; the cluster benchmark reports where one sector stops scaling. |
 | Scaling across nodes inside Rapthor needs Rapthor to give each node several task slots, which is Rapthor's change to make. | The Rapthor run of the cluster benchmark uses one core a node. | The Rapthor branch documents the layout; the standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
 | The passes keep records from every tile, growing the traced peak about 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS, and the analysis's own records grow with the sources found, about 42 KB each. | At those slopes the multiscale peak is about 2.1 GiB at 22,500², within the envelope's budget, and 4.3 GiB at 45,000² with background/RMS about 6 GiB; a dense sector's analysis (about 5.1 GiB for 123,186 sources) must be reserved by its Rapthor worker. | Task 56 before the 45,000² tier; shard, stream or drop kept records such as candidates that can never become islands; task 24's planner bounds include them; `hebog.analysis_memory_bytes` states the analysis's memory from an expected source count meanwhile. |

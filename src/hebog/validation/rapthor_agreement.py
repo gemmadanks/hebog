@@ -92,7 +92,7 @@ def _islands(mask: npt.ArrayLike) -> npt.NDArray[np.int32]:
     return labels
 
 
-def _pooled[Counts](first: Counts, second: Counts) -> Counts:
+def pooled[Counts](first: Counts, second: Counts) -> Counts:
     """Return a counts record holding the field-wise sums of two."""
     return type(first)(
         *(
@@ -263,7 +263,7 @@ class DecisionCounts:
 
     def __add__(self, other: DecisionCounts) -> DecisionCounts:
         """Pool the counts of two populations."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
     @property
     def agreement(self) -> float | None:
@@ -384,7 +384,7 @@ class WeightedAgreement:
 
     def __add__(self, other: WeightedAgreement) -> WeightedAgreement:
         """Pool two populations measured in the same units."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
     @property
     def agreement(self) -> float | None:
@@ -522,7 +522,7 @@ class CatalogueCutCounts:
 
     def __add__(self, other: CatalogueCutCounts) -> CatalogueCutCounts:
         """Pool the counts of two catalogues."""
-        return _pooled(self, other)
+        return pooled(self, other)
 
 
 def compare_catalogue_cuts(
@@ -722,6 +722,56 @@ class EmissionSettings(_AgreementModel):
     seed_sigma: float = Field(gt=0)
 
 
+class InjectionSettings(_AgreementModel):
+    """Sources injected into the real images, per image.
+
+    See :func:`hebog.validation.truth_measures.plan_injection`.
+    """
+
+    snr_levels: tuple[float, ...] = Field(min_length=1)
+    per_level: int = Field(gt=0)
+    spacing_beams: float = Field(gt=0)
+    margin_beams: float = Field(ge=0)
+    clear_beams: float = Field(ge=0)
+    clear_sigma: float = Field(gt=0)
+    seed: int
+
+    @model_validator(mode="after")
+    def _distinct_positive_levels(self) -> Self:
+        """Refuse a level that would double its sources or have none."""
+        if len(set(self.snr_levels)) != len(self.snr_levels):
+            raise ValueError("injection levels must be distinct")
+        if min(self.snr_levels) <= 0:
+            raise ValueError("injection levels must be positive")
+        return self
+
+
+class NoiseSettings(_AgreementModel):
+    """The negative-pixel noise and the RMS maps' tolerance against it.
+
+    See :func:`hebog.validation.truth_measures.negative_pixel_noise`.
+    """
+
+    box_beams: float = Field(gt=0)
+    minimum_pixels: int = Field(gt=0)
+    tolerance: float = Field(gt=0)
+
+
+class TruthSettings(_AgreementModel):
+    """How the check measures each finder's correctness.
+
+    ``real_emission_sigma`` is how far above the negative-pixel noise a
+    component on a real image must lie to count as real emission when its
+    decision is split by truth. Nearer the 5-sigma threshold, finders' RMS
+    estimates differ by more than the margin, so a decision there says
+    little; the injected sources measure completeness there instead.
+    """
+
+    injection: InjectionSettings
+    noise: NoiseSettings
+    real_emission_sigma: float = Field(gt=0)
+
+
 class AgreementCase(_AgreementModel):
     """An image beyond the quick check's, and the kind Rapthor gives it."""
 
@@ -730,14 +780,14 @@ class AgreementCase(_AgreementModel):
 
 
 class RapthorAgreementConfiguration(_AgreementModel):
-    """Versioned lanes, strata, gate and cases of the agreement check.
+    """Versioned lanes, strata, gate, truth measures and cases of the check.
 
     ``quick_check`` names the quick-check configuration whose cases,
     dataset manifest and pinned-``master`` reference the check reuses, so
     its cached reference outputs serve both checks.
     """
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     check_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     quick_check: str = Field(min_length=1)
     threshpix: float = Field(gt=0)
@@ -748,6 +798,7 @@ class RapthorAgreementConfiguration(_AgreementModel):
     emission: EmissionSettings
     agreement_threshold: float = Field(gt=0, le=1)
     budget_seconds: float = Field(gt=0)
+    truth: TruthSettings
     cases: tuple[AgreementCase, ...]
 
     @model_validator(mode="after")
