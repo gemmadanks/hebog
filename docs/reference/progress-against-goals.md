@@ -286,9 +286,9 @@ list what the maintainer has still to decide, each with a recommendation.
 
 The next actions, as the plan orders them on 17 October:
 
-1. Agent: raise the 22,500² tier, and record Rapthor's Hebog branch with
-   the `continuum` default in the integration container; the profile comes
-   before the cluster work, which measures its cost.
+1. Agent: raise the 22,500² tier; Rapthor's profile, `continuum` with a
+   zero background, now comes before the cluster work, which measures its
+   cost.
 2. Agent: then one sector across the cluster, starting with a stage
    profile of the 10,000² anchor in the matched container and sizing tiles
    and task counts from the core budget and the memory a core needs, in

@@ -24,9 +24,9 @@ progress page; the two change together.
 | Candidate | Public composition v23. The quick check's catalogue, RMS and mask are byte-identical to v0.19.0's; only the composition hash has moved. Development-unqualified. |
 | Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 15,402² envelope. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.22.0 on PyPI the branch is ready to push (task 79). |
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October) and fails. On the 3,000² sector Hebog's finder part is 2.43 times pinned `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
-| Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate (task 81). |
+| Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate. |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, which only many cores can close; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: raise the 22,500² tier (task 11) and record Rapthor's Hebog branch with the `continuum` default in the integration container (task 81), then start task 72 with a stage profile of the 10,000² anchor in the matched container, on that profile. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Next action | Agent: raise the 22,500² tier (task 11), then start task 72 with a stage profile of the 10,000² anchor in the matched container, on that profile. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
 | Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October): tasks 68 and 15 sit before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
@@ -96,7 +96,7 @@ the change lives on a branch of Rapthor's repository, not as a patch in
 Hebog, and testing, trials and benchmarks use the branch without waiting
 for it to merge; Rapthor runs `continuum` with a zero background, which
 passes the truth-based gate where `compact` fails it, rather than the
-interim `compact` (task 81); the truth-based gate's limits are those the
+interim `compact`; the truth-based gate's limits are those the
 [scientific gates](#scientific-gates) record, which `just
 rapthor-agreement` applies to every lane and the released control.
 Decided on 16 October and recorded in the rows: the 1.0.0 scope above; the
@@ -304,13 +304,12 @@ The order, set on 9 October 2026 and amended through 17 October:
    integration waits on no tier: its inputs are inside the 15,402²
    envelope, and Rapthor's 3,000² demonstration sector is refused for its
    30-pixel synthetic beam, not its size.
-2. **The 22,500² tier and the profile Rapthor runs** (tasks 11 and 81).
-   The truth-based gate showed on 17 October that both profiles Rapthor
-   could run gave incorrect outputs: `compact` trims bright emission and
-   `continuum` lost faint sources until its local noise was repaired the
-   same day. The profile is chosen before task 72 measures and models one
-   sector's cost, taking the time scientific accuracy needs rather than a
-   fixed budget, while the tier runs beside it (decision of 17 October).
+2. **The 22,500² tier** (task 11). Rapthor's profile came first: the
+   truth-based gate showed on 17 October that `compact` trims bright
+   emission and `continuum` lost faint sources, so `continuum`'s local
+   noise was repaired and Rapthor now runs it, before task 72 measures and
+   models one sector's cost, scientific accuracy taking the time it needs
+   (decision of 17 October).
 3. **One sector across the cluster** (task 72), on the profile chosen.
    The screening of 16 October found a finder-part ratio of 1.23 on four
    Dask workers at the 10,000² anchor. Rapthor usually images one
@@ -330,12 +329,11 @@ The order, set on 9 October 2026 and amended through 17 October:
 | --- | --- | --- | --- |
 | 79 | Human pushes, agent prepares | Push Rapthor's Hebog branch. | The pins moved to Rapthor `aff26023` and LSMTool `156ae6a` on 17 October, with the change rebased, the integration container rebuilt and its summary re-recorded; they move again before the push only if upstream changes the filter step. The branch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching change on the branch. Done when the tested commit is on a branch of Rapthor's repository and Rapthor's CI passes on it. The trial (task 32) and the cluster benchmark (task 27) use the branch; the merge request, with the dual-run mode and the PyBDSF fallback described, follows when the maintainer chooses. |
 
-### The next tier and Rapthor's profile
+### The next tier
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
-| 81 | Agent | Record Rapthor's Hebog branch with the `continuum` default. | The adapter and the commit on Rapthor's Hebog branch default to `continuum` with a zero background, the profile that passes the truth-based gate. Done when the integration container is rebuilt on that commit, Rapthor's Hebog, parset, admission and broader suites, the installed-package checks and a strict Sphinx build pass in it, and the integration summary records the commit, the image and the results. |
 
 ### One sector across the cluster
 
