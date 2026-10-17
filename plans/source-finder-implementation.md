@@ -386,7 +386,9 @@ merged and released in turn (decision of 16 October):
 - **Rapthor's distributed path.** The branch passes its client and resource
   names (`memory_resource`, `core_resource`) to `DaskExecutor`, reserves
   the analysis memory on the driving task and retires its interim thread
-  path. What Hebog needs from a cluster is documented for any caller
+  path. Hebog's adapter takes over the image's source-count estimate and
+  the analysis reservation, so Rapthor supplies only the memory budget
+  (decision of 17 October). What Hebog needs from a cluster is documented for any caller
   ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)),
   with one way Rapthor can provide it beside DP3 and WSClean.
 - **Both branches together.** The true-sky analysis and the flat-noise
