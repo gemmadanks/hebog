@@ -301,26 +301,27 @@ Retain Rapthor's feature-flagged PyBDSF fallback until the acceptance matrix pas
 
 ### Commit messages
 
-Write concise, self-contained messages for **future developers: our future selves
-and reviewers**, without assuming they read the conversation.
+Release Please turns commit subjects into the changelog that PyPI users read, and
+developers read the bodies in `git log`. Write both for people who were not in the
+conversation, so the history reads as a clear log of what changed and why.
 
-- Use short imperative Conventional Commit subjects naming the change; Release Please
-  uses them. Avoid vague titles/task numbers alone. After a blank line, explain problem,
-  resulting behaviour and rationale; a trigger/before-after example can help. Obvious
-  typos need no body. Include consequential trade-offs, decisions, compatibility and
-  limitations, not file inventories or irrelevant abandoned work.
-- State validation commands/results and material omissions/reasons. Science/performance
-  claims need baseline, config, key result, gate/scope and exact evidence links, not full
-  reports. Historical LOG references remain valid. Link useful issues/PRs/ADRs while
-  summarising context; cite commits by hash/subject and use searchable domain names.
-- Mark breaking changes with `!` or `BREAKING CHANGE:` and explain contracts/caller actions.
-  Keep implementation/tests/docs in one atomic validated commit; do not combine
-  unrelated milestones or experiments.
-- Prepare a copyable squash subject/body for the complete final PR, including earlier
-  related commits, in the handoff/PR description. Humans check the actual message retains
-  problem, outcome, rationale, decisions/breaking changes, validation/omissions and
-  references. Do not assume GitHub preserves branch messages; describe the final change
-  coherently for future developers.
+- **Subject:** a short imperative Conventional Commit subject saying what changes for
+  people using Hebog, in plain words: `perf: find sources in dense fields faster`, not
+  internal stage names, run labels or task numbers. Every type except `chore` appears
+  in the changelog.
+- **Body:** a few short plain sentences: the problem, what changes and why, and any
+  consequential trade-off, limitation or decision. Leave out file inventories,
+  abandoned approaches, run-by-run figures and conversation history; the plan,
+  progress page and evidence records hold the detail. Obvious changes need no body.
+- **Checks:** end with a line or two on how it was checked and anything material not
+  run. A science or performance claim gives its key result and scope and links the
+  evidence record.
+- Mark breaking changes with `!` or `BREAKING CHANGE:` and say what callers must do.
+  Keep implementation, tests and docs in one atomic validated commit; do not combine
+  unrelated work.
+- Prepare a copyable squash subject and body for the whole PR in the handoff/PR
+  description, in the same style, and use its subject as the PR title: the merged
+  subject becomes the changelog line. Humans check the actual message.
 
 Before handing off a meaningful change:
 
