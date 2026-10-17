@@ -1,14 +1,14 @@
 # Native Rapthor integration container
 
-This isolated Linux image installs the reviewed local Rapthor patch, a Hebog
-wheel and pinned LSMTool. It exercises the actual Prefect task, native Hebog,
-LSMTool filtering, and the PyBDSF subprocess without adding those workflow
-packages to Hebog's dependencies. The patch and its provenance are in
-[the patch guide](../../patches/README.md).
+This isolated Linux image installs a commit of Rapthor's Hebog branch, a
+Hebog wheel and pinned LSMTool. It exercises the actual Prefect task, native
+Hebog, LSMTool filtering, and the PyBDSF subprocess without adding those
+workflow packages to Hebog's dependencies. The branch and its provenance are
+in [the Rapthor branch guide](../../rapthor-integration/README.md).
 
-Build the `localhost/hebog-lsmtool:9bac2f7` base using
-[the LSMTool recipe](../lsmtool/README.md) first. Its upstream pin was checked
-again on 13 October 2026 and remained unchanged. The runtime dependency lock
+Build the `localhost/hebog-lsmtool:156ae6a` base using
+[the LSMTool recipe](../lsmtool/README.md) first. Its pin moved to LSMTool's
+`master` head on 17 October 2026. The runtime dependency lock
 includes LSMTool's `numpy<2.5` constraint. The native thread limit uses
 `threadpoolctl`, already a mature dependency in the scientific Python stack;
 Rapthor makes it an optional dependency beside Hebog. PyBDSF here is the
@@ -17,17 +17,23 @@ performance gate against pinned `master`.
 
 ## Build and verify
 
-From the Hebog checkout, with a local Rapthor checkout containing the patch:
+From the Hebog checkout, with any clone of Rapthor and the full hash of the
+commit to test; the integration summary's `rapthor_commit` rebuilds the image
+it records:
 
 ```bash
-rapthor_checkout=/path/to/patched/rapthor
-rapthor_revision=$(git -C "$rapthor_checkout" rev-parse HEAD)
+rapthor_checkout=/path/to/rapthor
+rapthor_revision=<rapthor_commit>
+git -C "$rapthor_checkout" fetch origin "$rapthor_revision"
 context=$(mktemp -d)
 cp scripts/validation/containers/rapthor/Containerfile \
   scripts/validation/containers/rapthor/requirements*.txt "$context"
 git -C "$rapthor_checkout" archive --output="$context/rapthor.tar" "$rapthor_revision"
 test "$(git get-tar-commit-id < "$context/rapthor.tar")" = "$rapthor_revision"
-uv build --wheel --out-dir "$context"
+# The released Hebog wheel from PyPI; for unreleased work use
+# `uv build --wheel --out-dir "$context"` instead.
+python3 -m pip download --no-deps --only-binary :all: --dest "$context" \
+  "hebog==<release>"
 podman build --platform linux/amd64 --build-arg RAPTHOR_REVISION="$rapthor_revision" \
   --tag localhost/hebog-rapthor:native --file "$context/Containerfile" "$context"
 podman image inspect localhost/hebog-rapthor:native --format '{{.Id}}'
@@ -61,7 +67,7 @@ for name in (
 PYTHON
 ```
 
-The image archives the patched source, including its tests, and installs it
+The image archives the Rapthor source, including its tests, and installs it
 without dependency re-resolution. The image label records the actual Rapthor
 commit. Python 3.12 and Linux x86-64 match the existing LSMTool image; Podman
 uses Rosetta on Apple silicon. No Measurement Set or external astronomy

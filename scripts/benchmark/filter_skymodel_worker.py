@@ -3,9 +3,10 @@
 
 This runs inside the matched benchmark image
 (``scripts/benchmark/containers/filter-skymodel``), not on the host: it
-imports the patched Rapthor installed there. The sector's working directory
-holds the inputs ``measure_filter_skymodel.py`` placed in it, as Rapthor's
-pipeline directory does; PyBDSF writes its mask beside its input image.
+imports the Rapthor installed there, from its Hebog branch. The sector's
+working directory holds the inputs ``measure_filter_skymodel.py`` placed in
+it, as Rapthor's pipeline directory does; PyBDSF writes its mask beside its
+input image.
 
 The measured span is Rapthor's ``filter_skymodel_products`` with
 ``source_finder`` set to ``hebog`` (the native task) or ``bdsf`` (the PyBDSF
@@ -21,7 +22,7 @@ directory::
     python /worker.py --finder hebog --directory /sector --ncores 4 \\
         --threshpix 5 --threshisl 3 --beam-ms /sector/beam.ms
 
-The patched Rapthor runs Hebog only on threads. For a screening measurement
+Rapthor's Hebog branch runs Hebog only on threads. For a screening measurement
 of what a Dask path could give (plan task 72), ``--dask-workers`` swaps the
 native task's ``ThreadExecutor`` for a ``DaskExecutor`` on that many
 single-threaded local worker processes. They split the task's memory budget

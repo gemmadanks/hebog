@@ -5,8 +5,8 @@ source-finding step, audited at the pinned revisions:
 
 | Component | Revision | Role |
 | --- | --- | --- |
-| Rapthor | `main` at `d0e7e148` (13 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
-| LSMTool | `master` at `9bac2f7` (v1.9.0 plus 15 commits) | Runs the finder and filters the sky model |
+| Rapthor | `main` at `aff26023` (17 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
+| LSMTool | `master` at `156ae6a` (v1.9.0 plus 27 commits) | Runs the finder and filters the sky model |
 | PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
 
 The pins move forward only at the checkpoints the plan names. The page fixes what must be tested without requiring
@@ -15,7 +15,7 @@ a scientific endorsement.
 
 ## Invocation boundary
 
-Unpatched Rapthor schedules one Prefect `filter_skymodel` task per image sector after
+Rapthor's `main` schedules one Prefect `filter_skymodel` task per image sector after
 WSClean has written its image and source-list products. The task runs on
 Rapthor's Dask task runner (`local_dask`, or `external_dask` on a cluster
 whose workers run one task each with `--nthreads 1`), but does no science
@@ -39,7 +39,7 @@ the two output sky-model paths, `vertices_file`, `beam_ms`,
 `output_catalog`, `output_flat_noise_rms`, `output_true_rms` and `ncores`,
 returning the source count. (The registry calls every backend with those
 arguments; `sofia`'s function takes fewer and could not be called that
-way at `9bac2f7`.) The prepared Rapthor patch instead calls Hebog from the native task; see
+way at `156ae6a`.) Rapthor's Hebog branch instead calls Hebog from the native task; see
 [How Hebog runs inside Rapthor](#how-hebog-runs-inside-rapthor).
 
 | Input | Meaning |
@@ -115,7 +115,7 @@ demonstration's data generator places synthetic antennas within 2,500
 wavelengths of the centre, so its longest baselines, about 5,000
 wavelengths, resolve about 41″. The public finder refuses a beam wider
 than 10 pixels, so the adapter refuses that sector with
-`UnsupportedSourceFinderConfigurationError` and the patched task falls back
+`UnsupportedSourceFinderConfigurationError` and the branch's task falls back
 to PyBDSF; scaling the meshes with the beam is deferred.
 Every real Rapthor image in the archived cluster runs of September and
 October 2026 (P113+24, the ical benchmark, NGC6338 and AA2) is at most
@@ -199,7 +199,7 @@ The reviewed policy keeps any required dummy component at the adapter
 boundary and represents unavailable RMS explicitly in the scientific core.
 With Hebog, the first path stays Rapthor's: when the adapter reports no
 island (`island_count` 0), Rapthor's task writes LSMTool's dummy component
-rather than calling `filter_sources`. The patch also preserves this dummy
+rather than calling `filter_sources`. The branch also preserves this dummy
 path when neither a true-sky nor a bright sky model is present. For the second, the
 adapter raises `RapthorBlankedImageError`, which Rapthor's step handles as
 it handles PyBDSF's error.
@@ -214,7 +214,7 @@ The adapter fails in ways Rapthor can act on:
   wrote, so a fallback to PyBDSF never finds Hebog's files beside its own.
 - A task that declares more memory than the executor admits raises
   `ExecutorAdmissionError` before it is submitted, and the analysis stops
-  as on any other failure; the prepared patch falls back on it too.
+  as on any other failure; Rapthor's Hebog branch falls back on it too.
 - A retried task with the same request and run ID reuses Hebog's finished
   bundle without analysing the images again, and writes Rapthor's files
   from it once more, so a mask LSMTool has already clipped is replaced.
@@ -238,7 +238,7 @@ LSMTool's `filter_sources`; the PyBDSF subprocess stays for `bdsf` and as
 the fallback
 ([ADR-004](../architecture/adr/004-keep-top-level-scheduling-in-rapthor.md)).
 
-The [prepared patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+[Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
 implements today's one-single-threaded-worker-per-node path. Its real Prefect task, native Hebog and LSMTool
 filtering, fallback and dual subprocess runs pass in the pinned Linux
 integration container. Upstream publication and merge remain pending. The
@@ -264,7 +264,7 @@ container/process memory limits.
 The no-beam branch supplies the flat image as both adapter inputs, as pinned
 LSMTool does. A configured missing peeled model is an error. Native selection
 and memory/configuration details live in `<root>.image_diagnostics.json` and
-survive Rapthor's normal diagnostic update and restart reuse. The patch's
+survive Rapthor's normal diagnostic update and restart reuse. The branch's
 parset defaults are `hebog_profile = compact` and `hebog_background = zero`,
 the interim choice for Rapthor, which the adapter also defaults to. Either
 setting can be changed in the parset, and invalid settings fail

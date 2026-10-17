@@ -133,7 +133,7 @@ reports the complete step's ratio beside it:
 ```console
 mkdir -p benchmark-results/filter-skymodel/beam
 git -C <LSMTool checkout> show \
-  9bac2f7fabdc15cd9490acfeb9c292aa72af59b7:tests/resources/test_midbands.ms.tgz \
+  156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2:tests/resources/test_midbands.ms.tgz \
   | tar -xz -C benchmark-results/filter-skymodel/beam
 uv run python scripts/benchmark/measure_filter_skymodel.py \
   --beam-ms benchmark-results/filter-skymodel/beam/test_midbands.ms \
@@ -149,8 +149,8 @@ the times are emulated.
 
 `--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
 mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
-single-threaded Dask worker processes instead of Rapthor's threads. The
-patched Rapthor has no Dask path for Hebog yet, so such a run
+single-threaded Dask worker processes instead of Rapthor's threads. Rapthor's
+Hebog branch has no Dask path for Hebog yet, so such a run
 screens what one could give and never counts towards the gate.
 
 ## Phase 0 PyBDSF baselines

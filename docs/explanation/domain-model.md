@@ -10,7 +10,7 @@ them, not class design. Start with the
     the standalone finder and the adapter,
     `hebog.adapters.find_sector_sources`, which runs one sector and writes
     the files Rapthor's filter step reads; Rapthor's own task that calls it
-    is prepared as a local patch, awaiting upstream publication and merge. See
+    is on a Rapthor branch, not yet merged. See
     [progress against goals](../reference/progress-against-goals.md#functionality).
 
 Terms used below (the [glossary](../reference/domain-glossary.md) has the

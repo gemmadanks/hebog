@@ -123,12 +123,12 @@ catalogue, the two RMS maps and the island mask under the names Rapthor's
 PyBDSF step uses. It runs the `compact` profile with a zero background
 unless asked otherwise: of the four settings, they make Rapthor keep the
 sky-model components pinned PyBDSF `master` keeps most often, 92.8% of
-them. A [prepared Rapthor patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+them. [Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
 calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
 current one-single-threaded-worker-per-node layout. It includes memory
-admission, typed PyBDSF fallback and dual-run diagnostics; upstream
-publication and merge are pending. Its distributed path is future work.
-When no beam Measurement Set is supplied, the patch passes the flat image
+admission, typed PyBDSF fallback and dual-run diagnostics; it is not yet
+merged. Its distributed path is future work.
+When no beam Measurement Set is supplied, the branch passes the flat image
 as both inputs, matching LSMTool's detection and RMS convention. Hebog does **not**:
 
 - measure sources independently on the optional flat-noise input, of
