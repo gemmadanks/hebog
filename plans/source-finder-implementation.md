@@ -23,10 +23,10 @@ progress page; the two change together.
 | Release | v0.22.0 (17 October), the first release on PyPI, carries the Rapthor integration (tasks 16, 20, 21, 23 and 77) and one sector's speed (tasks 73, 74, 71, 55 and 54); it passed its release check on 15 October. Every release is experimental and scientifically unqualified. |
 | Candidate | Public composition v23. The quick check's catalogue, RMS and mask are byte-identical to v0.19.0's; only the composition hash has moved. Development-unqualified. |
 | Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 15,402² envelope. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.22.0 on PyPI the branch is ready to push (task 79). |
-| Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October) and fails. On the 3,000² sector Hebog's finder part is 2.43 times pinned `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor it is 1.23 on four Dask workers (task 78's screening, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
+| Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October) and fails. On the 3,000² sector Hebog's finder part is 2.43 times pinned `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
 | Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate whose limits task 76's measures set (decision of 16 October). `continuum` loses real faint sources on deep fields (task 75). |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, which only many cores can close; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: add the truth measures to the agreement check (task 76), raise the 22,500² tier unattended (task 11) and start task 72 with the small-sector tile sizing the screening exposed. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Next action | Agent: add the truth measures to the agreement check (task 76), raise the 22,500² tier unattended (task 11) and start task 72 with a stage profile of the 10,000² anchor in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
 | Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October): tasks 75, 68 and 15 sit before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
@@ -351,17 +351,21 @@ is near five; eight workers swapped up to 24 GB, and rounds hold only 7 to
 finders use about three of four cores at 10,000², so the gap closes only
 where PyBDSF's fitting stops scaling and Hebog's tiles do not.
 
-Task 72 lands as four increments, each merged and released in turn
-(decision of 16 October):
+Task 72 starts by profiling Hebog's finder part stage by stage on the
+10,000² anchor in the matched container, under Rapthor's step on four Dask
+workers as in the screening (decision of 17 October), so the cost model
+starts from where that time goes. It then lands as four increments, each
+merged and released in turn (decision of 16 October):
 
 - **Core budget and cost model.** The caller states the cores Hebog may
   use, defaulting to the client's capacity, since a client's capacity
   counts threads that DP3 or another analysis holds. Each stage chooses its
   tile core from its halo and its task count from batching by a stated
-  cost model fitted to task 73's and 78's measurements, holding the memory
-  a worker needs per core as well as its tiling, so parallelism rises
-  without small cores multiplying halo overhead, and a sector of a few
-  2,048-pixel tiles still occupies the workers it is given. The memory each
+  cost model fitted to that profile, the scaling profiles of 15 October
+  and the screening, holding the memory a worker needs per core as well as
+  its tiling, so parallelism rises without small cores multiplying halo
+  overhead, and a sector of a few 2,048-pixel tiles still occupies the
+  workers it is given. The memory each
   task declares follows the chosen core; the composition's run settings
   (executor, work directory, generation, tile core) become one record; the
   run's timing record states the tiling and budget chosen; a small image
@@ -609,7 +613,7 @@ source and window.
 | Family | Image | Size | Use | Reference |
 | --- | --- | --- | --- | --- |
 | LOFAR | LOFAR-HD ELAIS-N1 mosaic, 0.4/0.2/0.1″ pixels | 22,500², 45,000², 90,000² (2.0, 8.1, 32.4 GB); 2-D `float32`, `JY/BEAM`, SIN, beam present, no frame or reference-frequency keywords | The 1.0.0 envelope's anchor (22,500²) and the later tiers | Per-facet PyBDSF catalogues; facets are WSClean FK5 J2000 images |
-| LOFAR | LoTSS-DR3 HEALPix mosaics (1,571) | 14,390–17,752² (1312: 15,402², ICRS, `RESTFRQ`, beam present, 1.5″ pixels, 9″ beam) | Science and throughput. Quick check and quick benchmark: 1,024² windows of mosaic 1312 at x 9,749, y 9,749 (sparse) and x 7,701, y 6,677 (dense). Quick benchmark and traced peak: 3,000² at x 6,713, y 5,689; 3,600² at x 6,413, y 5,389; 10,000² at x 2,000, y 4,500, the 10,000 tier's anchor and task 78's screening case; and the whole mosaic, `lotss-dr3-1312-15402`, the 15,402 tier's anchor | Per-mosaic PyBDSF `srl` and `gaul` catalogues (mosaic 1312: 22,420 sources, 28,559 Gaussians) plus RMS, residual and mask maps |
+| LOFAR | LoTSS-DR3 HEALPix mosaics (1,571) | 14,390–17,752² (1312: 15,402², ICRS, `RESTFRQ`, beam present, 1.5″ pixels, 9″ beam) | Science and throughput. Quick check and quick benchmark: 1,024² windows of mosaic 1312 at x 9,749, y 9,749 (sparse) and x 7,701, y 6,677 (dense). Quick benchmark and traced peak: 3,000² at x 6,713, y 5,689; 3,600² at x 6,413, y 5,389; 10,000² at x 2,000, y 4,500, the 10,000 tier's anchor and the screening case of 16 October; and the whole mosaic, `lotss-dr3-1312-15402`, the 15,402 tier's anchor | Per-mosaic PyBDSF `srl` and `gaul` catalogues (mosaic 1312: 22,420 sources, 28,559 Gaussians) plus RMS, residual and mask maps |
 | LOFAR | LoTSS-Deep DR2 ELAIS-N1 apparent and true-sky pair | 14,175² each (804 MB); DDFacet, four axes, ICRS, `RESTFRQ`, 6″ beam | Closest public match to Rapthor's two inputs; the dense deep-field sector of tasks 54 and 78 | PyBDSF catalogue and maps |
 | LOFAR | LoTSS-DR2 cut-outs: a 22′ survey field at 12h +45°, 3C 295 (12′), M51 (20′) and a 90′ field at 13h +47° | 1.5″ pixels: about 880², 480², 800² and 3,600² | Notebook comparison whole-image cases (`lotss-dr2-*`); the 22′ field is the public API's example input | LoTSS-DR2 PyBDSF catalogue |
 | SKA-Mid | SDC1 B1/B2/B5, 8/100/1,000 h (Zenodo 4328029; INAF mirror) | 32,768² (4.3 GB each); 4-D, `JY/BEAM`, `EPOCH = 2000`, `BMAJ`/`BMIN` but no `BPA`, supplied as 0° | Science checks with truth. B2 1,000 h cut-outs: 1,024² at x 20,992, y 12,800 (sparse) and x 16,896, y 16,896 (crowded), and 2,048² at x 16,384, y 16,384 (crowded), in the quick check, benchmark and traced peak; the notebook comparison's 2,048² tiles; cut-outs for task 29 | Full truth catalogue (`True_1400_v2.txt`), the B2 primary beam and the official submissions |

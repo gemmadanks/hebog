@@ -272,9 +272,10 @@ The next actions, as the plan orders them on 17 October:
 
 1. Agent: add the truth measures to the agreement check and propose the
    truth-based gate's limits from them; raise the 22,500² tier unattended;
-   then one sector across the cluster, sizing tiles and task counts from
-   the core budget and the memory a core needs, in four increments that
-   each release.
+   then one sector across the cluster, starting with a stage profile of
+   the 10,000² anchor in the matched container and sizing tiles and task
+   counts from the core budget and the memory a core needs, in four
+   increments that each release.
 2. Human: push Rapthor's Hebog branch, which testing and trials use
    without waiting for a merge; file the Astropy report drafted on 5 October;
    take the pending decisions.
