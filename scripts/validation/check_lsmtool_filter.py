@@ -141,7 +141,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--true-sky", type=Path, required=True)
     parser.add_argument("--flat-noise", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--image", default="localhost/hebog-lsmtool:9bac2f7")
+    parser.add_argument("--image", default="localhost/hebog-lsmtool:156ae6a")
     parser.add_argument("--cores", type=int, default=4)
     parser.add_argument("--threshpix", type=float, default=5.0)
     parser.add_argument("--threshisl", type=float, default=3.0)

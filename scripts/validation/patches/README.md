@@ -1,8 +1,8 @@
 # Native Hebog task for Rapthor
 
 This upstream patch is prepared for human publication. It targets Rapthor
-`main` at `d0e7e148aa127838e9d4c91472c88ab992b4f29f` and LSMTool `master` at
-`9bac2f7fabdc15cd9490acfeb9c292aa72af59b7`, the pins of 13 October 2026.
+`main` at `aff260233a9a8c2ee19ce6616ea009402ecb86f0` and LSMTool `master` at
+`156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2`, the pins of 17 October 2026.
 Rapthor declares `lsmtool>=1.9.0`; validation uses the pinned `master`.
 
 The patch adds `source_finder = hebog` to Rapthor's existing Prefect filter
@@ -28,16 +28,14 @@ that writer rather than duplicating its output format.
 Use a clean Rapthor checkout or a new worktree. Do not apply over unrelated work:
 
 ```bash
-git switch --no-track -c feat/hebog-native-task d0e7e148aa127838e9d4c91472c88ab992b4f29f
+git switch --no-track -c feat/hebog-native-task aff260233a9a8c2ee19ce6616ea009402ecb86f0
 git am /path/to/hebog/scripts/validation/patches/rapthor-native-hebog.patch
 ```
 
 A replayed commit can have a different committer/hash. Record its actual
 identity when archiving it for the
 [container](../containers/rapthor/README.md). The versioned integration
-summary records the originally tested commit and tree, `d830c1c8`; the patch
-differs from it only in the extra's Hebog range, the install note in
-`parset.rst` and its message. The patch is prepared locally; upstream
+summary records the tested commit and tree. The patch is prepared locally; upstream
 publication and merge remain human actions. Its parset defaults,
 `hebog_profile = compact` and `hebog_background = zero`, are the interim
 choice for Rapthor, which the adapter also defaults to: of the four settings,

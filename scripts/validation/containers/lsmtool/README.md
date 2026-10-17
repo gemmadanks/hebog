@@ -3,7 +3,7 @@
 This recipe builds the Linux runtime in which
 `scripts/validation/check_lsmtool_filter.py` runs pinned LSMTool's
 `filter_sources` on products the Rapthor adapter wrote on the host. It holds
-LSMTool at commit `9bac2f7` (the pin of the
+LSMTool at commit `156ae6a` (the pin of the
 [Rapthor source-finding contract](../../../../docs/reference/rapthor-source-finding-contract.md))
 and its dependencies, not Hebog.
 
@@ -27,11 +27,11 @@ holds it, and build from a temporary context:
 context=$(mktemp -d)
 cp Containerfile requirements-lsmtool-*.txt "$context"
 git -C <LSMTool checkout> archive --output="$context/lsmtool.tar" \
-  9bac2f7fabdc15cd9490acfeb9c292aa72af59b7
+  156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2
 test "$(git get-tar-commit-id < "$context/lsmtool.tar")" = \
-  9bac2f7fabdc15cd9490acfeb9c292aa72af59b7
+  156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2
 podman build --platform linux/amd64 --file "$context/Containerfile" \
-  --tag localhost/hebog-lsmtool:9bac2f7 "$context"
+  --tag localhost/hebog-lsmtool:156ae6a "$context"
 ```
 
 The build takes about 90 seconds and the image is about 800 MB. Regenerate

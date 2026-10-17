@@ -133,7 +133,7 @@ reports the complete step's ratio beside it:
 ```console
 mkdir -p benchmark-results/filter-skymodel/beam
 git -C <LSMTool checkout> show \
-  9bac2f7fabdc15cd9490acfeb9c292aa72af59b7:tests/resources/test_midbands.ms.tgz \
+  156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2:tests/resources/test_midbands.ms.tgz \
   | tar -xz -C benchmark-results/filter-skymodel/beam
 uv run python scripts/benchmark/measure_filter_skymodel.py \
   --beam-ms benchmark-results/filter-skymodel/beam/test_midbands.ms \

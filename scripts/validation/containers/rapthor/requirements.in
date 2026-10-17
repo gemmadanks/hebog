@@ -1,4 +1,4 @@
-# Rapthor c6196cb4, Hebog 0.21.0 and LSMTool 9bac2f7 dependencies,
+# Rapthor aff26023 (with the patch), Hebog 0.22.0 and LSMTool 156ae6a dependencies,
 # plus optional native thread control and the isolated validation tools.
 astropy
 bdsf

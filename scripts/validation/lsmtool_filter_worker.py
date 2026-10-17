@@ -1,6 +1,6 @@
 """Run pinned LSMTool's filter_sources on one sector, inside its container.
 
-Runs in ``localhost/hebog-lsmtool:9bac2f7``
+Runs in ``localhost/hebog-lsmtool:156ae6a``
 (``scripts/validation/containers/lsmtool``), which holds LSMTool and not
 Hebog, so this script imports neither Hebog nor everybeam. It filters the
 true-sky and apparent-sky models by the island mask, as Rapthor's step does

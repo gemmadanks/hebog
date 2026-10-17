@@ -8,7 +8,7 @@
 # Set never calls either, and never imports everybeam.
 #
 # The build context holds lsmtool.tar, `git archive` of LSMTool commit
-# 9bac2f7fabdc15cd9490acfeb9c292aa72af59b7; the host checks the archive's
+# 156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2; the host checks the archive's
 # commit with `git get-tar-commit-id` before building (README.md).
 
 # Ubuntu 24.04 (Python 3.12.3), the linux/amd64 manifest of the ubuntu:24.04
@@ -36,7 +36,7 @@ RUN python -m pip install --no-cache-dir --require-hashes \
 COPY lsmtool.tar /tmp/lsmtool.tar
 RUN mkdir /tmp/lsmtool \
     && tar -xf /tmp/lsmtool.tar -C /tmp/lsmtool \
-    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSMTOOL=1.9.1.dev15+g9bac2f7 \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_LSMTOOL=1.9.1.dev27+g156ae6a \
         python -m pip wheel --no-cache-dir --no-build-isolation --no-deps \
         --wheel-dir /wheels /tmp/lsmtool
 
@@ -54,8 +54,8 @@ COPY --from=lsmtool-wheel /wheels/ /tmp/wheels/
 RUN python -m pip install --no-cache-dir --no-deps /tmp/wheels/lsmtool-*.whl \
     && rm -r /tmp/wheels \
     && python -m pip check \
-    && python -c "import importlib.metadata as m; assert m.version('lsmtool') == '1.9.1.dev15+g9bac2f7'" \
+    && python -c "import importlib.metadata as m; assert m.version('lsmtool') == '1.9.1.dev27+g156ae6a'" \
     && python -c "from lsmtool.filter_skymodel.bdsf import filter_sources"
 WORKDIR /work
 LABEL org.hebog.purpose="lsmtool-integration" \
-      org.hebog.lsmtool-revision="9bac2f7fabdc15cd9490acfeb9c292aa72af59b7"
+      org.hebog.lsmtool-revision="156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2"

@@ -5,8 +5,8 @@ source-finding step, audited at the pinned revisions:
 
 | Component | Revision | Role |
 | --- | --- | --- |
-| Rapthor | `main` at `d0e7e148` (13 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
-| LSMTool | `master` at `9bac2f7` (v1.9.0 plus 15 commits) | Runs the finder and filters the sky model |
+| Rapthor | `main` at `aff26023` (17 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
+| LSMTool | `master` at `156ae6a` (v1.9.0 plus 27 commits) | Runs the finder and filters the sky model |
 | PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
 
 The pins move forward only at the checkpoints the plan names. The page fixes what must be tested without requiring
@@ -39,7 +39,7 @@ the two output sky-model paths, `vertices_file`, `beam_ms`,
 `output_catalog`, `output_flat_noise_rms`, `output_true_rms` and `ncores`,
 returning the source count. (The registry calls every backend with those
 arguments; `sofia`'s function takes fewer and could not be called that
-way at `9bac2f7`.) The prepared Rapthor patch instead calls Hebog from the native task; see
+way at `156ae6a`.) The prepared Rapthor patch instead calls Hebog from the native task; see
 [How Hebog runs inside Rapthor](#how-hebog-runs-inside-rapthor).
 
 | Input | Meaning |

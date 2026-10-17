@@ -1,4 +1,4 @@
-# LSMTool 9bac2f7 [project.dependencies], verbatim. The image runs LSMTool
+# LSMTool 156ae6a [project.dependencies], verbatim. The image runs LSMTool
 # only; Hebog runs on the host and its products are bind-mounted.
 astropy>=3.2
 everybeam>=0.6.1

@@ -1,7 +1,7 @@
 # Build the pinned LSMTool base first, following ../lsmtool/README.md.
 # rapthor.tar is the reviewed patched commit; hebog-*.whl is an exact local
 # build. Archive identities and this image ID belong in the run's evidence.
-FROM localhost/hebog-lsmtool:9bac2f7
+FROM localhost/hebog-lsmtool:156ae6a
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
 COPY requirements-build.txt requirements.txt /tmp/
 RUN uv pip install --python /opt/lsmtool/bin/python --require-hashes -r /tmp/requirements-build.txt \
@@ -20,4 +20,4 @@ ENV OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 BLIS_NUM_THREADS=
 WORKDIR /work
 LABEL org.hebog.purpose="rapthor-native-integration" \
       org.hebog.rapthor-revision="${RAPTHOR_REVISION}" \
-      org.hebog.lsmtool-revision="9bac2f7fabdc15cd9490acfeb9c292aa72af59b7"
+      org.hebog.lsmtool-revision="156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2"

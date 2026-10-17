@@ -1,4 +1,4 @@
-From f39d61ca5ac0b7c49fdc5f1443e5285b29385b50 Mon Sep 17 00:00:00 2001
+From 5e5d9dcde342061fef340c01d31ff7e45d479470 Mon Sep 17 00:00:00 2001
 From: Gemma Danks <gemma.danks@skao.int>
 Date: Mon, 12 Oct 2026 22:21:50 +0100
 Subject: [PATCH] feat: add Hebog as an optional source finder in the filter
@@ -27,7 +27,7 @@ rapthor[hebog] extra accepts any Hebog 0.x release from 0.22, the first
 on PyPI.
 
 New tests in tests/execution cover the Hebog path, the fallback and the
-dual run. Developed against LSMTool 9bac2f7.
+dual run. Developed against Rapthor aff26023 and LSMTool 156ae6a.
 ---
  docs/source/development/architecture.rst      |  12 +
  docs/source/parset.rst                        |  58 ++
@@ -71,10 +71,10 @@ index 4dab35e1..935719da 100644
 +imports no Rapthor, Prefect or LSMTool. The current one-task-per-worker layout
 +remains unchanged; a distributed Hebog subgraph needs a later layout change.
 diff --git a/docs/source/parset.rst b/docs/source/parset.rst
-index d709cfc6..8cf7747f 100644
+index b40caa2b..8a2ca230 100644
 --- a/docs/source/parset.rst
 +++ b/docs/source/parset.rst
-@@ -1058,3 +1058,61 @@ for how these options are used.
+@@ -1065,3 +1065,61 @@ for how these options are used.
          :term:`generate_initial_skymodel` = ``True``. If photometry and/or astrometry
          skymodels are not provided, then these will not be downloaded and the image
          diagnostics will not be generated.
@@ -636,10 +636,10 @@ index 7d0e4c87..4942d95f 100644
              "dd_psf_grid": [sector.dd_psf_grid for sector in self.imaging_sectors],
              "apply_time_frequency_smearing": self.field.correct_smearing_in_imaging,
 diff --git a/rapthor/settings/defaults.json b/rapthor/settings/defaults.json
-index 9f3894f1..3aa273e9 100644
+index 55c37a29..9e3d4635 100644
 --- a/rapthor/settings/defaults.json
 +++ b/rapthor/settings/defaults.json
-@@ -79,6 +79,9 @@
+@@ -80,6 +80,9 @@
          "dde_method": "full",
          "filter_skymodel": true,
          "source_finder": "bdsf",
@@ -650,10 +650,10 @@ index 9f3894f1..3aa273e9 100644
          "model_mosaic_method": "wsclean",
          "save_visibilities": false,
 diff --git a/rapthor/settings/defaults.parset b/rapthor/settings/defaults.parset
-index 5078df5a..bb99c68a 100644
+index ee231159..ccd857e5 100644
 --- a/rapthor/settings/defaults.parset
 +++ b/rapthor/settings/defaults.parset
-@@ -216,6 +216,10 @@ dde_method = full
+@@ -217,6 +217,10 @@ dde_method = full
  # an image of the filtered model can be saved
  filter_skymodel = True
  source_finder = bdsf
@@ -1255,10 +1255,10 @@ index 2e7570a6..a9d8b2d4 100644
 +    cli.run(["flat.fits", "true.fits", "true.txt", "apparent.txt", "sector", "v.npy", ""])
 +    assert calls[0][6] == []
 diff --git a/tests/resources/rapthor_complete.parset_dict.template b/tests/resources/rapthor_complete.parset_dict.template
-index 5c615ee5..d6d82697 100644
+index 4eb33898..9db17db3 100644
 --- a/tests/resources/rapthor_complete.parset_dict.template
 +++ b/tests/resources/rapthor_complete.parset_dict.template
-@@ -88,6 +88,9 @@
+@@ -89,6 +89,9 @@
                        'dde_method': 'single',
                        'filter_skymodel': False,
                        'source_finder': 'bdsf',
@@ -1269,10 +1269,10 @@ index 5c615ee5..d6d82697 100644
                        'grid_center_dec': 35.50875555555555,
                        'grid_center_ra': 220.25785,
 diff --git a/tests/resources/rapthor_minimal.parset_dict.template b/tests/resources/rapthor_minimal.parset_dict.template
-index c9614af5..7a74a301 100644
+index 3a6418a8..a9a51b08 100644
 --- a/tests/resources/rapthor_minimal.parset_dict.template
 +++ b/tests/resources/rapthor_minimal.parset_dict.template
-@@ -88,6 +88,9 @@
+@@ -89,6 +89,9 @@
                        'dde_method': 'full',
                        'filter_skymodel': True,
                        'source_finder': 'bdsf',
@@ -1282,5 +1282,3 @@ index c9614af5..7a74a301 100644
                        'do_multiscale_clean': True,
                        'grid_center_dec': None,
                        'grid_center_ra': None,
--- 
-2.50.1 (Apple Git-155)
