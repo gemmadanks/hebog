@@ -9,7 +9,7 @@ Install the latest release from [PyPI](https://pypi.org/project/hebog/)
 <!-- x-release-please-start-version -->
 
 ```console
-pip install hebog==0.22.0
+pip install hebog==0.23.0
 hebog --version
 ```
 
