@@ -102,7 +102,7 @@ layouts](../rapthor-execution-layouts.md) draws each layout and one way to
 provide several task slots a node. No thread pool is nested inside a Dask
 task, and Hebog's arrays stay NumPy behind the executor rather than Dask
 arrays. One sector's speed-up is bounded by its serial share, which the
-plan measures and cuts before tuning the topology (tasks 73, 74 and 72).
+plan measures and cuts before tuning the topology.
 
 ## Consequences
 

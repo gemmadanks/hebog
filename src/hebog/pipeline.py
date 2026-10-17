@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 from numbers import Integral
+from pathlib import Path
 
 from hebog.config import SourceFinderConfig
-from hebog.data_models import SourceFinderRequest, SourceFinderResult
+from hebog.data_models import (
+    SourceFinderRequest,
+    SourceFinderResult,
+    SuppliedImageMetadata,
+)
 from hebog.executors import Executor
 
 # What one analysis holds in the process that runs it, as traced between its
@@ -73,6 +78,61 @@ def find_sources(
     return _find_sources(request, config, executor)
 
 
+def expected_source_count(
+    image_path: Path,
+    *,
+    detection_threshold_sigma: float,
+    supplied_metadata: SuppliedImageMetadata | None = None,
+) -> int:
+    """Return an upper estimate of the sources ``find_sources`` publishes.
+
+    Pass it to :func:`analysis_memory_bytes`. A deconvolution model's
+    component list is no such estimate: it holds many components for each
+    source. A published source peaks at least the detection threshold times
+    the local noise above the background, so the estimate counts the pixels
+    that are the highest of their 3x3 neighbourhood and at least
+    ``detection_threshold_sigma`` times the noise above the median of their
+    512-pixel block. A block's noise is its valid pixels' 3-sigma-clipped
+    standard deviation, or the median of every block's if that is lower, so
+    neither the bright sources in a block nor a primary-beam correction's
+    noisier edges hide faint sources. A noise peak counts as a source would,
+    so the estimate errs high; on 21 development cases it bounded every
+    published source count, at 1.0 to 21 times it: 1.1 to 1.9 times on the
+    LOFAR and simulated SKA fields, and most where noise peaks sit on one
+    wide source. The image is read twice in bounded blocks, so no
+    image-sized array is held. An image ``find_sources`` refuses is
+    refused in the same way before any pixel is read.
+
+    Args:
+        image_path: The FITS image ``find_sources`` will analyse.
+        detection_threshold_sigma: The detection threshold the analysis
+            will use, ``SourceFinderConfig.detection_threshold_sigma``.
+        supplied_metadata: Values the header lacks, as the request gives
+            them.
+
+    Returns:
+        The number of such peaks; 0 for an image with no measurable noise.
+
+    Raises:
+        ValueError: If the threshold is not finite and positive.
+        InvalidSourceFinderInputError: If the image cannot be read as a
+            FITS continuum image.
+        UnsupportedSourceFinderConfigurationError: If ``find_sources``
+            refuses the image's unit, frame or beam sampling.
+        SourceFinderImageTooLargeError: If the image exceeds the size
+            envelope ``find_sources`` admits.
+    """
+    from hebog.public_api import (  # noqa: PLC0415
+        expected_source_count as _expected_source_count,
+    )
+
+    return _expected_source_count(
+        image_path,
+        detection_threshold_sigma=detection_threshold_sigma,
+        supplied_metadata=supplied_metadata,
+    )
+
+
 def analysis_memory_bytes(
     image_shape_yx: tuple[int, int], *, expected_sources: int
 ) -> int:
@@ -92,8 +152,8 @@ def analysis_memory_bytes(
     Args:
         image_shape_yx: The input image's height and width in pixels.
         expected_sources: An upper estimate of the sources the catalogue
-            will hold, such as a sky model's count for the field; the
-            reservation is too small if more are found.
+            will hold, such as :func:`expected_source_count` makes from the
+            image; the reservation is too small if more are found.
 
     Returns:
         A fixed amount, an amount per expected source and a byte for every

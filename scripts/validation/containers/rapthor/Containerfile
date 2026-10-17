@@ -1,0 +1,24 @@
+# Build the pinned LSMTool base first, following ../lsmtool/README.md.
+# rapthor.tar is a commit of Rapthor's Hebog branch; hebog-*.whl is an exact
+# local build or release. Archive identities and this image ID belong in the
+# run's evidence.
+FROM localhost/hebog-lsmtool:156ae6a
+COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
+COPY requirements-build.txt requirements.txt /tmp/
+RUN uv pip install --python /opt/lsmtool/bin/python --require-hashes -r /tmp/requirements-build.txt \
+    && uv pip install --python /opt/lsmtool/bin/python --require-hashes --no-build-isolation -r /tmp/requirements.txt
+ARG RAPTHOR_REVISION
+COPY rapthor.tar /tmp/rapthor.tar
+RUN test -n "$RAPTHOR_REVISION" \
+    && mkdir /opt/rapthor-source \
+    && tar -xf /tmp/rapthor.tar -C /opt/rapthor-source \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_RAPTHOR="2.2.0.dev0+g${RAPTHOR_REVISION}" \
+       uv pip install --python /opt/lsmtool/bin/python --no-deps --no-build-isolation /opt/rapthor-source
+COPY hebog-*.whl /tmp/
+RUN uv pip install --python /opt/lsmtool/bin/python --no-deps /tmp/hebog-*.whl \
+    && python -m pip check
+ENV OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 BLIS_NUM_THREADS=1
+WORKDIR /work
+LABEL org.hebog.purpose="rapthor-native-integration" \
+      org.hebog.rapthor-revision="${RAPTHOR_REVISION}" \
+      org.hebog.lsmtool-revision="156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2"

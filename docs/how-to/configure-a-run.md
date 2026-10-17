@@ -86,10 +86,12 @@ and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
 cores, so an image up to 2,048 pixels gives those stages a single tile and
 little to parallelise; above that they tile too. On the development
 machine a four-worker local Dask cluster finished the 10,000² LoTSS-DR3
-anchor in 0.61 of the serial executor's time (one run each on a shared
-machine, so an indication rather than a benchmark); background and RMS
-refinement, split into many small tasks, is most of what keeps it from a
-quarter.
+anchor in about 0.4 of the serial executor's time, with identical products,
+but twelve threads of a `ThreadExecutor` took 0.84 of one thread's time,
+because Python's global lock holds them: for speed, use Dask workers in
+separate processes.
+[Progress against goals](../reference/progress-against-goals.md#performance)
+has the dated figures.
 [Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) has the
 details.
 

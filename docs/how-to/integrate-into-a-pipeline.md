@@ -90,14 +90,17 @@ Reserve memory for the analysis itself too. `find_sources` holds Hebog's
 modules and the records every pass keeps for each source in the process
 that calls it, so what it holds grows with the sources it finds, about
 40 KB each, rather than with the image. `hebog.analysis_memory_bytes` states
-how much for an upper estimate of the source count, such as a sky model's
-count for the field. When `find_sources` runs inside a Dask task, request
-it there:
+how much for an upper estimate of the source count, which
+`hebog.expected_source_count` makes from the image at your detection
+threshold, reading it in bounded blocks. A deconvolution model's component
+list is no such estimate: it holds many components for each source. When
+`find_sources` runs inside a Dask task, request it there:
 
 ```python
 import hebog
 
-reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=40_000)
+expected = hebog.expected_source_count(image_path, detection_threshold_sigma=5.0)
+reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=expected)
 client.submit(run_finder, request, resources={"memory": reserve, "cores": 1})
 ```
 
@@ -181,6 +184,17 @@ For Rapthor, `hebog.adapters.find_sector_sources` writes Rapthor's file names
 and catalogue columns, and LSMTool's `filter_sources` filters and groups the
 sky model with the island mask; see the
 [Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor).
+The [guide to Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
+and its container show how to install and test `source_finder = hebog` on
+Rapthor's current single-task worker layout. It runs the caller-owned ThreadExecutor inside
+the Prefect task, admits memory, and retains the PyBDSF fallback. Set
+`hebog_dual_run = True` to retain both filtered product sets and place their
+comparison in ordinary image diagnostics. The branch is not yet merged
+into Rapthor. The adapter defaults to the `compact` profile
+with a zero background, Rapthor's interim choice, and
+the branch's parset defaults to them too; neither is a qualified Rapthor
+profile,
+and a distributed Hebog subgraph needs the later worker-layout change.
 
 ## Versioning
 

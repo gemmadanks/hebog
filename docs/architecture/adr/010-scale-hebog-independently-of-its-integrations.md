@@ -29,7 +29,7 @@ Hebog also runs without Rapthor: standalone on a local machine, and alone
 on a cluster when an image is too large for one node. Its target today is
 two-dimensional continuum images, but spectral cubes and a time axis are
 plausible later. On 10 October 2026, while the Rapthor integration was
-being designed (plan task 16), the maintainer set the principle this ADR
+being designed, the maintainer set the principle this ADR
 records.
 
 ## Problem Statement
@@ -112,14 +112,14 @@ N-dimensional.
   concern, and Hebog tolerates workers joining or leaving between
   analyses.
 - Bad, because Rapthor carries the work of fitting its cluster to Hebog
-  as well as to its own tools, and the integration (plan tasks 20 and 72)
-  documents what it must provide.
+  as well as to its own tools, and the integration documents what it
+  must provide.
 - Risk: a resource name or a memory amount that the caller declares
   wrongly lets Dask co-locate too much work; Hebog's admission checks
   what it can: it refuses a task larger than the workers declare, and a
   round no worker declares the named resources for.
 - Risk: thousands of tasks on a shared filesystem mean many small chunk
-  files; plan task 25 evaluates Zarr v3's sharding codec, and the cluster
+  files; evaluating Zarr v3's sharding codec is planned, and the cluster
   benchmark measures the filesystem.
 - Risk: cubes or a time axis may need halos and reconciliation along a new
   axis, which the two-dimensional partitioning cannot express; that is the
@@ -131,7 +131,7 @@ The executor contract suite runs the same products on Serial, Thread and
 Dask executors. Every task declares its memory, the public contract suite
 checks that none holds more, and on a local multi-worker cluster the
 resource annotations, under caller-configured names, keep Dask from
-co-locating tasks past a worker's declared memory (plan task 17). The
+co-locating tasks past a worker's declared memory. The
 cluster benchmark runs Hebog standalone on a multi-node cluster as well as
 through Rapthor. The architecture tests
 keep Rapthor, Prefect and LSMTool out of the package.

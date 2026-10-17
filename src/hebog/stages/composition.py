@@ -45,8 +45,8 @@ from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.algorithms.component_measurement import ComponentMeasurements
+    from hebog.algorithms.feature_envelopes import HierarchyOverlaps
     from hebog.algorithms.multiscale_association import ScaleDetections
-    from hebog.algorithms.source_association import HierarchyOverlaps
     from hebog.data_models.measurement_diagnostics import (
         SourcePositionDiagnostics,
     )
@@ -564,7 +564,7 @@ def publish_component_topology(  # noqa: PLR0913
     from hebog.science.models import (  # noqa: PLC0415
         TiledComponentTopology,
     )
-    from hebog.stages.objects import (  # noqa: PLC0415
+    from hebog.stages.component_topology import (  # noqa: PLC0415
         ComponentTopologyStageConfig,
         run_component_topology_stage,
     )
@@ -914,12 +914,16 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         compact_deblend_config,
     )
     from hebog.science.models import TiledComponentFits  # noqa: PLC0415
-    from hebog.stages.objects import (  # noqa: PLC0415
+    from hebog.stages.component_fits import (  # noqa: PLC0415
         ComponentFitStageConfig,
-        ExtendedGroupStageConfig,
-        FitParentStageConfig,
         run_component_fit_stage,
+    )
+    from hebog.stages.extended_groups import (  # noqa: PLC0415
+        ExtendedGroupStageConfig,
         run_extended_group_stage,
+    )
+    from hebog.stages.fit_parents import (  # noqa: PLC0415
+        FitParentStageConfig,
         run_fit_parent_stage,
     )
 

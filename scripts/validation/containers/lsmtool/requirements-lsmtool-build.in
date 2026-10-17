@@ -1,4 +1,4 @@
-# Build backend for the LSMTool 9bac2f7 wheel (BUILD_EXTENSIONS=OFF, so no
+# Build backend for the LSMTool 156ae6a wheel (BUILD_EXTENSIONS=OFF, so no
 # compiler is needed). Installed only in the wheel-builder stage.
 scikit-build-core>=0.10
 pybind11

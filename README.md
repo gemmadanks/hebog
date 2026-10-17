@@ -6,8 +6,8 @@
 [![codecov](https://codecov.io/gh/gemmadanks/hebog/graph/badge.svg)](https://codecov.io/gh/gemmadanks/hebog)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/gemmadanks/hebog/blob/main/LICENSE)
 
-Hebog is an **experimental** source finder for radio-continuum images. It
-runs in a single process or on a Dask cluster. For each FITS image it:
+Hebog is a scalable source finder for radio continuum images. It is
+**experimental**, and runs in a single process or on a Dask cluster. For each FITS image it:
 
 1. estimates the background and noise;
 2. detects compact and extended emission;
@@ -45,23 +45,18 @@ telescope, Rapthor, science, performance, scalability and release goals.
 
 ## Installation
 
-Hebog is not on PyPI yet: its public input envelope is still too small to be
-generally useful. Install the latest tagged release from GitHub into a
-Python 3.12 to 3.14 environment, or replace the tag with the
-[release](https://github.com/gemmadanks/hebog/releases) you want:
+Hebog is experimental: `0.x` releases can change the API, the outputs and
+the measurements, so pin the exact version. Install it from
+[PyPI](https://pypi.org/project/hebog/) into a Python 3.12 to 3.14
+environment (releases before 0.22.0 are on GitHub only):
 
 <!-- x-release-please-start-version -->
 
 ```shell
-pip install git+https://github.com/gemmadanks/hebog@v0.21.0
+pip install hebog==0.22.0
 ```
 
 <!-- x-release-please-end -->
-
-Releases are also uploaded to
-[TestPyPI](https://test.pypi.org/project/hebog/) to exercise the publishing
-workflow. That index is for testing only; install from it just to check
-packaging, never for scientific work.
 
 ## Example
 

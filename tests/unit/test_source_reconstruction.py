@@ -8,6 +8,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
+from hebog.algorithms.component_records import (
+    build_detection_component_records,
+)
 from hebog.algorithms.multiscale_association import (
     ScaleDetectionPlane,
     build_scale_detection_plane,
@@ -19,7 +22,6 @@ from hebog.algorithms.source_association import (
     _ScaleAwareParentEvidence,  # pyright: ignore[reportPrivateUsage]
     _TerminalCycleEvidence,  # pyright: ignore[reportPrivateUsage]
     associate_components_by_multiscale_hierarchy,
-    build_detection_component_records,
 )
 from hebog.data_models.multiscale import ScaleDetection
 from hebog.data_models.source_association import DetectionComponentRecord

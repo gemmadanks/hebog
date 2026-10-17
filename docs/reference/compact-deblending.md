@@ -64,7 +64,7 @@ scikit-image.
 ## Bounded execution and deferral
 
 `find_sources` deblends in the component-topology stage
-(`run_component_topology_stage` in `hebog.stages.objects`). Each retained
+(`run_component_topology_stage` in `hebog.stages.component_topology`). Each retained
 parent is deblended with its direct and expanded measurement support, and
 the stage publishes the component labels as an intermediate plane. Parents
 are grouped so that one bounded read serves several, but a parent is never

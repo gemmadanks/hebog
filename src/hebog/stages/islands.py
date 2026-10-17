@@ -47,7 +47,7 @@ from hebog.data_models.partitioning import (
 )
 from hebog.executors.base import Executor
 from hebog.io.base import CompletedProductSource, WindowReadable
-from hebog.science.catalogues import (
+from hebog.science.detection_islands import (
     detection_island_identifier,
     island_ids_by_component,
     measure_detection_island,
@@ -412,15 +412,15 @@ def _islands(reconciled: tuple[DetectedIsland, ...]) -> tuple[_Island, ...]:
 def _island_batches(
     islands: tuple[_Island, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_objects_per_batch: int,
     maximum_batch_read_pixels: int,
 ) -> tuple[_IslandBatch, ...]:
     """Group islands so one read serves several, within both budgets.
 
-    Islands are visited in raster order of their windows, so a batch covers a
-    compact region: the residual is assembled from storage chunks far larger
-    than one island, and one read per island would decode the chunks its
-    neighbours share again for each of them.
+    The residual is assembled from storage chunks far larger than one
+    island, and one read per island would decode the chunks its neighbours
+    share again for each of them.
 
     Raises:
         ValueError: If one island's own window exceeds the read budget. No
@@ -430,11 +430,9 @@ def _island_batches(
     return tuple(
         _IslandBatch(islands=batch.objects, read_bounds=batch.read_bounds)
         for batch in batch_object_windows(
-            sorted(
-                islands,
-                key=lambda item: (item.bounds.y_start, item.bounds.x_start),
-            ),
+            islands,
             window=lambda island: island.bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
             maximum_objects_per_batch=maximum_objects_per_batch,
         )
@@ -783,6 +781,7 @@ def run_detection_island_stage(  # noqa: PLR0913
             for island in islands
             if read_pixels(island.bounds) <= budget
         ),
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_objects_per_batch=config.maximum_objects_per_batch,
         maximum_batch_read_pixels=budget,
     )

@@ -287,25 +287,27 @@ every pixel of a block of one repeated value (see the
 status means that at least one finite estimate exists; it does not claim that
 every image position has independently resolved noise information. The
 continuum estimator can interpolate missing grid cells and extend fine-grid
-edge values under its documented policy. Where it measures local noise (the
-`continuum` profile on images at least 150 pixels on a side), a fine cell
-whose window overlaps a protected source takes its nearest clean window's
-RMS, but, while a clean window lies within half a coarse window of it,
-never less than 0.8 of the coarse RMS at its centre or of the largest such
-clean window if that is lower. So a quieter region's noise is not carried
-across a sharp step in the noise beside it, and extended emission that an
-unprotected coarse window keeps is not taken for noise: a cell beyond every
-clean window's reach, as inside a source wider than a coarse window, keeps
-its nearest clean window's RMS, and a cell a clean window measured keeps
-its own.
-Around bright sources the fine grid
-only raises the coarse RMS, and carries a clean window's RMS at most one fine
-window (35 pixels): a fine cell farther than that from every clean window
-keeps the coarse RMS. Beside a sharp step in the noise of a crowded field the
-RMS is therefore the coarse estimate, which mixes the two sides over about
-half a coarse window. Towards the image edge the fine estimate is held at its
-edge cells, and the coarse estimate never falls below the edge cell, so no
-extended edge value is lower than the cell beside it.
+edge values under its documented policy.
+
+Where it measures local noise (the `continuum` profile on images at least
+150 pixels on a side), a fine cell whose window overlaps a protected source
+takes its nearest clean window's RMS, but, while a clean window lies within
+half a coarse window of it, never less than 0.8 of the coarse RMS at its
+centre or of the largest such clean window if that is lower. So a quieter
+region's noise is not carried across a sharp step in the noise beside it,
+and extended emission that an unprotected coarse window keeps is not taken
+for noise: a cell beyond every clean window's reach, as inside a source
+wider than a coarse window, keeps its nearest clean window's RMS, and a cell
+a clean window measured keeps its own.
+
+Around bright sources the fine grid only raises the coarse RMS, and carries
+a clean window's RMS at most one fine window (35 pixels): a fine cell
+farther than that from every clean window keeps the coarse RMS. Beside a
+sharp step in the noise of a crowded field the RMS is therefore the coarse
+estimate, which mixes the two sides over about half a coarse window.
+Towards the image edge the fine estimate is held at its edge cells, and the
+coarse estimate never falls below the edge cell, so no extended edge value
+is lower than the cell beside it.
 
 A noise window measures no noise when its clipped spread is no greater than
 its noise floor: the largest absolute valid value in the window times single
@@ -316,13 +318,14 @@ than single precision resolves beside the window's brightest pixel, such as
 the tails of a noise-free source in a window that holds the source. Such a
 window is dropped, as a window over a protected source is, and takes the
 estimate of its nearest clean window under the floor and reach above, so a
-valid product holds no RMS of zero or of rounding. Real
-noise falls under the floor only in a window whose brightest pixel is more
-than eight million times the noise. A noise-free
-image whose windows all fall under the floor publishes an unavailable RMS,
-but a window that holds only a source's far tails, whose spread is close to
-their own values, is measured, so a noise-free image can still publish a
-positive but tiny RMS.
+valid product holds no RMS of zero or of rounding. Real noise falls under
+the floor only in a window whose brightest pixel is more than eight million
+times the noise.
+
+A noise-free image whose windows all fall under the floor publishes an
+unavailable RMS, but a window that holds only a source's far tails, whose
+spread is close to their own values, is measured, so a noise-free image can
+still publish a positive but tiny RMS.
 
 An unavailable RMS product is entirely NaN. In that case the catalogue is
 empty and the source mask is zero because sigma thresholding was not defined.
@@ -385,7 +388,7 @@ newline. Schema 13 rejects unknown fields and contains:
 | `configuration_sha256` | Canonical complete `SourceFinderConfig`, including thresholds, size limits, and profile. |
 | `scientific_profile_sha256` | Exact installed science-configuration resource. |
 | `scientific_composition` | Opaque implementation label. Preserve it for provenance; users do not need to interpret it. |
-| `scientific_composition_sha256` | Exact identity of the implementation: every Hebog module the finder imports, except the package initializer, tile planning and the tasks' memory declarations, and every packaged resource file. |
+| `scientific_composition_sha256` | Exact identity of the implementation: every Hebog module the finder imports, except the package initializer, tile planning, the tasks' memory declarations and the source-count estimate a caller runs before an analysis, and every packaged resource file. |
 | `supplied_image_metadata` | `null`, or the `SuppliedImageMetadata` values the request supplied for keywords the input header omits: `reference_frequency_hz`, `beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and `brightness_unit`, each `null` when not supplied. The input SHA-256 alone does not identify a run that used supplied metadata. |
 | `schema_version` | `4` for the nested provenance record. |
 

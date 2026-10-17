@@ -15,9 +15,10 @@ Python and dependency versions, worker topology, CPU allocation, wall time,
 CPU time, and peak resident memory. Generated results belong in the ignored
 `benchmark-results/` directory.
 
-Earlier campaign launchers, freezers, reviews, compilers and evaluators were
-removed; their conclusions are in `LOG.md` and the code remains in
-[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
+Earlier campaign and stage benchmark tooling was removed; it remains in
+Git history at
+[`4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0)
+and [`v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
 
 ## Source-finder comparison notebook
 
@@ -110,6 +111,50 @@ that every component was measured or that scientific parity passed. Existing
 availability gates continue to count those missing measurements. The solver,
 fit bounds and detection thresholds are unchanged.
 
+## Matched filter_skymodel benchmark
+
+`measure_filter_skymodel.py` is the matched benchmark of
+Rapthor's `filter_skymodel` step: Rapthor's native Hebog task
+against its PyBDSF subprocess with pinned `master`, in one
+[benchmark image](containers/filter-skymodel/README.md) on the same cores.
+It writes one sector's inputs from a real image with
+`hebog.validation.filter_benchmark`: the image twice in WSClean's four-axis
+layout, a polygon inset 5% from its border, and WSClean-style component
+lists with a point component on every island pixel (3 sigma, connected to
+5 sigma), since Rapthor's WSClean cleans to 1 sigma inside the previous
+cycle's island mask. A Measurement Set given with `--beam-ms` selects
+Rapthor's production two-pass mode. Each warm-up
+and measured repetition runs `filter_skymodel_worker.py` in a fresh
+container, alternating the finders, and the report applies the deployment
+gate's ratio rule to the source-finding part of each run, from the task's
+start to LSMTool's `filter_sources` call, the span the finder controls, and
+reports the complete step's ratio beside it:
+
+```console
+mkdir -p benchmark-results/filter-skymodel/beam
+git -C <LSMTool checkout> show \
+  156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2:tests/resources/test_midbands.ms.tgz \
+  | tar -xz -C benchmark-results/filter-skymodel/beam
+uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --beam-ms benchmark-results/filter-skymodel/beam/test_midbands.ms \
+  --label <label>
+```
+
+`test_midbands.ms` is pinned LSMTool's 16 MB test Measurement Set; with
+the apparent component list supplied, LSMTool reads only its times, and
+EveryBeam, which fails under Rosetta, is never imported.
+
+The image runs under Rosetta on Apple silicon, so the ratio is matched but
+the times are emulated.
+
+`--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
+mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
+single-threaded Dask worker processes instead of Rapthor's threads. Rapthor's
+Hebog branch has no Dask path for Hebog yet, so such a run
+screens what one could give and never counts towards the gate.
+
+## Phase 0 PyBDSF baselines
+
 `run_phase0_pybdsf_baseline.py` starts a fresh local Podman container for every
 warm-up or measured repetition. Release 1.14.1 uses the PyBDSF already present
 in the immutable container. The master campaign installs a separately built
@@ -170,13 +215,6 @@ latency where applicable. The exploratory backend-comparison runner was
 removed after ADR-007 selected a single backend, so rejected private storage
 code does not become a maintained benchmark dependency.
 
-The Phase 1 to 5 stage and matrix benchmark runners (`measure_phase1_io.py`
-to `measure_phase5_multiscale.py`, their input generators, matrix drivers and
-`config/benchmarks/phase-4-performance.json` and `phase-5-performance.json`)
-were replaced by the quick benchmark below. Their component budgets timed
-stages of the whole-array path that milestone M2 replaces. They remain in
-[Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
-
 ## Quick benchmark
 
 `quick_benchmark.py` times complete FITS-to-products runs on the cases in
@@ -206,10 +244,6 @@ wall time, CPU time and peak memory, including PyBDSF's worker processes, from
 input validation to product normalisation. Container start-up and interpreter
 imports are excluded, while Hebog's timings include them, so the ratio
 slightly favours PyBDSF.
-
-The closed Phase 4 paired campaign runners and compiler were removed with the
-campaign tooling and remain in
-[Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
 
 ## Traced-allocation peak
 
@@ -266,10 +300,15 @@ is the single-thread process it starts for each case, and
 `build_profile_datasets.py` writes the generated size and density ladder. The
 timing, stage splitting and cost model live in
 `hebog.validation.execution_profile`, with unit tests in
-`tests/unit/validation/test_execution_profile.py`. The
+`tests/unit/validation/test_execution_profile.py`.
+`hebog.validation.task_recording` times every task where it runs, under the
+serial, thread or Dask executor. `profile_scaling.py` runs one sector at
+several thread and Dask worker counts and summarises the curves with
+`hebog.validation.scaling_profile`. The
 [development workflow guide](../../docs/how-to/index.md#profile-complete-execution)
 describes the cases and outputs:
 
 ```console
 just profile-execution --label <label> --cprofile
+just profile-scaling --label <label> --memory-budget-bytes 16000000000
 ```

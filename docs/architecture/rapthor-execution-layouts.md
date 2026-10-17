@@ -3,7 +3,7 @@
 This page shows where one Rapthor sector's source finding runs on each Dask
 layout Rapthor can start, and which Hebog executor it uses. Rapthor
 orchestrates several sectors, so every layout here holds one sector. The
-decision behind it is the amendment of 10 October 2026 to
+decision behind it is recorded in
 [ADR-004](adr/004-keep-top-level-scheduling-in-rapthor.md); the
 [Rapthor contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor)
 records the interface. Hebog defines what it needs from a Dask cluster to
@@ -155,7 +155,7 @@ uses:
 | --- | --- | --- |
 | A DP3 or WSClean command | `prefect: 1`, `cores: T` | Runs alone on the worker |
 | Another Rapthor Prefect task | `prefect: 1`, the cores it uses | Never beside a second Prefect task |
-| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1`, `memory: hebog.analysis_memory_bytes(shape, expected_sources=...)`, from the sector sky model's count | Waits on one core, leaving T − 1 to tiles |
+| Rapthor's `filter_skymodel`, running Hebog | `prefect: 1`, `cores: 1`, `memory: hebog.analysis_memory_bytes(shape, expected_sources=...)`, with `hebog.expected_source_count` for the sector image, counted before the task is submitted | Waits on one core, leaving T − 1 to tiles |
 | A Hebog tile task | `cores: 1`, `memory:` its declared bytes | Runs on any worker with a free core and that much memory |
 
 Hebog's tile tasks request `cores` and `memory` under the names Rapthor
@@ -200,12 +200,12 @@ workers between steps; WSClean runs across nodes with MPI and needs few
 Dask workers for now. The worker size T is a trade-off Rapthor chooses. DP3 and WSClean run as
 external processes, so they use T cores without Python's global lock and
 want T large. Hebog's tiles share one Python process per worker, so they
-want T small enough that the lock does not throttle them; the plan's task
-73 measures how far threads in one process scale. Hebog chooses each
+want T small enough that the lock does not throttle them: twelve threads
+in one process took 0.84 of one thread's time on the 10,000² anchor. Hebog chooses each
 stage's tile core and task count within the core budget Rapthor states,
 so each stage has a few tasks per core, while a small image stays one tile. How far one sector gains from
 more cores depends on the share of its run that does not parallelise,
-which the plan measures and reduces first (tasks 73 and 74); beyond that
+which is measured and reduced first; beyond that
 point, the cores serve other sectors.
 
 ## Adding workers during a Prefect flow

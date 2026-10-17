@@ -6,8 +6,13 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
+from hebog.algorithms import reconciliation as reconciliation_module
 from hebog.algorithms.detection import detect_threshold_masks
-from hebog.algorithms.labelling import LocalIslandTile, label_detection_tile
+from hebog.algorithms.labelling import (
+    LocalIslandTile,
+    label_detection_tile,
+    relabelled,
+)
 from hebog.algorithms.partitioning import plan_image_partitions
 from hebog.algorithms.reconciliation import (
     DetectedIsland,
@@ -189,6 +194,42 @@ def test_side_and_four_tile_corner_connections_reconcile_once() -> None:
         _mask_from_tiles(manifest, tiles, reconciliation),
         normalized >= 3.0,
     )
+
+
+def test_each_seam_is_reconciled_once_however_deep_the_tree(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A round joins two halves through the seams between them alone.
+
+    Reconciling every seam of the merged tiles at every round made the tree
+    cost the seams times its depth. A 4-by-4 grid has 12 side seams across
+    and 12 down, each compared along three aligned relations.
+    """
+    normalized = np.zeros((12, 12), dtype=np.float64)
+    normalized[1::3, :] = 6.0
+    normalized[:, 1::3] = 6.0
+    manifest, tiles = _label_tiles(normalized, tile_shape_yx=(3, 3))
+    whole_manifest, whole_tiles = _label_tiles(
+        normalized, tile_shape_yx=(12, 12)
+    )
+    compared = 0
+    positive_pairs = reconciliation_module._positive_pairs  # pyright: ignore[reportPrivateUsage]
+
+    def counted(
+        first: npt.NDArray[np.int32], second: npt.NDArray[np.int32]
+    ) -> tuple[tuple[int, int], ...]:
+        nonlocal compared
+        compared += 1
+        return positive_pairs(first, second)
+
+    monkeypatch.setattr(reconciliation_module, "_positive_pairs", counted)
+
+    reconciliation = reconcile_island_tiles(manifest, tiles, _config())
+
+    assert compared == 3 * (12 + 12)
+    assert reconciliation.reduction_round_count == 4
+    whole = reconcile_island_tiles(whole_manifest, whole_tiles, _config())
+    assert reconciliation.islands == whole.islands
 
 
 def test_partition_shape_origin_and_result_order_preserve_islands() -> None:
@@ -396,3 +437,57 @@ def test_reconciliation_rejects_fragments_that_disagree_on_a_response() -> (
 
     with pytest.raises(ValueError, match="agree on carrying a peak response"):
         reconcile_island_tiles(manifest, tuple(tiles), _config())
+
+
+def _relabelled_label_by_label(
+    labels: npt.NDArray[np.int32],
+    value_by_label: dict[int, int],
+    otherwise: npt.NDArray[np.int32],
+) -> npt.NDArray[np.int32]:
+    """Compare the plane with each label in turn, as the stages did."""
+    values = otherwise.copy()
+    for label, value in value_by_label.items():
+        values[labels == label] = value
+    return values
+
+
+@pytest.mark.parametrize("seed", range(5))
+def test_one_lookup_gives_what_comparing_each_label_gives(seed: int) -> None:
+    """Every pixel takes its label's value, and any other keeps its own.
+
+    The plane spans several blocks of rows, maps only some of its labels,
+    and the mapping names labels the plane never holds.
+    """
+    rng = np.random.default_rng(seed)
+    labels = rng.integers(0, 40, size=(600, 7), dtype=np.int32)
+    otherwise = rng.integers(-3, 3, size=labels.shape, dtype=np.int32)
+    value_by_label = {
+        int(label): int(rng.integers(1, 1_000))
+        for label in rng.choice(np.arange(1, 60), size=25, replace=False)
+    }
+
+    result = relabelled(labels, value_by_label, otherwise=otherwise)
+
+    assert result.dtype == np.int32
+    assert np.array_equal(
+        result,
+        _relabelled_label_by_label(labels, value_by_label, otherwise),
+    )
+    assert np.array_equal(
+        relabelled(labels, value_by_label),
+        _relabelled_label_by_label(
+            labels, value_by_label, np.zeros_like(labels)
+        ),
+    )
+
+
+def test_an_empty_mapping_leaves_every_pixel_alone() -> None:
+    """No label maps anywhere, so the result is the fallback, copied."""
+    labels = np.array([[0, 1], [2, 3]], dtype=np.int32)
+    otherwise = np.array([[4, 5], [6, 7]], dtype=np.int32)
+
+    result = relabelled(labels, {}, otherwise=otherwise)
+
+    assert np.array_equal(result, otherwise)
+    assert result is not otherwise
+    assert not np.any(relabelled(labels, {}))

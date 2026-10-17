@@ -1,5 +1,7 @@
 """Tests for bounded coarse-grid background and RMS estimation."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
@@ -17,6 +19,7 @@ from hebog.algorithms.background import (
     RmsWindowBatch,
     assemble_rms_grid_statistics,
     estimate_rms_grid_batch,
+    group_rms_window_batches,
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     plan_rms_window_batches,
@@ -27,7 +30,9 @@ from hebog.config import RmsGridConfig, RmsWindowStatisticsConfig
 from hebog.data_models import ImageBounds
 from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
+from hebog.stages import background as background_stage
 from hebog.stages.background import estimate_rms_grid
+from hebog.stages.task_memory import read_requirement
 
 Input = TypeVar("Input")
 Output = TypeVar("Output")
@@ -82,6 +87,26 @@ class _RetryExecutor(SerialExecutor):
         if inputs:
             super().map_batches(function, inputs[:1])
         return results
+
+
+class _RecordingExecutor(SerialExecutor):
+    """Record each round's task count and declared requirement."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.rounds: list[tuple[int, TaskRequirement | None]] = []
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Run the round serially after recording what it submits."""
+        inputs = list(batches)
+        self.rounds.append((len(inputs), requirement))
+        return super().map_batches(function, inputs, requirement=requirement)
 
 
 def _statistics_config(
@@ -223,6 +248,113 @@ def test_rejects_invalid_batch_cell_limits(maximum_cells: object) -> None:
 
     with pytest.raises(ValueError, match="maximum_cells"):
         plan_rms_window_batches(grid, maximum_cells=maximum_cells)  # type: ignore[arg-type]
+
+
+def test_groups_batches_by_the_square_their_reads_start_in() -> None:
+    """One task's batches are neighbours, read once through their union."""
+    grid = plan_rms_grid(
+        image_shape_yx=(97, 83),
+        window_shape_yx=(5, 6),
+        step_yx=(2, 3),
+    )
+    batches = plan_rms_window_batches(grid, maximum_cells=6)
+
+    groups = group_rms_window_batches(batches, read_side_pixels=20)
+
+    members = [batch for group in groups for batch in group.batches]
+    assert len(members) == len(batches)
+    assert set(members) == set(batches)
+    assert 1 < len(groups) < len(batches)
+    squares: list[tuple[int, int]] = []
+    for group in groups:
+        reads = [batch.read_bounds for batch in group.batches]
+        (square,) = {
+            (read.y_start // 20, read.x_start // 20) for read in reads
+        }
+        squares.append(square)
+        assert group.read_bounds == ImageBounds(
+            min(read.y_start for read in reads),
+            max(read.y_stop for read in reads),
+            min(read.x_start for read in reads),
+            max(read.x_stop for read in reads),
+        )
+    assert squares == sorted(squares)
+
+
+@pytest.mark.parametrize("read_side_pixels", [0, -1, True, 2.5])
+def test_rejects_invalid_group_read_sides(read_side_pixels: object) -> None:
+    """A group's read side is a positive whole number of pixels."""
+    grid = plan_rms_grid(
+        image_shape_yx=(8, 8),
+        window_shape_yx=(4, 4),
+        step_yx=(2, 2),
+    )
+    batches = plan_rms_window_batches(grid, maximum_cells=4)
+
+    with pytest.raises(ValueError, match="read_side_pixels"):
+        group_rms_window_batches(
+            batches,
+            read_side_pixels=read_side_pixels,  # type: ignore[arg-type]
+        )
+
+
+def test_one_task_estimates_a_square_of_batches_from_one_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Grouped batches give exactly the statistics of one read a batch.
+
+    Each task declares the memory of its group's read, and the source is
+    read once a group rather than once a batch.
+    """
+    image = np.random.default_rng(11).normal(size=(97, 83))
+    image[40:44, 10:70] = np.nan
+    grid = plan_rms_grid(
+        image_shape_yx=image.shape,
+        window_shape_yx=(5, 6),
+        step_yx=(2, 3),
+    )
+    batches = plan_rms_window_batches(grid, maximum_cells=6)
+    one_read_a_batch = _ArrayImageSource(image)
+    expected = assemble_rms_grid_statistics(
+        grid,
+        [_estimate_batch(one_read_a_batch, grid, batch) for batch in batches],
+    )
+    monkeypatch.setattr(background_stage, "_SOURCE_READ_SIDE_PIXELS", 20)
+    source = _ArrayImageSource(image)
+    executor = _RecordingExecutor()
+
+    actual = estimate_rms_grid(
+        source,
+        grid,
+        RmsGridConfig(
+            window_shape_yx=(5, 6),
+            step_yx=(2, 3),
+            statistics=_statistics_config(),
+            maximum_batch_cells=6,
+        ),
+        executor,
+    )
+
+    groups = group_rms_window_batches(batches, read_side_pixels=20)
+    assert source.read_bounds == [group.read_bounds for group in groups]
+    assert executor.rounds == [
+        (
+            len(groups),
+            read_requirement(
+                background_stage._SOURCE_BATCH_BYTES_PER_READ_PIXEL,
+                (group.read_bounds for group in groups),
+            ),
+        )
+    ]
+    np.testing.assert_array_equal(actual.background, expected.background)
+    np.testing.assert_array_equal(actual.rms, expected.rms)
+    np.testing.assert_array_equal(actual.available, expected.available)
+    np.testing.assert_array_equal(
+        actual.valid_sample_count, expected.valid_sample_count
+    )
+    np.testing.assert_array_equal(
+        actual.retained_sample_count, expected.retained_sample_count
+    )
 
 
 def test_estimates_an_affine_background_from_vectorised_window_blocks() -> (

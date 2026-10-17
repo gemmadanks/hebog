@@ -253,7 +253,8 @@ def test_rapthors_thresholds_and_pybdsf_minimum_island_reach_the_finder(
 
     The 6-arcsec beam on 1-arcsec pixels covers 40.8 pixels, so PyBDSF's
     rule gives a minimum island of 13 pixels. The analysis is the one the
-    finder runs with exactly those three numbers.
+    finder runs with exactly those three numbers and Rapthor's default
+    profile, ``compact`` with a zero background.
     """
     header = _header(beam_arcsec=6.0)
     flat_noise = _flat_noise_image()
@@ -279,7 +280,7 @@ def test_rapthors_thresholds_and_pybdsf_minimum_island_reach_the_finder(
             "sector_1",
             flat_noise_image_path=request.flat_noise_image_path,
         ),
-        SourceFinderConfig(6.0, 4.0, 13),
+        SourceFinderConfig(6.0, 4.0, 13, profile="compact", background="zero"),
         SerialExecutor(),
     )
 

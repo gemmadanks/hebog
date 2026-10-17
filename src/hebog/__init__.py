@@ -1,4 +1,4 @@
-"""Dask-aware radio-continuum source finding for SKA SDP pipelines."""
+"""A scalable source finder for radio continuum images."""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -16,13 +16,14 @@ from hebog.pipeline import (
     SourceFinderStagingWarning,
     UnsupportedSourceFinderConfigurationError,
     analysis_memory_bytes,
+    expected_source_count,
     find_sources,
 )
 
 try:
     __version__ = version("hebog")
 except PackageNotFoundError:
-    __version__ = "0.21.0"
+    __version__ = "0.22.0"
 
 __all__ = [
     "InvalidSourceFinderInputError",
@@ -37,5 +38,6 @@ __all__ = [
     "UnsupportedSourceFinderConfigurationError",
     "__version__",
     "analysis_memory_bytes",
+    "expected_source_count",
     "find_sources",
 ]

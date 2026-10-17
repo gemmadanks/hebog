@@ -1,0 +1,57 @@
+# Matched filter_skymodel benchmark image (plan task 23): the Rapthor
+# integration image (../../../validation/containers/rapthor) with pinned
+# PyBDSF master c70103b in place of released 1.14.1, so Hebog's native task
+# and Rapthor's PyBDSF subprocess run in one environment on the same cores.
+#
+# The context holds this file, the build lock, the Boost 1.91.0 source
+# tarball and pybdsf.tar, a git archive of PyBDSF at c70103b. PyBDSF's own
+# wheels build Boost.Python against the NumPy they run with; Ubuntu's
+# Boost.Python is built against NumPy 1, and the image runs NumPy 2, so the
+# builder does the same.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE} AS builder
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        gfortran \
+        python3.12-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY boost_1_91_0.tar.bz2 pybdsf.tar requirements-pybdsf-master-build.txt /tmp/
+RUN test "$(sha256sum /tmp/boost_1_91_0.tar.bz2 | cut -d ' ' -f 1)" = \
+        "de5e6b0e4913395c6bdfa90537febd9028ea4c0735d2cdb0cd9b45d5f51264f5" \
+    && mkdir /tmp/boost \
+    && tar -xjf /tmp/boost_1_91_0.tar.bz2 -C /tmp/boost --strip-components=1 \
+    && cd /tmp/boost \
+    && ./bootstrap.sh --prefix=/opt/boost --with-toolset=gcc \
+        --with-libraries=python --with-python=/opt/lsmtool/bin/python \
+    && ./b2 -j"$(nproc)" -d0 \
+        cxxflags="-fPIC -I$(/opt/lsmtool/bin/python -c 'import sysconfig; print(sysconfig.get_path("include"))')" \
+        link=shared install
+# The helpers enter only this stage's environment; the runtime keeps its own.
+RUN uv pip install --python /opt/lsmtool/bin/python --require-hashes \
+        -r /tmp/requirements-pybdsf-master-build.txt \
+    && mkdir /tmp/pybdsf \
+    && tar -xf /tmp/pybdsf.tar -C /tmp/pybdsf \
+    && cd /tmp/pybdsf \
+    && BOOST_ROOT=/opt/boost \
+       CXXFLAGS="-I/opt/boost/include -L/opt/boost/lib" \
+       LD_LIBRARY_PATH=/opt/boost/lib \
+       SETUPTOOLS_SCM_PRETEND_VERSION=1.14.2.dev40+gc70103be3 \
+       /opt/lsmtool/bin/python setup.py bdist_wheel --dist-dir /wheels
+
+FROM ${BASE_IMAGE}
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgfortran5 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /opt/boost/lib/libboost_python312.so.1.91.0 \
+    /opt/boost/lib/libboost_numpy312.so.1.91.0 /usr/local/lib/
+COPY --from=builder /wheels/ /tmp/wheels/
+RUN ldconfig \
+    && uv pip install --python /opt/lsmtool/bin/python --no-deps --reinstall \
+        /tmp/wheels/bdsf-1.14.2.dev40+gc70103be3-*.whl \
+    && python -c "import importlib.metadata as m, bdsf; assert m.version('bdsf') == '1.14.2.dev40+gc70103be3'" \
+    && python -m pip check \
+    && sha256sum /tmp/wheels/*.whl > /opt/bdsf-master-wheel.sha256 \
+    && rm -rf /tmp/wheels
+LABEL org.hebog.purpose="filter-skymodel-benchmark" \
+      org.hebog.pybdsf-revision="c70103be3ae9ae9908286f144e6ce956acc0ce5c"

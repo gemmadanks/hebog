@@ -8,10 +8,12 @@ Cases come from ``config/benchmarks/complete-execution-profile.json``. The
 size (``build_profile_datasets.py``); the ``real`` group holds LoTSS-DR3 and
 SDC1 cut-outs. Each case runs ``profile_complete_execution_worker.py`` once
 in a fresh single-thread process, and with ``--cprofile`` a second time under
-``cProfile``. ``--dask-workers N`` runs every case on a local Dask cluster of
-``N`` single-threaded workers instead of the serial executor, and each stage
-then also reports the tasks that ran during it and the share of the workers
-they kept busy.
+``cProfile``. ``--threads N`` runs every case on a thread executor of ``N``
+threads and ``--dask-workers N`` on a local Dask cluster of ``N``
+single-threaded workers instead of the serial executor, within
+``--memory-budget-bytes`` of task memory if given. Under every executor each
+stage also reports the tasks that ran during it, the share of the workers
+they kept busy, the time no task ran and the Zarr chunks moved.
 
 The summary fits every top-level stage's wall time on the ladder as
 ``fixed + a * megapixels + b * components + c * megapixels * components``, so
@@ -82,10 +84,21 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="also run each case under cProfile",
     )
-    parser.add_argument(
+    executors = parser.add_mutually_exclusive_group()
+    executors.add_argument(
+        "--threads",
+        type=int,
+        help="run every case on a thread executor of this many threads",
+    )
+    executors.add_argument(
         "--dask-workers",
         type=int,
         help="run every case on a local Dask cluster of this many workers",
+    )
+    parser.add_argument(
+        "--memory-budget-bytes",
+        type=int,
+        help="memory admitted to the thread or Dask executor's tasks",
     )
     parser.add_argument(
         "--summarise-existing",
@@ -184,8 +197,12 @@ def _run_case(
         command += ["--supplied-metadata", json.dumps(supplied)]
     if max(shape_yx) > _PUBLIC_LIMIT:
         command += ["--diagnostic-size-limit", str(max(shape_yx))]
+    if args.threads is not None:
+        command += ["--threads", str(args.threads)]
     if args.dask_workers is not None:
         command += ["--dask-workers", str(args.dask_workers)]
+    if args.memory_budget_bytes is not None:
+        command += ["--memory-budget-bytes", str(args.memory_budget_bytes)]
     case_root = run_root / case.case_id
     case_root.mkdir(parents=True)
     profile = _run_worker(command, case_root / "profile.json", cprofile=None)
@@ -289,8 +306,15 @@ def main() -> int:
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine_identity(),
         "thread_environment": dict(SINGLE_THREAD_ENVIRONMENT),
-        "executor": "serial" if args.dask_workers is None else "dask",
-        "dask_workers": args.dask_workers,
+        "executor": (
+            "threads"
+            if args.threads is not None
+            else "serial"
+            if args.dask_workers is None
+            else "dask"
+        ),
+        "workers": args.threads or args.dask_workers or 1,
+        "memory_budget_bytes": args.memory_budget_bytes,
         "elapsed_seconds": time.perf_counter() - started,
         "size_density_model": _size_density_model(records),
         "cases": [

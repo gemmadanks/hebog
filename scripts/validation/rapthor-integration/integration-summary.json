@@ -1,0 +1,189 @@
+{
+  "container": {
+    "build_lock_sha256": "58817cda7d033ed54f70a93941aaaa7753fcefed02523cada221c532261fb10d",
+    "dependency_inventory_sha256": "5bba44182b6bde6d77fa0c92b6aa34c7330a538e3d303382ba3ea6f34b3ff086",
+    "hebog_wheel_sha256": "5fe6b230311987aeb42d3ca68e545443d682809d2494a1a00771964867cf37de",
+    "image_id": "d13a98fd69478b4e0d0cbeb61e59ef1fb47cd178750f35c21f7c1d1bfe4c3a6a",
+    "lsmtool_version": "1.9.1.dev27+g156ae6a",
+    "pip_check": "No broken requirements found",
+    "platform": "Linux x86-64, Python 3.12.3, Podman/Rosetta on Apple M3 Pro",
+    "pybdsf_scope": "Released integration dependency only, not the pinned-master performance gate",
+    "pybdsf_version": "1.14.1",
+    "rapthor_archive_sha256": "70b69e179885fd55f9d8ff2ae11b0708b4795ef2c238df2fa266c23683bb09b0",
+    "runtime_lock_sha256": "881dcbcbf28061e404dc1ad05302e912435497059f452398eea56fb9ab0ff569"
+  },
+  "date": "2026-10-17",
+  "defaults": {
+    "background": "zero",
+    "decision": "Maintainer's interim choice of 13 October 2026 from Hebog plan task 21: closest of the four lanes to pinned PyBDSF master's sky-model filtering (92.8% agreement against a 99.5% target; released PyBDSF 99.29%); decided again after plan task 75",
+    "profile": "compact"
+  },
+  "implementation": {
+    "distributed_path": "Deferred to source-finder plan task 72 by maintainer approval on 2026-10-12",
+    "hebog_science_commit": "5a38ae36e1a9292964d1d5e60b047d6b02e59a6d",
+    "hebog_version": "0.22.0, the wheel published on PyPI (its SHA-256 matches PyPI's)",
+    "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
+    "memory_reservation": "hebog.analysis_memory_bytes for the sources hebog.expected_source_count estimates from the detection image at threshpix; an ExecutorAdmissionError, when no memory remains for the tile tasks or one needs more than remains, falls back to PyBDSF (Hebog plan task 77, decided 14 October 2026)",
+    "publication": "On a branch of https://git.astron.nl/RD/rapthor; not merged",
+    "rapthor_commit": "5e5d9dcde342061fef340c01d31ff7e45d479470",
+    "rapthor_tree": "879249628867dc71ea223360e9567583b6e8eed4"
+  },
+  "memory_estimate": {
+    "bound": "Bounded the most sources any profile/background lane published on all 21 quick-check, Rapthor-agreement and task-23 cases, at 1.0 to 21 times; 1.1 to 1.9 on the LOFAR and simulated SKA fields; 21 on wide-extended-source",
+    "scope": "Development machine, native macOS; the agreement lanes from run task23-pin-st and the benchmark count from run task23-first; no separate evidence record",
+    "task23_sector": {
+      "analysis_memory_bytes": 267091540,
+      "estimate": 1155,
+      "estimate_seconds": 0.87,
+      "previous_analysis_memory_bytes": 5898472020,
+      "previous_expected_sources": 101144,
+      "published_sources": 890
+    }
+  },
+  "profile_smoke": {
+    "dataset": "pybdsf-compact-reference-256",
+    "input_sha256": "80e7d55f5ff22a46be2d977babe0d05f7899972f13b9518a606959eeab502ffc",
+    "limitation": "Three isolated sources, identical true/apparent input; catalogue-cut checks only, not component-retention agreement or task-21 safety strata",
+    "reference": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+    "runs": [
+      {
+        "background": "estimated",
+        "candidate_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "candidate_sources": 3,
+        "evidence_sha256": "61e3f8efa76816f4eec41dcbc562b38c9f5705d63d43173a44941fb59db60ae7",
+        "matched_sources": 3,
+        "profile": "continuum",
+        "reference_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "reference_sources": 3
+      },
+      {
+        "background": "zero",
+        "candidate_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "candidate_sources": 3,
+        "evidence_sha256": "8c6d26332a0cc6e52a57045a50d3fce88171d906384253e9447eda42296433d3",
+        "matched_sources": 3,
+        "profile": "continuum",
+        "reference_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "reference_sources": 3
+      },
+      {
+        "background": "estimated",
+        "candidate_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "candidate_sources": 3,
+        "evidence_sha256": "d58ea3cce94b0d3351ae65b046ba0e9bbdc9f2890533da30df45a03360ffdc80",
+        "matched_sources": 3,
+        "profile": "compact",
+        "reference_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "reference_sources": 3
+      },
+      {
+        "background": "zero",
+        "candidate_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "candidate_sources": 3,
+        "evidence_sha256": "8e5d8504c0589e94da8cc5d07174f18b275060dc7e24828afdb9bd4775c0cd68",
+        "matched_sources": 3,
+        "profile": "compact",
+        "reference_catalogue_cut_retained": [
+          "0",
+          "1",
+          "2"
+        ],
+        "reference_sources": 3
+      }
+    ]
+  },
+  "quick_science_check": {
+    "baseline": "t17-declared",
+    "cases": 18,
+    "report_sha256": "0d503894b20ed6c712318779c0805204a079c697bb088d62fd0b01fe1986416e",
+    "result": "no regressions; all 54 catalogue, RMS and mask FITS products byte-identical",
+    "run": "task20"
+  },
+  "reproduce": {
+    "native_integration": "See scripts/validation/containers/rapthor/README.md; tests are archived in the pinned Rapthor commit",
+    "profile_smoke": "See the frozen-field checkpoint in scripts/validation/rapthor-integration/README.md",
+    "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
+  },
+  "schema_version": 1,
+  "scope": "Current-layout integration with the compact/zero defaults, the image-sized memory reservation and the PyBDSF fallback, at the Rapthor and LSMTool pins of 17 October 2026; no scientific or performance qualification",
+  "status": "exploratory",
+  "upstream_audit": {
+    "lsmtool": "156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2",
+    "rapthor": "aff260233a9a8c2ee19ce6616ea009402ecb86f0",
+    "result": "Pin move of 17 October 2026. Rapthor main gained one commit (aff26023, an array-beam option) that changes nothing in the filter step. LSMTool master gained twelve commits that refactor skymodel.py and tableio.py (private helpers renamed, _get_xy faster) and leave filter_skymodel/, the mask lookup and the test resources unchanged; its declared dependencies are the same. The change rebases onto aff26023 without conflict."
+  },
+  "validation": {
+    "archived_container_tests": {
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task79 python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
+      "passed": 39,
+      "scope": "No checkout mount; committed source and installed dependencies from the final image"
+    },
+    "hebog_acceptance": {
+      "command": "just test-acceptance",
+      "passed": 11
+    },
+    "hebog_release_check": "The 0.22.0 candidate's release check of 15 October 2026: just ci, 3,894 tests passed, 97.40% branch-aware coverage",
+    "installed_workflow": "Outside the archived checkout, both modules import from site-packages, and the dual-run, default-profile, memory-fallback and image-reservation native tests pass; see the container README for the exact command.",
+    "lsmtool_filter_check": {
+      "command": "check_lsmtool_filter.py --image localhost/hebog-lsmtool:156ae6a --executors serial --profile continuum --background estimated, reusing the products of the whole LoTSS-Deep DR2 ELAIS-N1 sector from run lsmtool-check-elais-n1-t022-continuum-2",
+      "result": "2,314 components, 1,913 kept, 1,460 patches, 201 clipped, no failures, as with 9bac2f7; both sky models identical apart from their history timestamps"
+    },
+    "native_parset_cli": {
+      "command": "python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py tests/lib/test_parset.py tests/lib/test_parset_option_behavior.py tests/lib/test_parset_option_coverage.py --cov=rapthor.execution.image.hebog_filter --cov-branch",
+      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; image-sized reservation and PyBDSF fallback on too little memory; compact/zero defaults from the parset, the image payload and the native task",
+      "module_line_branch_coverage_percent": 100,
+      "passed": 94
+    },
+    "omitted": [
+      "Full Rapthor/hosted Python/platform matrix",
+      "Production Measurement Set/EveryBeam operational trial",
+      "Retained/rejected correctness against truth (Hebog plan task 76)",
+      "Multi-slot distributed executor path",
+      "Matched complete-step performance at these pins: the benchmark image is rebuilt on this image before the next matched run"
+    ],
+    "option_admission_boundaries": {
+      "command": "python -m pytest -q tests/execution/test_image_flow.py tests/execution/test_hebog_filter.py -k 'hebog_options or invalid_worker_admission'",
+      "passed": 8,
+      "scope": "Run in the task79 image"
+    },
+    "rapthor_agreement": {
+      "command": "just rapthor-agreement --jobs 4 --label task79-pin --skip-references",
+      "report_sha256": "85690145e3e2b625c65fe3e6874ed7fb2a5a3d8d9f9be66767b22ae3991644fd",
+      "result": "Every lane's record and the released-PyBDSF control are identical to run task23-pin-st at Hebog 0.21.0; the check does not run Rapthor or LSMTool, so it shows Hebog's changes only"
+    },
+    "rapthor_broader_suites": {
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task79 python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
+      "passed": 662
+    },
+    "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going), with numpydoc 1.11.0 and sphinxcontrib-mermaid 2.1.1, of the archived Rapthor source in the image succeeds with no warning",
+    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
+  }
+}

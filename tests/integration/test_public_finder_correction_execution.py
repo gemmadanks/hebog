@@ -9,6 +9,9 @@ import numpy.typing as npt
 import pytest
 from distributed import Client, LocalCluster
 
+from hebog.algorithms.component_records import (
+    build_detection_component_records,
+)
 from hebog.algorithms.extended_measurement import (
     assign_persistent_source_support,
     assign_seeded_multiscale_support,
@@ -16,7 +19,6 @@ from hebog.algorithms.extended_measurement import (
 from hebog.algorithms.multiscale_association import ScaleDetectionPlane
 from hebog.algorithms.source_association import (
     associate_components_by_multiscale_hierarchy,
-    build_detection_component_records,
 )
 from hebog.data_models.multiscale import ScaleDetection
 from hebog.data_models.source_association import (

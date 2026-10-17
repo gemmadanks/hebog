@@ -39,6 +39,7 @@ demonstration notebook is
 | `just test-slow` | Long regressions and development matrices; CI runs them weekly and on dispatch | Before a release that changes science |
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
+| `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
 | `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
@@ -154,6 +155,49 @@ SDC1 cut-outs are cut from a local copy of `SKAMid_B2_1000h_v3.fits`.
 This is a regression detector, not powered scientific parity: each case is
 one realization and no confidence interval is claimed.
 
+## Measure Rapthor-profile agreement
+
+The agreement check chooses the Hebog profile and background Rapthor runs by how
+often Rapthor's filter step keeps the same sky-model components with
+Hebog's mask as with pinned PyBDSF `master`'s. Rerun it when the science,
+the Rapthor or LSMTool pins, or the reference changes:
+
+```console
+just rapthor-agreement --jobs 4
+```
+
+`config/checks/rapthor-agreement.json` adds a 3,000² window of the
+LoTSS-DR3 mosaic and the LoTSS-Deep DR2 ELAIS-N1 true-sky and apparent
+images, 2,048² at their centre, to the quick check's cases, and reuses the
+quick check's inputs and cached `master` references. The ELAIS-N1 pair is
+read from `benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. Each of the
+four lanes, `continuum` or `compact` with an `estimated` or `zero`
+background, runs `find_sources` with the configuration the Rapthor adapter
+builds; released PyBDSF 1.14.1 runs as a control, from the notebook's
+`localhost/hebog-notebook-pybdsf:1.14.1` image.
+
+LSMTool keeps a component where the mask is set at `mask[int(y), int(x)]`
+and groups the kept ones by the mask's 8-connected islands. WSClean's
+component lists are not available for these images, so the population is
+every distinct pixel holding the centre of a Gaussian that `master` or any
+lane fitted, the same set for every lane. Each component is tagged bright
+(at least 75 times `master`'s RMS), edge (within three beam FWHM of the
+border), masked (within three FWHM of a blank pixel), crowded (another
+component within two FWHM) or sparse, extended (on an island of all the
+masks together larger than ten beam areas), and true-sky or apparent.
+A lane passes at 99.5% agreement overall and in every stratum, and the
+rule chooses `compact` for a background only when its lane passes.
+
+The report, `benchmark-results/rapthor-agreement/runs/<label>/report.json`,
+also gives each lane's agreement with `master` on two diagnostic
+populations, injected truth and every pixel WSClean's auto-threshold would
+clean (at least 1 sigma, connected to a 5-sigma peak); how its patches
+group; compact's decisions against continuum's; and Rapthor's catalogue
+cuts on matched sources (`DC_Maj` below 10″ and `E_RA`, `E_DEC` below 2″),
+counting the sources a lane drops because they have several components
+and those it keeps as unresolved from a fit 10″ or wider. Use `--cases` for
+a subset and `--skip-references` to use cached references only.
+
 ## Run the quick benchmark
 
 Run it for every change that can affect runtime. The default tier takes about
@@ -200,6 +244,34 @@ the same session. And the `master` ratio is diagnostic, not the deployment
 gate: Hebog runs natively on one thread and PyBDSF in a Linux container with
 four cores. Only the matched `filter_skymodel` benchmark can pass or fail
 that gate.
+
+## Run the matched filter_skymodel benchmark
+
+The deployment gate compares the source-finding part of
+Rapthor's `filter_skymodel` step, from the task's start to LSMTool's
+`filter_sources` call, with Hebog's native task against the same span with
+pinned PyBDSF `master`, in one Linux container on the same cores; the
+complete step is reported beside it. Build the
+[benchmark image](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/containers/filter-skymodel/README.md)
+on the Rapthor integration image, then:
+
+```console
+uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --beam-ms <Measurement Set> --label <label>
+```
+
+It writes the sector's inputs from the LoTSS-DR3 3,000² window of the
+Rapthor agreement check, runs one warm-up and five measured repetitions of
+each finder in fresh containers, alternating them, and writes one evidence
+document per finder and `report.json` under
+`benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of
+finder-part medians and its one-sided 95% bounds against the gate and the
+complete step's ratio beside it. `--hebog-dask-workers`
+runs Hebog on Dask workers instead of Rapthor's threads, a screening
+measurement the gate does not count. The image runs under Rosetta
+on Apple silicon, so only the ratio is matched; see the
+[benchmark guide](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#matched-filter_skymodel-benchmark)
+for the inputs it constructs.
 
 ## Measure the traced-allocation peak
 
@@ -287,15 +359,31 @@ process creation and shutdown.
 
 `summary.json` under `benchmark-results/profiles/runs/<label>/` fits each
 stage on the ladder as a fixed cost plus a cost per megapixel and per fitted
-component. `--dask-workers N` runs the cases on a process-based local Dask
-cluster and matches Dask's task stream against each stage, so a stage with a
-long driver wall time and low worker occupancy is waiting on the driver.
-A Dask worker normally shifts its task times by a heartbeat estimate of its
-clock's offset from the scheduler's, which on one host is estimation error
-alone, up to about 0.3 s while the driver is busy; the profile's workers
-share the driver's clock and keep that offset at zero, so tasks are matched
-to stage calls on the clock that timed them, and occupancy never counts more
-workers busy than there are. To profile one input outside the configured cases, run
+component. `--threads N` runs the cases on a thread executor and
+`--dask-workers N` on a process-based local Dask cluster of single-threaded
+workers; `--memory-budget-bytes` is the memory admitted to tasks, split
+evenly into the Dask workers' memory limits. Those limits are what Hebog
+admits tasks by: Dask's spilling, pausing and restarting are off, since
+Hebog's workers hold no data between tasks. Stages are timed on the
+driver's thread, and every task times itself where it runs and counts the
+Zarr chunks it reads and writes (`hebog.validation.task_recording`), so
+each stage reports its tasks, the share of the workers they kept busy, the
+time no task ran and its Zarr I/O, and each round its tasks, under every
+executor. A stage with long idle time is waiting on the driver.
+
+`just profile-scaling --label <label> --memory-budget-bytes <bytes>` runs
+the cases in `config/benchmarks/sector-scaling-profile.json`, the 10,000²
+anchor and the whole 15,402² mosaic, at each of `--thread-workers` and
+`--dask-workers` (1, 2, 4, 8 and 12 by default; none skips the executor),
+on `--thread-cases` and `--dask-cases` (every case by default), within one
+budget, resuming where an interrupted sweep stopped. Its `scaling.json`
+reports each curve's speedup, its serial share as an Amdahl fit, each
+stage's parallel efficiency and serial seconds, and each round's task-time
+inflation; a run whose Dask workers' share of the budget admits no task of
+the largest round is recorded as refused. A full sweep, Dask at every
+count on both cases and threads at 1 and 12 on the anchor, takes
+about five hours on the development machine. To profile one
+input outside the configured cases, run
 `scripts/benchmark/profile_complete_execution_worker.py` directly with
 `--input`, `--settings` and `--result`. A profile ranks costs; only the quick
 benchmark establishes a speedup.

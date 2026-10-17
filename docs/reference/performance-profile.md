@@ -12,9 +12,8 @@ memory figures from 26 to 30 September, both with `SerialExecutor` on the
 maintainer's machine. The gates are in the
 [performance and scalability contracts](performance-scalability-contracts.md),
 the current position is on
-[progress against goals](progress-against-goals.md), and the dated narrative
-of those changes is in the archived `LOG.md`. New changes record rationale,
-validation and exact evidence references in Git history.
+[progress against goals](progress-against-goals.md). Changes record
+rationale, validation and exact evidence references in Git history.
 
 ## Reproduce it
 
@@ -65,7 +64,11 @@ one atomic file per written chunk.
 The next gains are structural rather than kernel-level. On large fields about
 half the run is background and RMS, and source association grows faster than
 the image (1, 82 and 479 s for 659, 7,146 and 16,084 sources, about the 2.2
-power); the plan's tasks 54 to 56 address both.
+power). Coarser background batches and a linear hierarchy decision took
+the whole 15,402² mosaic from 5,032 s to 3,783 s on one Dask worker, and
+object rounds read a storage core at a time took it to 3,452 s and its
+decoded reads from 703 GB to 393 GB; the per-task costs that remain are
+the next target.
 
 The generated-ladder cost model is
 `fixed + a·megapixels + b·components + c·megapixels·components`; the last
@@ -81,7 +84,8 @@ reports the process peak (traced from before Hebog is imported), the peak of
 the `find_sources` call alone and the import floor, a fixed 90.4 MiB that a
 tracer started after the imports cannot see. Measured 26 to 30 September
 2026, two agreeing repetitions each, and the whole mosaic once more in the
-0.19.0 release check of 8 October (`LOG.md` names the runs):
+0.19.0 and 0.22.0 release checks of 8 and 15 October (`traced-peak` runs
+`release-0.19.0` and `release-0.22.0`):
 
 | case | pixels per side | traced peak | components |
 | --- | --- | --- | --- |
@@ -96,6 +100,7 @@ tracer started after the imports cannot see. Measured 26 to 30 September
 | generated wide objects | 10,000 | 1,447.7 MiB | 10 |
 | LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
 | LoTSS-DR3 whole mosaic, 0.19.0 release check (one repetition) | 15,402 | 1,692.5 MiB | 20,792 |
+| LoTSS-DR3 whole mosaic, 0.22.0 release check (one repetition) | 15,402 | 1,692.6 MiB | 20,794 |
 
 Three things matter more than the exact figures.
 
@@ -114,8 +119,8 @@ summaries and the reconciled label mappings, 112, 262 and 489 MiB at the
 three LoTSS sizes. At that slope the peak would be near 2.1 GiB at 22,500²
 and 4.3 GiB at 45,000². Background and RMS, which peak lower, grew about 3
 bytes a pixel (274, 545 and 962 MiB), unattributed on a real image; on
-synthetic grids the local-noise requests account for about 1.9 of it. The
-plan's tasks 53 to 56 bound these terms before the next tier, and
+synthetic grids the local-noise requests account for about 1.9 of it.
+Bounding these terms before the 45,000-pixel tier is planned, and
 `scripts/benchmark/attribute_traced_peak.py` attributes a peak to passes,
 tasks and call sites.
 

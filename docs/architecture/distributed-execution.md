@@ -176,8 +176,9 @@ pixel count, bounding box, peak, first pixel and whether it holds a detection
 seed. A union–find reduction joins labels that meet across an edge, combining
 tiles pairwise in a tree fixed by their order, so the result does not depend
 on completion order. Today that reduction runs on the driver, which holds
-every tile's summaries; moving driver-side reductions onto the workers is
-part of the plan's task 74. The resulting global label map is **sharded**:
+every tile's summaries; it compares each seam once, so its cost grows with
+the tiles, and the plan's risks track the summaries the driver keeps. The
+resulting global label map is **sharded**:
 each tile receives only the entries for labels it contains.
 
 ### Objects larger than a halo
@@ -224,8 +225,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
 Tasks are **coarse batches** of tiles or objects: an object round puts up to
 256 objects in one task. Graph size therefore scales with the number of tiles
 and stages, and in an object round with the number of objects over that batch
-size, never with pixels. At 100,000 pixels a side one object round would
-still exceed the planned task bound, which the plan's task 54 addresses.
+size, never with pixels. Objects are batched a storage core at a time, so
+at 100,000 pixels a side one object round of the 15,402² mosaic's density
+is about 4,700 tasks rather than the 156,000 raster order made.
 
 ## Storage
 
@@ -263,7 +265,7 @@ window any of its tasks reads: a tile with its halo, or an object batch's
 read. Zarr decodes whole chunks, and a store's chunks are its stage's tile
 cores, so a read of an intermediate plane counts as at least one chunk. The
 costs are the largest traced task peaks on the reference anchors, with a
-fixed allowance and a quarter of headroom added (plan task 17). A
+fixed allowance and a quarter of headroom added. A
 declaration is therefore bounded by tile, halo, batch and chunk, and the
 public contract suite checks that no task holds more than it declared.
 
@@ -285,15 +287,16 @@ the dense ELAIS-N1 central 5,000² held three times what the 10,000² LoTSS
 anchor did. `hebog.analysis_memory_bytes(shape_yx, expected_sources=...)`
 states it for an upper estimate of the source count, fitted to the traced
 peak between tasks on the same anchors, so the caller can reserve it for
-the task that calls `find_sources`.
+the task that calls `find_sources`. `hebog.expected_source_count` makes
+that estimate from the image's bright local maxima, in bounded blocks.
 
 ## What is not decided here
 
 Hebog does not choose worker counts, memory limits, spill policy or task
 placement; those belong to the cluster's owner. It names no Dask resource:
 the caller chooses the resource names and each worker's amounts. Tile cores
-are fixed per stage today; the plan's task 72 chooses them from the core
-budget. Declarations may change batching and placement, never results.
+are fixed per stage today; choosing them from the core budget is planned.
+Declarations may change batching and placement, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

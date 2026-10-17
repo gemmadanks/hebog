@@ -15,7 +15,7 @@ from astropy.io import fits
 from astropy.table import Table
 from pytest_mock import MockerFixture
 
-from hebog.science.catalogues import (
+from hebog.science.segment_rows import (
     build_hebog_segment_catalogue,
     build_hebog_segment_moment_catalogue,
 )
@@ -562,7 +562,7 @@ def test_hebog_moment_catalogue_marks_transform_failure_unavailable(
     header["BMIN"] = 1.0 / 3600.0
     header["BPA"] = 0.0
     mocker.patch(
-        "hebog.science.catalogues.local_tangent_plane_transform_from_wcs",
+        "hebog.science.segment_rows.local_tangent_plane_transform_from_wcs",
         side_effect=ValueError("singular transform"),
     )
     image = np.ones((5, 5), dtype=np.float64)

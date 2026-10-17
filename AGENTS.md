@@ -5,7 +5,7 @@ hand; this file holds common rules and points to detailed contracts.
 
 ## Repository overview
 
-Hebog is a Dask-aware radio-continuum source finder for any telescope, prioritising
+Hebog is a scalable source finder for radio continuum images from any telescope, prioritising
 LOFAR, SKA-Low and SKA-Mid. Its first intended consumer is Rapthor's `filter_skymodel`:
 reproduce the PyBDSF behaviour/products that step needs, prove scientific equivalence,
 and meet the runtime gate. Maintainability, extensibility and interoperability are
@@ -219,11 +219,14 @@ test in the same commit. Never commit red unless explicitly requested. See
   extended processing or silently change semantics for speed.
 - Optimize from profiles/scale evidence, with typed boundaries, a readable serial oracle
   and recorded reasons for complexity; scientific suites must pass. Minimum deployment
-  gate: ≥50% faster matched median for complete Rapthor `filter_skymodel` against exact
-  pinned PyBDSF `master`, under the plan's confidence rule; confirm its release ratio
-  once before 1.0. Optimize latency/throughput across sizes beyond that minimum.
-  Kernel timing is insufficient: include FITS, catalogues, Dask and filtering in isolated,
-  matched environments; never substitute a reference revision/release.
+  gate: ≥50% faster matched median for the source-finding part of Rapthor's
+  `filter_skymodel` step (the task from its start to LSMTool's `filter_sources` call)
+  against exact pinned PyBDSF `master`, under the plan's confidence rule, with the
+  complete step reported beside it; confirm its release ratio once before 1.0.
+  Optimize latency/throughput across sizes beyond that minimum. Kernel timing is
+  insufficient: include FITS reads, product writes and Dask in isolated, matched
+  environments, with LSMTool's filtering measured beside them; never substitute a
+  reference revision/release.
 - Use ≥5 measured repetitions after warm-up, medians and dispersion, without unrelated
   workloads. Use the frozen performance ladder, plan-controlled subset/budgets, both
   sides of crossovers and sparse/normal/dense/extended workloads. Compare affected/adjacent
@@ -298,26 +301,27 @@ Retain Rapthor's feature-flagged PyBDSF fallback until the acceptance matrix pas
 
 ### Commit messages
 
-Write concise, self-contained messages for **future developers: our future selves
-and reviewers**, without assuming they read the conversation.
+Release Please turns commit subjects into the changelog that PyPI users read, and
+developers read the bodies in `git log`. Write both for people who were not in the
+conversation, so the history reads as a clear log of what changed and why.
 
-- Use short imperative Conventional Commit subjects naming the change; Release Please
-  uses them. Avoid vague titles/task numbers alone. After a blank line, explain problem,
-  resulting behaviour and rationale; a trigger/before-after example can help. Obvious
-  typos need no body. Include consequential trade-offs, decisions, compatibility and
-  limitations, not file inventories or irrelevant abandoned work.
-- State validation commands/results and material omissions/reasons. Science/performance
-  claims need baseline, config, key result, gate/scope and exact evidence links, not full
-  reports. Historical LOG references remain valid. Link useful issues/PRs/ADRs while
-  summarising context; cite commits by hash/subject and use searchable domain names.
-- Mark breaking changes with `!` or `BREAKING CHANGE:` and explain contracts/caller actions.
-  Keep implementation/tests/docs in one atomic validated commit; do not combine
-  unrelated milestones or experiments.
-- Prepare a copyable squash subject/body for the complete final PR, including earlier
-  related commits, in the handoff/PR description. Humans check the actual message retains
-  problem, outcome, rationale, decisions/breaking changes, validation/omissions and
-  references. Do not assume GitHub preserves branch messages; describe the final change
-  coherently for future developers.
+- **Subject:** a short imperative Conventional Commit subject saying what changes for
+  people using Hebog, in plain words: `perf: find sources in dense fields faster`, not
+  internal stage names, run labels or task numbers. Every type except `chore` appears
+  in the changelog.
+- **Body:** a few short plain sentences: the problem, what changes and why, and any
+  consequential trade-off, limitation or decision. Leave out file inventories,
+  abandoned approaches, run-by-run figures and conversation history; the plan,
+  progress page and evidence records hold the detail. Obvious changes need no body.
+- **Checks:** end with a line or two on how it was checked and anything material not
+  run. A science or performance claim gives its key result and scope and links the
+  evidence record.
+- Mark breaking changes with `!` or `BREAKING CHANGE:` and say what callers must do.
+  Keep implementation, tests and docs in one atomic validated commit; do not combine
+  unrelated work.
+- Prepare a copyable squash subject and body for the whole PR in the handoff/PR
+  description, in the same style, and use its subject as the PR title: the merged
+  subject becomes the changelog line. Humans check the actual message.
 
 Before handing off a meaningful change:
 

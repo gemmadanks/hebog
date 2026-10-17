@@ -130,13 +130,37 @@ catalogue-row kernels; it imports no stage.
     options:
       show_symbol_type_toc: true
 
-::: hebog.stages.objects
+::: hebog.stages.object_extents
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.component_topology
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.fit_parents
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.component_fits
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.stages.extended_groups
     options:
       show_symbol_type_toc: true
 
 ## Source association
 
 ::: hebog.algorithms.multiscale_association
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.component_records
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.algorithms.feature_envelopes
     options:
       show_symbol_type_toc: true
 
@@ -149,6 +173,10 @@ catalogue-row kernels; it imports no stage.
       show_symbol_type_toc: true
 
 ::: hebog.stages.sources
+    options:
+      show_symbol_type_toc: true
+
+::: hebog.science.detection_islands
     options:
       show_symbol_type_toc: true
 
@@ -170,6 +198,10 @@ catalogue-row kernels; it imports no stage.
     options:
       show_symbol_type_toc: true
 
+::: hebog.science.segment_rows
+    options:
+      show_symbol_type_toc: true
+
 ::: hebog.science.catalogues
     options:
       show_symbol_type_toc: true
@@ -182,6 +214,16 @@ catalogue-row kernels; it imports no stage.
     options:
       show_symbol_type_toc: true
 
+## Source-count estimate
+
+`hebog.expected_source_count` counts an image's bright local maxima before
+an analysis, so that a caller can reserve `hebog.analysis_memory_bytes`
+for them; these are its kernels.
+
+::: hebog.algorithms.source_count
+    options:
+      show_symbol_type_toc: true
+
 ## Workflow adapters
 
 `hebog.adapters.rapthor` runs one Rapthor sector through `find_sources` and
@@ -189,7 +231,9 @@ writes the files Rapthor's `filter_skymodel` step reads, under Rapthor's
 names; `hebog.adapters.rapthor_catalogue` holds the eight-column catalogue
 codec it writes them with, and `hebog.adapters.rapthor_comparison` compares
 one sector's Hebog and PyBDSF products for Rapthor's dual-run mode. Rapthor
-does not call the adapter yet (plan task 20).
+calls the adapter on
+[Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md),
+not yet merged.
 
 ::: hebog.adapters.rapthor
     options:

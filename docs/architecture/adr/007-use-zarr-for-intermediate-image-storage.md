@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-07-31 |
-| **Last Updated** | 2026-09-27 (consumers validate chunks on read, not through `read_generation`) |
+| **Last Updated** | 2026-10-17 (Zarr 3.3 and 3.4 accepted after the test suite passed on them) |
 | **Deciders** | Gemma Danks |
 | **Tags** | storage, Zarr, Dask, scalability, recovery |
 
@@ -34,7 +34,7 @@ Dask. Zarr is still only storage: Hebog owns tile ownership, expected chunks,
 strict missing-chunk handling, retry conflicts, provenance, completion, and
 workflow-facing products.
 
-Hebog supports Python 3.12 through 3.14 and uses Zarr 3.2. Zarr 3.2 adds the
+Hebog supports Python 3.12 through 3.14 and Zarr 3.2 to 3.4. Zarr 3.2 adds the
 `read_missing_chunks=False` runtime option, which raises `ChunkNotFoundError`
 instead of returning an array's fill value for an absent chunk. This removes
 Hebog's dependency on Zarr's encoded chunk-key layout while still
@@ -68,8 +68,11 @@ backend at every size**.
 - `ZarrProductSink` is the one explicit storage boundary. It returns a small
   storage-object-free `ProductChunk`, and no generic sink protocol is added
   until a demonstrated second implementation requires one.
-- Require Python 3.12 or newer and pin `zarr>=3.2,<3.3`. Python 3.11 users must
-  remain on Hebog 0.2.x or upgrade Python before adopting the next release.
+- Require Python 3.12 or newer and accept only the Zarr minor releases the test
+  suite has passed on, `zarr>=3.2,<3.5` from 17 October 2026: the store calls
+  Zarr internals (`zarr.core.sync` and `zarr.core.buffer`) that a minor release
+  may change. Python 3.11 users must remain on Hebog 0.2.x or upgrade Python
+  before adopting the next release.
 - Create one run-scoped v3 group and one array per intermediate plane before
   worker writes. Workers do not create metadata or own a scheduler.
 - Map zero-origin canonical tile cores one-to-one onto Zarr chunks. Shifted

@@ -82,6 +82,10 @@ test-slow:
 quick-science-check *args:
     uv run python scripts/validation/quick_science_check.py {{args}}
 
+# Measure Rapthor's retained/rejected agreement for each profile (task 21)
+rapthor-agreement *args:
+    uv run python scripts/validation/measure_rapthor_agreement.py {{args}}
+
 # Run the quick end-to-end benchmark (tiers: smoke, default, large)
 quick-benchmark *args:
     uv run python scripts/benchmark/quick_benchmark.py {{args}}
@@ -89,6 +93,10 @@ quick-benchmark *args:
 # Profile complete runs by stage across image size and source density
 profile-execution *args:
     uv run python scripts/benchmark/profile_complete_execution.py {{args}}
+
+# Profile one sector's run across thread and Dask worker counts (task 73)
+profile-scaling *args:
+    uv run python scripts/benchmark/profile_scaling.py {{args}}
 
 # Measure the deterministic traced-allocation peak that gates envelope raises
 traced-peak *args:

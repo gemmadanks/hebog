@@ -867,11 +867,10 @@ def _owner_requests(
 def _owner_batches(
     requests: tuple[_OwnerRequest, ...],
     *,
+    core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
 ) -> tuple[_OwnerBatch, ...]:
     """Group owners so one read serves several, within the budget.
-
-    Owners arrive in canonical row-major order, so neighbours share a read.
 
     Raises:
         ValueError: If one owner's own read exceeds the budget. No admission
@@ -883,6 +882,7 @@ def _owner_batches(
         for batch in batch_object_windows(
             requests,
             window=lambda request: request.read_bounds,
+            core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
         )
     )
@@ -1091,6 +1091,7 @@ def run_publication_stage(  # noqa: PLR0913
             for request in owner_requests
             if read_pixels(request.read_bounds) <= budget
         ),
+        core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=budget,
     )
     owner_batches = tuple(

@@ -7,7 +7,10 @@ them, not class design. Start with the
 
 !!! note "Target design"
     The Rapthor integration shown here is the target. Today Hebog implements
-    the standalone scientific boundary only; see
+    the standalone finder and the adapter,
+    `hebog.adapters.find_sector_sources`, which runs one sector and writes
+    the files Rapthor's filter step reads; Rapthor's own task that calls it
+    is on a Rapthor branch, not yet merged. See
     [progress against goals](../reference/progress-against-goals.md#functionality).
 
 Terms used below (the [glossary](../reference/domain-glossary.md) has the
@@ -106,10 +109,11 @@ flowchart LR
     DG --> OUT
 ```
 
-The true-sky and flat-noise branches may run concurrently only when Rapthor
-admits their combined CPU and memory demand. Both produce files before the
-diagnostics join, so retries and restarts never serialize image objects
-through Dask.
+One run analyses the true-sky image and then estimates the flat-noise
+image's background and RMS, one after the other on the same executor;
+submitting both branches' tasks together is planned. Both produce files
+before the diagnostics join, so retries and restarts never serialize image
+objects through Dask.
 
 ## Large-image decomposition
 

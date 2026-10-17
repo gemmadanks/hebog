@@ -13,6 +13,9 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 from astropy.io import fits
+from conftest import (
+    radio_header,
+)
 
 from hebog.validation.traced_peak import load_traced_peak_record
 
@@ -24,29 +27,6 @@ _SETTINGS = {
     "minimum_island_pixels": 7,
     "profile": "continuum",
 }
-
-
-def _header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS radio-continuum FITS header."""
-    height, width = shape_yx
-    header = fits.Header()
-    header["BUNIT"] = "Jy/beam"
-    header["BMAJ"] = 4.0 / 3600.0
-    header["BMIN"] = 4.0 / 3600.0
-    header["BPA"] = 0.0
-    header["RADESYS"] = "ICRS"
-    header["CTYPE1"] = "RA---TAN"
-    header["CTYPE2"] = "DEC--TAN"
-    header["CRPIX1"] = width / 2 + 1
-    header["CRPIX2"] = height / 2 + 1
-    header["CRVAL1"] = 180.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    header["CUNIT1"] = "deg"
-    header["CUNIT2"] = "deg"
-    header["RESTFRQ"] = 150_000_000.0
-    return header
 
 
 def _one_source_image() -> npt.NDArray[np.float64]:
@@ -71,7 +51,7 @@ def test_worker_reports_both_traced_spans_of_a_complete_run(
     """
     image = tmp_path / "image.fits"
     fits.PrimaryHDU(
-        data=_one_source_image(), header=_header((96, 96))
+        data=_one_source_image(), header=radio_header((96, 96))
     ).writeto(image)
     result = tmp_path / "result.json"
 
@@ -119,7 +99,7 @@ def test_diagnostic_size_limit_governs_admission_inside_the_worker(
     """
     image = tmp_path / "image.fits"
     fits.PrimaryHDU(
-        data=_one_source_image(), header=_header((96, 96))
+        data=_one_source_image(), header=radio_header((96, 96))
     ).writeto(image)
     result = tmp_path / "result.json"
 

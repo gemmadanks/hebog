@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 from importlib.resources import files
-from math import ceil, prod
+from math import ceil, isfinite, prod
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -29,6 +29,14 @@ from hebog.algorithms.astrometry import (
     compact_geometry_from_wcs,
 )
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.source_count import (
+    BLOCK_PIXELS,
+    BlockNoise,
+    block_noise,
+    count_peaks,
+    peak_threshold,
+    reference_sigma,
+)
 from hebog.config import SourceFinderConfig
 from hebog.data_models import (
     BrightRegionCounts,
@@ -45,11 +53,13 @@ from hebog.data_models import (
     SourceFinderRequest,
     SourceFinderResult,
     SpectralModel,
+    SuppliedImageMetadata,
     WideObjectCounts,
 )
 from hebog.data_models.catalogues import POSITION_EPOCH
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.measurement_diagnostics import MeasurementDisposition
+from hebog.data_models.partitioning import ImageBounds
 from hebog.executors import Executor
 from hebog.io import FitsImageSource, InvalidFitsImageError, ZarrProductSink
 from hebog.io.base import WindowReadable
@@ -123,10 +133,12 @@ _SCIENTIFIC_MODULES = (
     "hebog.algorithms.astrometry",
     "hebog.algorithms.background",
     "hebog.algorithms.component_measurement",
+    "hebog.algorithms.component_records",
     "hebog.algorithms.component_topology",
     "hebog.algorithms.deblending",
     "hebog.algorithms.detection",
     "hebog.algorithms.extended_measurement",
+    "hebog.algorithms.feature_envelopes",
     "hebog.algorithms.fft",
     "hebog.algorithms.fitting",
     "hebog.algorithms.label_groups",
@@ -173,18 +185,24 @@ _SCIENTIFIC_MODULES = (
     "hebog.science.catalogues",
     "hebog.science.configuration",
     "hebog.science.continuum",
+    "hebog.science.detection_islands",
     "hebog.science.models",
     "hebog.science.profile",
+    "hebog.science.segment_rows",
     "hebog.stages",
     "hebog.stages.association",
     "hebog.stages.background",
     "hebog.stages.batching",
     "hebog.stages.catalogue_rows",
+    "hebog.stages.component_fits",
+    "hebog.stages.component_topology",
     "hebog.stages.composition",
     "hebog.stages.detection",
+    "hebog.stages.extended_groups",
+    "hebog.stages.fit_parents",
     "hebog.stages.islands",
     "hebog.stages.multiscale",
-    "hebog.stages.objects",
+    "hebog.stages.object_extents",
     "hebog.stages.publication",
     "hebog.stages.sources",
     "hebog.stages.support",
@@ -205,6 +223,11 @@ _UNBOUND_MODULES = {
     "hebog.algorithms.partitioning": (
         "It plans tile geometry only, and every product is required to be "
         "the same on any tile grid, which the tile-invariance tests assert."
+    ),
+    "hebog.algorithms.source_count": (
+        "It counts peaks for expected_source_count, which a caller runs "
+        "before an analysis to size its memory reservation; find_sources "
+        "never calls it."
     ),
     "hebog.stages.task_memory": (
         "It sizes the memory each task declares to the executor, which may "
@@ -1281,6 +1304,98 @@ def _read_input(
         raise InvalidSourceFinderInputError(
             f"invalid FITS source-finder input: {image_path}"
         ) from error
+
+
+def expected_source_count(
+    image_path: Path,
+    *,
+    detection_threshold_sigma: float,
+    supplied_metadata: SuppliedImageMetadata | None = None,
+) -> int:
+    """Return an upper estimate of the sources ``find_sources`` publishes.
+
+    See :func:`hebog.pipeline.expected_source_count`.
+    """
+    if not (
+        isfinite(detection_threshold_sigma) and detection_threshold_sigma > 0
+    ):
+        raise ValueError(
+            "detection_threshold_sigma must be finite and positive"
+        )
+    source = FitsImageSource(image_path, supplied_metadata)
+    try:
+        metadata, _ = _read_input(source, image_path)
+        _qualified_metadata(metadata)
+        blocks = _count_blocks(metadata.shape_yx)
+        noises = [
+            block_noise(window.values, window.valid_pixels)
+            for window in (source.read_window(bounds) for bounds in blocks)
+        ]
+        measured = [noise for noise in noises if noise is not None]
+        typical_sigma = reference_sigma(measured)
+        if typical_sigma is None:
+            return 0
+        # A block with too few valid pixels to measure is held to the
+        # image's typical median and noise.
+        typical = BlockNoise(
+            median=float(np.median([noise.median for noise in measured])),
+            sigma=typical_sigma,
+        )
+        count = 0
+        for bounds, noise in zip(blocks, noises, strict=True):
+            # One pixel either side makes the block's edge pixels' 3x3
+            # neighbourhoods whole.
+            read = _grown_bounds(bounds, metadata.shape_yx)
+            window = source.read_window(read)
+            count += count_peaks(
+                window.values,
+                window.valid_pixels,
+                (
+                    slice(
+                        bounds.y_start - read.y_start,
+                        bounds.y_stop - read.y_start,
+                    ),
+                    slice(
+                        bounds.x_start - read.x_start,
+                        bounds.x_stop - read.x_start,
+                    ),
+                ),
+                peak_threshold(
+                    typical if noise is None else noise,
+                    reference_sigma=typical_sigma,
+                    detection_sigma=detection_threshold_sigma,
+                ),
+            )
+        return count
+    finally:
+        source.close()
+
+
+def _count_blocks(shape_yx: tuple[int, int]) -> list[ImageBounds]:
+    """Return the image's noise blocks in raster order."""
+    height, width = shape_yx
+    return [
+        ImageBounds(
+            y_start=y,
+            y_stop=min(y + BLOCK_PIXELS, height),
+            x_start=x,
+            x_stop=min(x + BLOCK_PIXELS, width),
+        )
+        for y in range(0, height, BLOCK_PIXELS)
+        for x in range(0, width, BLOCK_PIXELS)
+    ]
+
+
+def _grown_bounds(
+    bounds: ImageBounds, shape_yx: tuple[int, int]
+) -> ImageBounds:
+    """Return the bounds one pixel wider on every side, inside the image."""
+    return ImageBounds(
+        y_start=max(bounds.y_start - 1, 0),
+        y_stop=min(bounds.y_stop + 1, shape_yx[0]),
+        x_start=max(bounds.x_start - 1, 0),
+        x_stop=min(bounds.x_stop + 1, shape_yx[1]),
+    )
 
 
 def _read_flat_noise_input(

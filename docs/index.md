@@ -1,7 +1,7 @@
 # Hebog
 
-Hebog is an **experimental** source finder for radio-continuum images. Given a
-FITS image it estimates the background and noise, detects compact and extended
+Hebog is a scalable source finder for radio continuum images, and it is
+**experimental**. Given a FITS image it estimates the background and noise, detects compact and extended
 emission, fits Gaussians, and publishes a source catalogue, an RMS image, a
 source mask and diagnostics. The same code runs in a single process or across
 a Dask cluster that you already own.
@@ -25,6 +25,8 @@ a Dask cluster that you already own.
   how it compares with PyBDSF, Aegean, Selavy and others.
 - [Output reference](reference/public-products.md): every column, unit and
   flag.
+- [Glossary](reference/domain-glossary.md): what island, source, Gaussian
+  component, RMS, tile and the other terms mean here.
 
 ## I am a pipeline developer or architect
 
@@ -36,6 +38,8 @@ a Dask cluster that you already own.
 - [Architecture overview](architecture/index.md) and
   [how Hebog distributes work](architecture/distributed-execution.md).
 - [Python API](reference/index.md).
+- [Glossary](reference/domain-glossary.md), including the execution terms
+  tile, core, halo, pass and round.
 - [Contribute to Hebog](how-to/index.md).
 
 ## How this documentation is organised
@@ -43,8 +47,5 @@ a Dask cluster that you already own.
 The documentation follows the [Diátaxis](https://diataxis.fr) framework. The
 **User guide** holds the tutorial, how-to guides, explanation and reference an
 astronomer needs. The **Developer guide** holds the same four kinds of page
-for people who integrate or extend Hebog. Git history records completed work
-and links dated evidence; significant architecture decisions live in
-[ADRs](architecture/adr/index.md). The repository's
-[archived execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md)
-preserves earlier records.
+for people who integrate or extend Hebog. Significant architecture
+decisions live in [ADRs](architecture/adr/index.md).

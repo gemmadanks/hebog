@@ -17,7 +17,7 @@ def _(mo):
     # Hebog public source-finder demonstration
 
     This notebook runs Hebog through its supported, scheduler-independent
-    public interface. It writes a deterministic synthetic radio-continuum
+    public interface. It writes a deterministic synthetic radio continuum
     image to FITS, creates `SourceFinderRequest` and `SourceFinderConfig`
     records, and executes the complete source finder with
     `hebog.find_sources()`.

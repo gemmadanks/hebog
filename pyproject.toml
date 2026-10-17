@@ -1,7 +1,7 @@
 [project]
 name = "hebog"
-version = "0.21.0"
-description = "Experimental radio-continuum source finder with serial and Dask execution"
+version = "0.22.0"
+description = "A scalable source finder for radio continuum images"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
 ]
@@ -9,12 +9,19 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
 dependencies = [
     "astropy>=8.0.1,<9",
-    "distributed>=2026.7.1,<2027",
+    "distributed>=2026.7.1",
     "numpy>=2.0.2,<3",
     "pydantic>=2.12,<3",
     "scipy>=1.15,<2",
+    # The store calls Zarr internals; accept a new minor release only after
+    # the test suite passes on it (ADR-007).
     "zarr>=3.2,<3.5",
 ]
 

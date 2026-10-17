@@ -18,7 +18,10 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS
-from conftest import SubstituteBackgroundRms
+from conftest import (
+    SubstituteBackgroundRms,
+    radio_header,
+)
 
 from hebog import public_api
 from hebog.algorithms import fitting as fitting_algorithm
@@ -29,29 +32,6 @@ _ROOT = Path(__file__).parents[2]
 _RUNNER = runpy.run_path(
     str(_ROOT / "scripts/benchmark/run_notebook_hebog.py")
 )
-
-
-def _header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS radio-continuum FITS header."""
-    height, width = shape_yx
-    header = fits.Header()
-    header["BUNIT"] = "Jy/beam"
-    header["BMAJ"] = 4.0 / 3600.0
-    header["BMIN"] = 4.0 / 3600.0
-    header["BPA"] = 0.0
-    header["RADESYS"] = "ICRS"
-    header["CTYPE1"] = "RA---TAN"
-    header["CTYPE2"] = "DEC--TAN"
-    header["CRPIX1"] = width / 2 + 1
-    header["CRPIX2"] = height / 2 + 1
-    header["CRVAL1"] = 180.0
-    header["CRVAL2"] = -30.0
-    header["CDELT1"] = -1.0 / 3600.0
-    header["CDELT2"] = 1.0 / 3600.0
-    header["CUNIT1"] = "deg"
-    header["CUNIT2"] = "deg"
-    header["RESTFRQ"] = 150_000_000.0
-    return header
 
 
 def _geometry_matrix_image() -> np.ndarray[Any, np.dtype[np.float64]]:
@@ -95,7 +75,7 @@ def test_exact_notebook_runner_completes_geometry_matrix(
     input_path = tmp_path / "input.fits"
     output = tmp_path / "result"
     image = _geometry_matrix_image()
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     if frame != "icrs":
         header["CTYPE1"] = "RA---SIN"
         header["CTYPE2"] = "DEC--SIN"
@@ -183,7 +163,9 @@ def test_exact_notebook_runner_publishes_empty_and_all_nan(
 ) -> None:
     """A valid source-free image is not a failed batch."""
     path = tmp_path / "input.fits"
-    fits.PrimaryHDU(np.full((32, 48), value), _header((32, 48))).writeto(path)
+    fits.PrimaryHDU(np.full((32, 48), value), radio_header((32, 48))).writeto(
+        path
+    )
     result = _RUNNER["run_notebook_hebog"](
         input_path=path,
         output=tmp_path / "result",
@@ -209,7 +191,7 @@ def test_notebook_native_measurements_preserve_rotated_unequal_pixel_geometry(
     substituted_background_rms: SubstituteBackgroundRms,
 ) -> None:
     """Native flux, sky shape and errors survive the complete FITS boundary."""
-    header = _header((96, 128))
+    header = radio_header((96, 128))
     if frame == "fk5":
         header["RADESYS"] = "FK5"
         header["EQUINOX"] = 1950.0
@@ -315,7 +297,7 @@ def test_notebook_retains_numerical_fit_failures_without_aborting_image(
 ) -> None:
     """Unmeasured Gaussians remain visible without discarding other islands."""
     image = _geometry_matrix_image()
-    header = _header(image.shape)
+    header = radio_header(image.shape)
     if frame == "fk5":
         header["RADESYS"] = "FK5"
         header["EQUINOX"] = 1950.0

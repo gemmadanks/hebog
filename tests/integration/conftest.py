@@ -7,19 +7,24 @@ import gc
 import warnings
 from collections.abc import Callable, Generator, Iterable, Iterator, Mapping
 from contextlib import AbstractContextManager, contextmanager
-from dataclasses import fields, is_dataclass
+from dataclasses import fields, is_dataclass, replace
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
 import numpy as np
 import numpy.typing as npt
 import pytest
+from astropy.io import fits
 from distributed import Client, LocalCluster
+from scipy.ndimage import (
+    label as ndimage_label,  # pyright: ignore[reportUnknownVariableType]
+)
 
 from hebog import SourceFinderResult
 from hebog.algorithms.partitioning import plan_image_partitions
+from hebog.config import CompactDeblendConfig
 from hebog.data_models import BrightRegionCounts
-from hebog.data_models.partitioning import ImageBounds
+from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 from hebog.data_models.products import ProductChunk
 from hebog.executors import (
     DaskExecutor,
@@ -28,7 +33,9 @@ from hebog.executors import (
     TaskRequirement,
     ThreadExecutor,
 )
+from hebog.io.base import ImageWindow, WindowReadable
 from hebog.io.zarr import ZarrProductSink
+from hebog.science.configuration import source_finder_configs
 from hebog.stages.composition import BackgroundEstimate
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
@@ -306,3 +313,208 @@ def carried_array_bytes(
         carried += child_bytes
         exempted += child_exempted
     return carried, exempted
+
+
+class DropNthMapExecutor(SerialExecutor):
+    """Complete every round but one, to prove each fails closed."""
+
+    def __init__(self, dropped_round: int) -> None:
+        """Count maps so one chosen round can return nothing."""
+        super().__init__()
+        self._dropped_round = dropped_round
+        self._call_count = 0
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Run every round except the chosen one."""
+        self._call_count += 1
+        if self._call_count == self._dropped_round:
+            return []
+        return super().map_batches(function, batches, requirement=requirement)
+
+
+class EmptyAfterFirstMapExecutor(SerialExecutor):
+    """Complete the first round and drop every later round's results."""
+
+    def __init__(self) -> None:
+        """Count maps so every one after the first publishes nothing."""
+        super().__init__()
+        self._call_count = 0
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Run the first map and return nothing from any later one."""
+        self._call_count += 1
+        if self._call_count == 1:
+            return super().map_batches(
+                function, batches, requirement=requirement
+            )
+        return []
+
+
+class EmptyExecutor(SerialExecutor):
+    """Drop every submitted result for fail-closed executor testing."""
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Return no result without evaluating work."""
+        del function, batches, requirement
+        return []
+
+
+class ReverseCompletionExecutor(SerialExecutor):
+    """Return completed task records in reverse order."""
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Evaluate canonically but expose reverse completion order."""
+        return list(
+            reversed(
+                super().map_batches(function, batches, requirement=requirement)
+            )
+        )
+
+
+class ShiftedBoundsSource:
+    """An image source that answers with bounds it was not asked for."""
+
+    def __init__(self, source: WindowReadable) -> None:
+        """Retain the source whose honest answers are then corrupted."""
+        self._source = source
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Return the asked-for pixels under one narrower bound."""
+        window = self._source.read_window(bounds)
+        return replace(
+            window,
+            bounds=ImageBounds(
+                bounds.y_start,
+                bounds.y_stop,
+                bounds.x_start,
+                max(bounds.x_start + 1, bounds.x_stop - 1),
+            ),
+        )
+
+
+def radio_header(shape_yx: tuple[int, int]) -> fits.Header:
+    """Return one valid ICRS radio continuum header with a 4-pixel beam."""
+    height, width = shape_yx
+    header = fits.Header()
+    header["BUNIT"] = "Jy/beam"
+    header["BMAJ"] = 4.0 / 3600.0
+    header["BMIN"] = 4.0 / 3600.0
+    header["BPA"] = 0.0
+    header["RADESYS"] = "ICRS"
+    header["CTYPE1"] = "RA---TAN"
+    header["CTYPE2"] = "DEC--TAN"
+    header["CRPIX1"] = width / 2 + 1
+    header["CRPIX2"] = height / 2 + 1
+    header["CRVAL1"] = 180.0
+    header["CRVAL2"] = -30.0
+    header["CDELT1"] = -1.0 / 3600.0
+    header["CDELT2"] = 1.0 / 3600.0
+    header["CUNIT1"] = "deg"
+    header["CUNIT2"] = "deg"
+    header["RESTFRQ"] = 150_000_000.0
+    return header
+
+
+def two_source_image() -> npt.NDArray[np.float64]:
+    """Return noise with two bright beam-shaped sources."""
+    y_pixels, x_pixels = np.mgrid[:192, :192]
+    values = np.random.default_rng(20260929).normal(0.0, 1.0e-4, (192, 192))
+    for y, x in ((48.0, 60.0), (140.0, 120.0)):
+        values += 0.01 * np.exp(
+            -(((x_pixels - x) ** 2 + (y_pixels - y) ** 2) / 8.0)
+        )
+    return values
+
+
+def eight_connected_labels(
+    mask: npt.NDArray[np.bool_],
+) -> npt.NDArray[np.int32]:
+    """Return eight-connected labels of one analytic mask."""
+    labels, _ = cast(
+        "tuple[npt.NDArray[np.int32], int]",
+        ndimage_label(mask, structure=np.ones((3, 3), dtype=np.int8)),
+    )
+    return labels
+
+
+def core_partitions(shape_yx: tuple[int, int], core: int) -> PartitionManifest:
+    """Plan one core-only partition of a fixture image."""
+    return plan_image_partitions(
+        image_shape_yx=shape_yx,
+        tile_core_shape_yx=(core, core),
+        halo_yx=(0, 0),
+    )
+
+
+def publish_planes(
+    root: Path,
+    products: tuple[tuple[str, npt.NDArray[np.generic], str], ...],
+    *,
+    generation_id: str,
+) -> ZarrProductSink:
+    """Publish one generation of analytic planes over 16-pixel cores.
+
+    The planes share one shape, which the partition takes from the first.
+    """
+    manifest = core_partitions(products[0][1].shape, 16)
+    sink = ZarrProductSink(root, manifest, generation_id=generation_id)
+    for product_name, _, dtype in products:
+        sink.initialize_product(
+            product_name=product_name, dtype=np.dtype(dtype)
+        )
+    sink.publish_generation(
+        product_names=tuple(name for name, _, _ in products),
+        chunks=[
+            sink.write_chunk(
+                product_name=product_name,
+                tile=tile,
+                values=np.asarray(
+                    values[
+                        tile.core_bounds.y_start : tile.core_bounds.y_stop,
+                        tile.core_bounds.x_start : tile.core_bounds.x_stop,
+                    ]
+                ),
+            )
+            for tile in manifest.tiles
+            for product_name, values, _ in products
+        ],
+    )
+    return sink
+
+
+def reviewed_deblend_config(detection_sigma: float) -> CompactDeblendConfig:
+    """Return the reviewed deblending policy, admitting peaks at detection.
+
+    The minimum peak sits just below ``detection_sigma``, so every detected
+    peak may split a parent, as on the public path.
+    """
+    return replace(
+        source_finder_configs()[1],
+        minimum_peak_signal_to_noise=float(
+            np.nextafter(detection_sigma, -np.inf)
+        ),
+    )
