@@ -15,8 +15,8 @@ history; none is scientific qualification. User-facing limits are in
 | 1.0.0 goal | Target | Position on 17 October 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid for 1.0.0 and on SKA-Low precursor data at the later release whose envelope admits it | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run; MeerKAT MIGHTEE images fit the envelope; the only SKA-Low precursor mosaic (GLEAM-X) needs the 45,000-pixel tier and a position-dependent PSF, whose effect is to be measured and documented. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. | In progress |
-| Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `compact` profile and a zero background, Rapthor's choice from the agreement check, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
-| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.6% of sky-model components under the interim `compact` profile with a zero background; released PyBDSF reaches 99.3%, so the former 99.5% target was retired on 16 October for a truth-based gate, whose limits were set on 17 October. `continuum` passes it under either background since the repair of its local noise in crowded fields: it loses almost none of the real components `master` keeps, keeps injected sources as often as `master` or more and covers more of the true emission. `compact` fails it: it loses 5.4% of `master`'s real extended components and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%. Which profile Rapthor runs awaits the maintainer. | Development evidence only |
+| Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `continuum` profile and a zero background, the profile that passes the truth-based gate, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
+| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 92.1% of sky-model components under the `continuum` profile with a zero background, which Rapthor runs; released PyBDSF reaches 99.3%, so the former 99.5% target was retired on 16 October for a truth-based gate, whose limits were set on 17 October. `continuum` passes it under either background since the repair of its local noise in crowded fields: it loses almost none of the real components `master` keeps, keeps injected sources as often as `master` or more and covers more of the true emission. `compact` fails it: it loses 5.4% of `master`'s real extended components and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%. | Development evidence only |
 | Performance | The source-finding part of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's `filter_sources` call, ≤0.50 of pinned PyBDSF `master`'s, like for like on one node and across the nodes Rapthor deploys, for sectors up to the 1.0.0 envelope; the complete step reported beside it | The gate fails. On a 3,000² LoTSS-DR3 window with four cores (emulated x86-64), Hebog's finder part is 2.43 times `master`'s on Rapthor's thread path (162 s against 67 s; complete step 2.03) and 1.99 on four Dask workers in one repetition (171 s against 86 s); both burn about the same CPU, so four cores cannot pass the gate whatever the occupancy. On the 10,000² anchor with four Dask workers (16 October, one repetition) the finder part is 1.23 (1,249 s against 1,019 s; complete step 1.19), both finders keeping about three of four cores busy and Hebog using 11% more CPU; PyBDSF could not run the 15,402² mosaic in the 16 GB container VM. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association; with the same settings it takes 2.0 h at 0.22.0, and 1.3 h under the `compact` default. On a local Dask cluster one sector takes 0.36 of one worker's time at four workers and 0.32 at six, with a 20% serial share; twelve threads are barely faster than one, and four Dask workers gain nothing on a 3,000² sector of four tiles. No regression on the Hebog curve. | Gate failing |
 | Scalability | The 22,500² tier for 1.0.0, covering Rapthor's default sectors, with one sector scaling across 1, 2, 5 and 10 nodes with invariant products; 45,000² on the 18 GiB development machine and 90,000² on the cluster as later minor releases; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel, which forecasts about 2.1 GiB at 22,500². Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 22,500 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.22.0 (17 October 2026) is the first release on PyPI, published with attestations; it passed its release check on 15 October and installs from PyPI on Python 3.12 and 3.14. Earlier releases are on GitHub and TestPyPI. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
@@ -154,9 +154,9 @@ components.
 
 | Lane | All | Bright | Extended | Edge | Crowded | Sparse | True-sky | Apparent | Grouping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `compact`, zero background (Rapthor's) | 92.6 | 99.2 | 91.1 | 92.0 | 91.1 | 93.7 | 91.9 | 92.0 | 0.969 |
+| `compact`, zero background | 92.6 | 99.2 | 91.1 | 92.0 | 91.1 | 93.7 | 91.9 | 92.0 | 0.969 |
 | `compact`, estimated | 91.6 | 98.3 | 87.5 | 91.5 | 90.3 | 92.6 | 90.8 | 90.8 | 0.963 |
-| `continuum`, zero | 92.1 | 100 | 97.6 | 94.2 | 91.5 | 92.6 | 92.3 | 92.4 | 0.965 |
+| `continuum`, zero background (Rapthor's) | 92.1 | 100 | 97.6 | 94.2 | 91.5 | 92.6 | 92.3 | 92.4 | 0.965 |
 | `continuum`, estimated | 91.6 | 100 | 97.3 | 93.5 | 91.9 | 91.4 | 91.6 | 91.6 | 0.962 |
 | Released PyBDSF 1.14.1 (control) | 99.3 | 100 | 99.0 | 100 | 98.6 | 99.9 | 99.3 | 99.3 | 0.999 |
 | Components | 20,221 | 1,011 | 1,568 | 600 | 8,639 | 11,582 | 8,236 | 8,251 | |
@@ -175,8 +175,9 @@ lane publishes `DC_Maj` 0 for 1,600 to 1,700 fits of 10″ or more, against
 `master`'s 439, so 304 to 343 matched sources that `master`'s cuts drop
 pass them as unresolved. No lane reached the former 99.5% target, which
 released PyBDSF misses too, so it was retired on 16 October for a
-truth-based gate; Rapthor runs `compact` with a zero background as an
-interim choice, to be made again from that gate.
+truth-based gate, from which the maintainer chose `continuum` with a zero
+background for Rapthor; `compact` with a zero background had been the
+interim choice since 13 October.
 
 Agreement with `master` is compatibility, not correctness, so the check
 also measures every finder against known truth, in the same run. A
@@ -185,7 +186,7 @@ at least 7 times the negative-pixel noise above zero on a real one;
 nearer the 5σ threshold the finders' RMS estimates decide. Each level of
 injected sources holds 90, 30 in each real image.
 
-| Measure | `compact`, zero (Rapthor's) | `compact`, estimated | `continuum`, zero | `continuum`, estimated | `master` | Released 1.14.1 |
+| Measure | `compact`, zero | `compact`, estimated | `continuum`, zero (Rapthor's) | `continuum`, estimated | `master` | Released 1.14.1 |
 | --- | --- | --- | --- | --- | --- | --- |
 | Real components `master` keeps that the finder rejects: all, and worst strata | 0.81% of 12,794; extended 5.4%, edge 3.5% | 1.40%; extended 9.0%, edge 4.0% | 0.11%; edge 0.5% | 0.13%; edge 0.5% | – | 0.02%; extended 0.2% |
 | Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 76, 91, 100% | 74, 93, 100% | 76, 89, 100% | 76, 89, 100% |
@@ -285,17 +286,16 @@ list what the maintainer has still to decide, each with a recommendation.
 
 The next actions, as the plan orders them on 17 October:
 
-1. Agent: raise the 22,500² tier, and prepare Rapthor's move to the
-   profile the maintainer chooses from the truth-based gate, which
-   `continuum` now passes and `compact` fails; the profile comes before the
-   cluster work, which measures its cost.
+1. Agent: raise the 22,500² tier, and record Rapthor's Hebog branch with
+   the `continuum` default in the integration container; the profile comes
+   before the cluster work, which measures its cost.
 2. Agent: then one sector across the cluster, starting with a stage
    profile of the 10,000² anchor in the matched container and sizing tiles
    and task counts from the core budget and the memory a core needs, in
    four increments that each release.
 3. Human: push Rapthor's Hebog branch, which testing and trials use
-   without waiting for a merge; choose Rapthor's profile; file the Astropy
-   report drafted on 5 October; take the other pending decisions.
+   without waiting for a merge; file the Astropy report drafted on
+   5 October; take the pending decisions.
 4. Agent: the deployment envelope, the matched benchmarks on the cells the
    VM holds, the store and planner work and the cluster benchmark's
    packaging; the gate itself is measured on the cluster. The remaining

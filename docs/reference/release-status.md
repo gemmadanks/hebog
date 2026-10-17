@@ -120,10 +120,10 @@ published.
 `hebog.adapters.find_sector_sources` runs one Rapthor sector, its true-sky
 and flat-noise images, on the executor Rapthor builds, and writes the
 catalogue, the two RMS maps and the island mask under the names Rapthor's
-PyBDSF step uses. It runs the `compact` profile with a zero background
-unless asked otherwise: of the four settings, they make Rapthor keep the
-sky-model components pinned PyBDSF `master` keeps most often, 92.8% of
-them. [Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
+PyBDSF step uses. It runs the `continuum` profile with a zero background
+unless asked otherwise: of the four settings, `continuum` passes the
+truth-based gate under either background, and the zero background covers
+more of the true emission and keeps PyBDSF's mean map. [Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
 calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
 current one-single-threaded-worker-per-node layout. It includes memory
 admission, typed PyBDSF fallback and dual-run diagnostics; it is not yet
