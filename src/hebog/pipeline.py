@@ -96,7 +96,7 @@ def expected_source_count(
     standard deviation, or the median of every block's if that is lower, so
     neither the bright sources in a block nor a primary-beam correction's
     noisier edges hide faint sources. A noise peak counts as a source would,
-    so the estimate errs high; on plan task 77's 21 cases it bounded every
+    so the estimate errs high; on 21 development cases it bounded every
     published source count, at 1.0 to 21 times it: 1.1 to 1.9 times on the
     LOFAR and simulated SKA fields, and most where noise peaks sit on one
     wide source. The image is read twice in bounded blocks, so no

@@ -38,7 +38,8 @@
     "bound": "upper-one-sided",
     "commit_sha": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
     "confidence_level": 0.95,
-    "maximum_ratio": 0.5
+    "maximum_ratio": 0.5,
+    "measured_phase": "finder"
   },
   "schema_version": 2,
   "sizes_pixels": [

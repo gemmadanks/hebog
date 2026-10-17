@@ -15,9 +15,10 @@ Python and dependency versions, worker topology, CPU allocation, wall time,
 CPU time, and peak resident memory. Generated results belong in the ignored
 `benchmark-results/` directory.
 
-Earlier campaign launchers, freezers, reviews, compilers and evaluators were
-removed; their conclusions are in `LOG.md` and the code remains in
-[Git history at `4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0).
+Earlier campaign and stage benchmark tooling was removed; it remains in
+Git history at
+[`4babf0b`](https://github.com/gemmadanks/hebog/tree/4babf0baaf5609e72764183e543df84ec6be09e0)
+and [`v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
 
 ## Source-finder comparison notebook
 
@@ -112,8 +113,8 @@ fit bounds and detection thresholds are unchanged.
 
 ## Matched filter_skymodel benchmark
 
-`measure_filter_skymodel.py` is plan task 23's matched benchmark of
-Rapthor's complete `filter_skymodel` step: Rapthor's native Hebog task
+`measure_filter_skymodel.py` is the matched benchmark of
+Rapthor's `filter_skymodel` step: Rapthor's native Hebog task
 against its PyBDSF subprocess with pinned `master`, in one
 [benchmark image](containers/filter-skymodel/README.md) on the same cores.
 It writes one sector's inputs from a real image with
@@ -125,7 +126,9 @@ cycle's island mask. A Measurement Set given with `--beam-ms` selects
 Rapthor's production two-pass mode. Each warm-up
 and measured repetition runs `filter_skymodel_worker.py` in a fresh
 container, alternating the finders, and the report applies the deployment
-gate's ratio rule to the measured wall times:
+gate's ratio rule to the source-finding part of each run, from the task's
+start to LSMTool's `filter_sources` call, the span the finder controls, and
+reports the complete step's ratio beside it:
 
 ```console
 mkdir -p benchmark-results/filter-skymodel/beam
@@ -147,7 +150,7 @@ the times are emulated.
 `--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
 mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
 single-threaded Dask worker processes instead of Rapthor's threads. The
-patched Rapthor has no Dask path for Hebog yet (task 72), so such a run
+patched Rapthor has no Dask path for Hebog yet, so such a run
 screens what one could give and never counts towards the gate.
 
 ## Phase 0 PyBDSF baselines
@@ -212,13 +215,6 @@ latency where applicable. The exploratory backend-comparison runner was
 removed after ADR-007 selected a single backend, so rejected private storage
 code does not become a maintained benchmark dependency.
 
-The Phase 1 to 5 stage and matrix benchmark runners (`measure_phase1_io.py`
-to `measure_phase5_multiscale.py`, their input generators, matrix drivers and
-`config/benchmarks/phase-4-performance.json` and `phase-5-performance.json`)
-were replaced by the quick benchmark below. Their component budgets timed
-stages of the whole-array path that milestone M2 replaces. They remain in
-[Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
-
 ## Quick benchmark
 
 `quick_benchmark.py` times complete FITS-to-products runs on the cases in
@@ -248,10 +244,6 @@ wall time, CPU time and peak memory, including PyBDSF's worker processes, from
 input validation to product normalisation. Container start-up and interpreter
 imports are excluded, while Hebog's timings include them, so the ratio
 slightly favours PyBDSF.
-
-The closed Phase 4 paired campaign runners and compiler were removed with the
-campaign tooling and remain in
-[Git history at `v0.7.0`](https://github.com/gemmadanks/hebog/tree/v0.7.0/scripts/benchmark).
 
 ## Traced-allocation peak
 

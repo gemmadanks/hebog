@@ -12,7 +12,7 @@ the image.
 
 The costs are measured, not derived: the largest ``tracemalloc`` peak of
 one task above what the run held when it began, over the round's largest
-read, the most over the reference anchors (plan task 17). Tracing misses
+read, the most over the reference anchors. Tracing misses
 allocations outside Python's allocator, and an anchor need not hold a
 round's worst content, so a declaration adds a fixed allowance for the
 objects every task allocates and then a quarter of headroom. A change to

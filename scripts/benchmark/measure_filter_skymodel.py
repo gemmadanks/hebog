@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure Rapthor's complete filter step: Hebog against pinned PyBDSF master.
+"""Measure Rapthor's filter step: Hebog against pinned PyBDSF master.
 
 Plan task 23's matched benchmark. The sector's inputs are written once from
 a real image (``hebog.validation.filter_benchmark``). Each warm-up and
@@ -13,8 +13,10 @@ of the inputs, as Rapthor's pipeline directory does.
 Under ``benchmark-results/filter-skymodel/runs/<label>/`` it writes the
 sector, each run's directory and ``run.json``, one evidence document per
 finder, and ``report.json``: each finder's timings, the ratio of the
-medians with its one-sided 95% bootstrap bounds against the deployment gate
-(``config/benchmarks/phase-0-performance.json``), whether each finder's
+finder-part medians (the task's start to LSMTool's ``filter_sources`` call,
+the span the finder controls) with its one-sided 95% bootstrap bounds
+against the deployment gate (``config/benchmarks/phase-0-performance.json``),
+the complete step's ratio beside it, whether each finder's
 catalogue, RMS maps and mask repeated byte for byte, and the identities of
 the image, inputs and software::
 
@@ -30,7 +32,7 @@ import json
 import shutil
 import statistics
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -38,7 +40,10 @@ from typing import Any
 
 import hebog
 from hebog.validation.campaign_runtime import canonical_sha256
-from hebog.validation.contracts import load_performance_matrix
+from hebog.validation.contracts import (
+    PyBdsfMasterGate,
+    load_performance_matrix,
+)
 from hebog.validation.datasets import DatasetRole
 from hebog.validation.evidence import (
     DatasetIdentity,
@@ -55,6 +60,7 @@ from hebog.validation.quick_benchmark import (
     benchmark_evidence,
     compare_with_pybdsf_master,
     local_resources,
+    median_ratio,
     summarise_timings,
 )
 from hebog.validation.quick_check import (
@@ -304,6 +310,52 @@ def _repeated(runs: Sequence[dict[str, Any]]) -> dict[str, bool]:
     }
 
 
+def _compare_phases(
+    runs: Mapping[str, Sequence[Mapping[str, Any]]],
+    gate: PyBdsfMasterGate,
+    *,
+    resamples: int,
+) -> dict[str, Any]:
+    """Apply the gate to the finder's span and report the whole step.
+
+    The gate's ``measured_phase`` is the source-finding part of Rapthor's
+    step, from the task's start to LSMTool's ``filter_sources`` call, the
+    span the finder controls. The complete step, whose LSMTool filtering is
+    the same for either finder, is reported beside it and never gated.
+    Warm-up repetitions count for neither.
+    """
+    measured = {
+        finder: [run for run in finder_runs if not run["warmup"]]
+        for finder, finder_runs in runs.items()
+    }
+    phase = f"{gate.measured_phase}_seconds"
+    gated = compare_with_pybdsf_master(
+        [run[phase] for run in measured["hebog"]],
+        [run[phase] for run in measured["bdsf"]],
+        gate,
+        resamples=resamples,
+    )
+    complete = median_ratio(
+        [run["wall_seconds"] for run in measured["hebog"]],
+        [run["wall_seconds"] for run in measured["bdsf"]],
+        resamples=resamples,
+        confidence_level=gate.confidence_level,
+    )
+    return {
+        "phase": gate.measured_phase,
+        "ratio": gated.ratio.ratio,
+        "lower_bound": gated.ratio.lower_bound,
+        "upper_bound": gated.ratio.upper_bound,
+        "maximum_ratio": gate.maximum_ratio,
+        "outcome": gated.outcome,
+        "complete_step": {
+            "ratio": complete.ratio,
+            "lower_bound": complete.lower_bound,
+            "upper_bound": complete.upper_bound,
+        },
+    }
+
+
 def main() -> int:
     """Run the matched benchmark and write its evidence and report."""
     args = _parse_args()
@@ -344,12 +396,7 @@ def main() -> int:
         ]
         for finder, finder_runs in runs.items()
     }
-    comparison = compare_with_pybdsf_master(
-        measured["hebog"],
-        measured["bdsf"],
-        gate,
-        resamples=_BOOTSTRAP_RESAMPLES,
-    )
+    comparison = _compare_phases(runs, gate, resamples=_BOOTSTRAP_RESAMPLES)
     configuration = {
         "case": args.case,
         "image_sha256": file_sha256(image),
@@ -423,8 +470,10 @@ def main() -> int:
                             cpu_seconds=run["cpu_seconds"],
                             peak_rss_bytes=run["peak_rss_bytes"],
                         ),
+                        # The finder's span; the worker records no CPU or
+                        # RSS per phase, so those are the whole run's.
                         finder=ProcessUsage(
-                            wall_seconds=run["wall_seconds"],
+                            wall_seconds=run["finder_seconds"],
                             cpu_seconds=run["cpu_seconds"],
                             peak_rss_bytes=run["peak_rss_bytes"],
                         ),
@@ -456,13 +505,7 @@ def main() -> int:
             }
             for finder, finder_runs in runs.items()
         },
-        "comparison": {
-            "ratio": comparison.ratio.ratio,
-            "lower_bound": comparison.ratio.lower_bound,
-            "upper_bound": comparison.ratio.upper_bound,
-            "maximum_ratio": gate.maximum_ratio,
-            "outcome": comparison.outcome,
-        },
+        "comparison": comparison,
         "products_repeated": {
             finder: _repeated(
                 [run for run in finder_runs if not run["warmup"]]
@@ -474,11 +517,15 @@ def main() -> int:
     (root / "report.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    complete = comparison["complete_step"]
     print(
-        f"Hebog / PyBDSF master median ratio {comparison.ratio.ratio:.3f} "
-        f"(one-sided 95% bounds {comparison.ratio.lower_bound:.3f} to "
-        f"{comparison.ratio.upper_bound:.3f}); gate {gate.maximum_ratio}: "
-        f"{comparison.outcome}",
+        f"Hebog / PyBDSF master {comparison['phase']}-part median ratio "
+        f"{comparison['ratio']:.3f} (one-sided 95% bounds "
+        f"{comparison['lower_bound']:.3f} to "
+        f"{comparison['upper_bound']:.3f}); "
+        f"gate {gate.maximum_ratio}: {comparison['outcome']}; complete step "
+        f"{complete['ratio']:.3f} ({complete['lower_bound']:.3f} to "
+        f"{complete['upper_bound']:.3f}), reported beside the gate",
         flush=True,
     )
     return 0

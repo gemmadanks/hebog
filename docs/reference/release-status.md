@@ -1,8 +1,9 @@
 # Capability and status
 
-Hebog is an **experimental** radio-continuum source finder. It runs a complete
-standalone analysis on the inputs below. It is not scientifically qualified
-for survey use and is not a production Rapthor backend.
+Hebog is a scalable source finder for radio continuum images. It is
+**experimental**: it runs a complete standalone analysis on the inputs below, but is not
+scientifically qualified for survey use and is not a production Rapthor
+backend.
 
 This page describes the source checkout, which can be ahead of the latest
 [release](https://github.com/gemmadanks/hebog/releases). Pin an exact `0.x`
@@ -61,11 +62,7 @@ and bounded evaluation. It is **not** yet suitable for claiming
 interchangeability with PyBDSF or readiness for a survey.
 
 Development comparisons against PyBDSF and Aegean on simulated and public
-images are summarised on [progress against goals](progress-against-goals.md)
-and recorded in the repository's
-[archived execution log](https://github.com/gemmadanks/hebog/blob/main/LOG.md)
-and
-[implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md).
+images are summarised on [progress against goals](progress-against-goals.md).
 They are development evidence, not qualification.
 
 Known limitations when interpreting results:
@@ -126,7 +123,7 @@ catalogue, the two RMS maps and the island mask under the names Rapthor's
 PyBDSF step uses. It runs the `compact` profile with a zero background
 unless asked otherwise: of the four settings, they make Rapthor keep the
 sky-model components pinned PyBDSF `master` keeps most often, 92.8% of
-them, short of the 99.5% target (plan task 21). A [prepared Rapthor patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
+them. A [prepared Rapthor patch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/patches/README.md)
 calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
 current one-single-threaded-worker-per-node layout. It includes memory
 admission, typed PyBDSF fallback and dual-run diagnostics; upstream

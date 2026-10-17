@@ -1,4 +1,4 @@
-"""Dask-aware radio-continuum source finding for SKA SDP pipelines."""
+"""A scalable source finder for radio continuum images."""
 
 from importlib.metadata import PackageNotFoundError, version
 

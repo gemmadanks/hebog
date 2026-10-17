@@ -18,7 +18,7 @@ def _(mo):
     mo.md(r"""
     # Hebog astronomer's source-finding workbench
 
-    Run Hebog on a radio-continuum FITS image through its supported public
+    Run Hebog on a radio continuum FITS image through its supported public
     interface, tune the caller-owned detection parameters, and inspect the
     returned catalogue, local-RMS image, diagnostics, and final source mask.
 

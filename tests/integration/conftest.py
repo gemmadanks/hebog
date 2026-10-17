@@ -417,7 +417,7 @@ class ShiftedBoundsSource:
 
 
 def radio_header(shape_yx: tuple[int, int]) -> fits.Header:
-    """Return one valid ICRS radio-continuum header with a 4-pixel beam."""
+    """Return one valid ICRS radio continuum header with a 4-pixel beam."""
     height, width = shape_yx
     header = fits.Header()
     header["BUNIT"] = "Jy/beam"

@@ -31,8 +31,7 @@ BLOCK_PIXELS = 512
 On the quick check's `varying-noise` case, 150-pixel blocks, the RMS box
 Rapthor passes to PyBDSF, read faint sources' own emission as noise and
 counted fewer peaks than the sources published; 512-pixel blocks bounded
-the sources of every quick-check, agreement and benchmark case (plan
-task 77).
+the sources of every quick-check, agreement and benchmark case.
 """
 MINIMUM_BLOCK_SAMPLES = 64
 """Valid pixels a block needs before its own noise is measured."""

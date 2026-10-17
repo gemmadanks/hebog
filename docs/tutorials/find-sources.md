@@ -1,6 +1,6 @@
 # Find sources in a FITS image
 
-In this tutorial you run Hebog on one radio-continuum image and read the
+In this tutorial you run Hebog on one radio continuum image and read the
 catalogue it produces. It takes a few minutes and needs only
 [an installed Hebog](index.md) and a FITS image.
 

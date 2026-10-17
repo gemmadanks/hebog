@@ -166,8 +166,8 @@ depend on how the image is tiled.
   image centre, to the whole image. A mosaic whose inputs have different
   resolutions, or a wide `ZEA` mosaic whose projection changes the beam's
   pixel shape across the field, is not described by one beam. Measuring that
-  effect and deciding how to handle a point-spread function that varies
-  across the field is the plan's task 15.
+  effect and documenting how a point-spread function that varies across
+  the field is handled is planned.
 - **Frame defaults.** A header with no frame keyword is ICRS. If its writer
   meant FK5 J2000, positions differ by the frame tie between the two, a few
   tens of milliarcseconds.
