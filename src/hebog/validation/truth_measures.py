@@ -24,6 +24,8 @@ mistake. These measures need no reference finder.
 - :func:`real_emission_decisions` splits a finder's disagreements with the
   reference by whether the component lies on real emission: the ideal
   mask on generated images, :func:`significant_emission` on real ones.
+- :func:`truth_gate` applies the limits the maintainer set on these
+  measures on 17 October 2026.
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import cast
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -569,3 +571,98 @@ def real_emission_decisions(
         )
         for name, selection in (selections | dict(strata)).items()
     }
+
+
+@dataclass(frozen=True, slots=True)
+class TruthGateLimits:
+    """The truth-based retained/rejected gate's limits.
+
+    A lane rejects at most ``lost_real_overall`` of the real components the
+    reference keeps, and ``lost_real_stratum`` in every stratum; keeps at
+    least the reference's share of injected sources less
+    ``injected_margin`` at every level from ``injected_from_snr``, and all
+    of them from ``complete_from_snr``; and finds at most
+    ``false_island_fraction`` as many islands on the negated images as on
+    the originals.
+    """
+
+    lost_real_overall: float
+    lost_real_stratum: float
+    injected_margin: float
+    injected_from_snr: float
+    complete_from_snr: float
+    false_island_fraction: float
+
+
+@dataclass(frozen=True, slots=True)
+class TruthGateOutcome:
+    """Whether a lane met every limit, and which it failed.
+
+    A lane with an unmeasured part and no failure is ``incomplete``: an
+    unmeasured part cannot pass.
+    """
+
+    status: Literal["passed", "failed", "incomplete"]
+    failures: tuple[str, ...]
+    unmeasured: tuple[str, ...]
+
+
+def truth_gate(  # noqa: PLR0913
+    *,
+    lost: Mapping[str, RealEmissionDecisions],
+    injected: Mapping[float, LevelRecovery],
+    reference_injected: Mapping[float, LevelRecovery],
+    false_islands: MaskIslands,
+    original_islands: MaskIslands,
+    limits: TruthGateLimits,
+) -> TruthGateOutcome:
+    """Apply the truth-based gate to one lane's pooled measures."""
+    failures: list[str] = []
+    unmeasured: list[str] = []
+    for stratum, counts in lost.items():
+        limit = (
+            limits.lost_real_overall
+            if stratum == ALL_COMPONENTS
+            else limits.lost_real_stratum
+        )
+        fraction = counts.lost_real_fraction
+        if fraction is None:
+            unmeasured.append(f"lost real {stratum}")
+        elif fraction > limit:
+            failures.append(f"lost real {stratum}: {fraction:.4f} > {limit}")
+    gated = {
+        level: recovery
+        for level, recovery in injected.items()
+        if level >= limits.injected_from_snr
+    }
+    if not gated:
+        unmeasured.append("injected")
+    for level, recovery in gated.items():
+        floor = (
+            1.0
+            if level >= limits.complete_from_snr
+            else reference_injected[level].kept_fraction
+            - limits.injected_margin
+        )
+        if recovery.kept_fraction < floor:
+            kept = recovery.kept_fraction
+            failures.append(f"injected {level:g}: {kept:.3f} < {floor:.3f}")
+    if not original_islands.islands:
+        unmeasured.append("false islands")
+    elif (
+        false_islands.islands
+        > limits.false_island_fraction * original_islands.islands
+    ):
+        failures.append(
+            f"false islands: {false_islands.islands} of "
+            f"{original_islands.islands}"
+        )
+    return TruthGateOutcome(
+        status="failed"
+        if failures
+        else "incomplete"
+        if unmeasured
+        else "passed",
+        failures=tuple(failures),
+        unmeasured=tuple(unmeasured),
+    )

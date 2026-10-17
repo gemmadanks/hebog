@@ -92,7 +92,6 @@ from hebog.validation.rapthor_agreement import (
     CatalogueCutCounts,
     ComponentPixels,
     DecisionCounts,
-    GateOutcome,
     Lane,
     NoiseSettings,
     RapthorAgreementConfiguration,
@@ -102,20 +101,20 @@ from hebog.validation.rapthor_agreement import (
     compare_decisions,
     component_strata,
     emission_pixels,
-    gate_outcome,
     hebog_cut_catalogue,
     load_agreement_configuration,
     pybdsf_cut_catalogue,
-    rapthor_profile,
     weighted_agreement,
 )
 from hebog.validation.truth_measures import (
     EmissionRecall,
     InjectedSources,
     InjectionOutcome,
+    LevelRecovery,
     MaskIslands,
     NoiseComparison,
     RealEmissionDecisions,
+    TruthGateLimits,
     compare_noise,
     emission_recall,
     ideal_mask,
@@ -127,6 +126,7 @@ from hebog.validation.truth_measures import (
     real_emission_decisions,
     recovery_by_level,
     significant_emission,
+    truth_gate,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -938,12 +938,27 @@ def _pooled_derived(
     return false_islands, unnegated, outcomes
 
 
+def _pooled_injected(
+    derived_records: list[dict[str, Any]], name: str
+) -> dict[float, LevelRecovery]:
+    """Pool one finder's recovery of the injected sources by level."""
+    _, _, outcomes = _pooled_derived(derived_records, {}, name)
+    return recovery_by_level(outcomes) if outcomes else {}
+
+
 def _pooled_correctness(
     records: list[dict[str, Any]],
     derived_records: list[dict[str, Any]],
     name: str,
+    *,
+    gate: tuple[TruthGateLimits, Mapping[float, LevelRecovery]] | None,
 ) -> dict[str, Any]:
-    """Pool one finder's correctness over every measured case."""
+    """Pool one finder's correctness over every measured case.
+
+    ``gate`` holds the truth-based gate's limits and ``master``'s injected
+    recovery, against which a lane or the control is gated; ``master``
+    itself is not.
+    """
     ideal: dict[str, DecisionCounts] = {}
     by_truth: dict[str, RealEmissionDecisions] = {}
     emission = EmissionRecall()
@@ -973,7 +988,21 @@ def _pooled_correctness(
     false_islands, original_islands, outcomes = _pooled_derived(
         derived_records, islands, name
     )
-    return {
+    levels = recovery_by_level(outcomes) if outcomes else {}
+    gated: dict[str, Any] = {}
+    if gate is not None:
+        limits, reference_injected = gate
+        gated["gate"] = asdict(
+            truth_gate(
+                lost=by_truth,
+                injected=levels,
+                reference_injected=reference_injected,
+                false_islands=false_islands,
+                original_islands=original_islands,
+                limits=limits,
+            )
+        )
+    return gated | {
         "versus_master_by_truth": {
             stratum: _with_ratios(
                 counts, "lost_real_fraction", "gained_real_fraction"
@@ -995,9 +1024,7 @@ def _pooled_correctness(
             f"{level:g}": _with_ratios(
                 summary, "kept_fraction", "matched_fraction"
             )
-            for level, summary in (
-                recovery_by_level(outcomes).items() if outcomes else ()
-            )
+            for level, summary in levels.items()
         },
         "negated": {
             "false_islands": asdict(false_islands),
@@ -1006,10 +1033,8 @@ def _pooled_correctness(
     }
 
 
-def _pooled_lane(
-    records: list[dict[str, Any]], name: str, threshold: float
-) -> dict[str, Any]:
-    """Pool one lane's counts over every measured case and apply the gate."""
+def _pooled_lane(records: list[dict[str, Any]], name: str) -> dict[str, Any]:
+    """Pool one lane's agreement with ``master`` over every measured case."""
     measured = [record for record in records if record["status"] == "measured"]
     strata: dict[str, DecisionCounts] = {}
     emission = DecisionCounts()
@@ -1032,10 +1057,8 @@ def _pooled_lane(
         if record["truth"] is not None:
             truth += DecisionCounts(**record["truth"][name])
         cuts += CatalogueCutCounts(**record["catalogue_cuts"][name])
-    outcome = gate_outcome(strata, threshold)
     return {
         "strata": _counts_record(strata),
-        "gate": asdict(outcome),
         "emission_pixels": asdict(emission)
         | {
             "agreement": emission.agreement,
@@ -1073,11 +1096,11 @@ def _print_summary(report: Mapping[str, Any]) -> None:
             else f"{lane['strata'][stratum]['agreement']:>11.4f}"
             for stratum in strata
         )
-        print(f"{name:22s}{cells}  {lane['gate']['status']}")
-    print(f"profile rule: {report['profile_rule']}")
+        print(f"{name:22s}{cells}")
     print(
         f"{'finder':22s}{'recall':>8s}{'off':>8s}{'kept5':>8s}"
         f"{'kept7':>8s}{'flux10':>8s}{'false':>8s}{'inflated':>10s}"
+        "  truth gate"
     )
     for name, correctness in report["correctness"].items():
         emission = correctness["ideal_mask"]["emission"]
@@ -1102,7 +1125,18 @@ def _print_summary(report: Mapping[str, Any]) -> None:
                 if noise.get("components", {}).get("inflated_fraction") is None
                 else f"{noise['components']['inflated_fraction']:>10.3f}"
             )
+            + _gate_summary(correctness.get("gate"))
         )
+
+
+def _gate_summary(gate: Mapping[str, Any] | None) -> str:
+    """Return a lane's truth-gate status and what it failed, if gated."""
+    if gate is None:
+        return "  reference"
+    reasons = gate["failures"] or gate["unmeasured"]
+    return f"  {gate['status']}" + (
+        f": {'; '.join(reasons)}" if reasons else ""
+    )
 
 
 def _references(
@@ -1224,11 +1258,14 @@ def main() -> int:
         )
         for item in derived
     ]
-    threshold = configuration.agreement_threshold
     lanes = {
-        lane.name: _pooled_lane(records, lane.name, threshold)
+        lane.name: _pooled_lane(records, lane.name)
         for lane in configuration.lanes
     }
+    gate = (
+        TruthGateLimits(**configuration.truth.gate.model_dump()),
+        _pooled_injected(derived_records, _MASTER),
+    )
     elapsed = time.perf_counter() - started
     report: dict[str, Any] = {
         "schema_version": 2,
@@ -1243,9 +1280,8 @@ def main() -> int:
         "quick_check_configuration_sha256": file_sha256(quick_check_path),
         "reference_identities": identities,
         "population": "fitted-gaussian-pixels",
-        "agreement_threshold": threshold,
         "lanes": lanes,
-        "control": _pooled_lane(records, _CONTROL, threshold),
+        "control": _pooled_lane(records, _CONTROL),
         "compact_versus_continuum": {
             background: _pooled_pair(records, background)
             for background in ("estimated", "zero")
@@ -1260,15 +1296,13 @@ def main() -> int:
                 CatalogueCutCounts(),
             )
         ),
-        "profile_rule": {
-            background: rapthor_profile(
-                GateOutcome(**lanes[f"compact-{background}"]["gate"])
-            )
-            for background in ("estimated", "zero")
-            if f"compact-{background}" in lanes
-        },
         "correctness": {
-            name: _pooled_correctness(records, derived_records, name)
+            name: _pooled_correctness(
+                records,
+                derived_records,
+                name,
+                gate=None if name == _MASTER else gate,
+            )
             for name in (
                 *(lane.name for lane in configuration.lanes),
                 _MASTER,

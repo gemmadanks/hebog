@@ -1,5 +1,4 @@
 {
-  "agreement_threshold": 0.995,
   "budget_seconds": 3600.0,
   "cases": [
     {
@@ -89,6 +88,14 @@
   "threshisl": 3.0,
   "threshpix": 5.0,
   "truth": {
+    "gate": {
+      "complete_from_snr": 10.0,
+      "false_island_fraction": 0.01,
+      "injected_from_snr": 6.0,
+      "injected_margin": 0.05,
+      "lost_real_overall": 0.01,
+      "lost_real_stratum": 0.02
+    },
     "injection": {
       "clear_beams": 2.0,
       "clear_sigma": 3.0,

@@ -38,18 +38,15 @@ from hebog.validation.rapthor_agreement import (
     ComponentPixels,
     CutCatalogue,
     DecisionCounts,
-    GateOutcome,
     StratumRules,
     WeightedAgreement,
     compare_catalogue_cuts,
     compare_decisions,
     component_strata,
     emission_pixels,
-    gate_outcome,
     hebog_cut_catalogue,
     load_agreement_configuration,
     pybdsf_cut_catalogue,
-    rapthor_profile,
     weighted_agreement,
 )
 
@@ -245,58 +242,6 @@ def test_decision_counts_pool_and_have_no_agreement_when_empty() -> None:
     assert pooled == DecisionCounts(6, 3, 1, 1, 2)
     assert DecisionCounts().agreement is None
     assert DecisionCounts(components=3).grouping_agreement is None
-
-
-def _counts(**agreements: float) -> dict[str, DecisionCounts]:
-    """Return 1,000 components a stratum with the given agreement."""
-    counts = {ALL_COMPONENTS: DecisionCounts(components=1000, both_kept=1000)}
-    counts |= {
-        name: DecisionCounts(
-            components=1000,
-            both_kept=1000,
-            reference_only=round(1000 * (1 - value)),
-        )
-        for name, value in agreements.items()
-    }
-    return counts
-
-
-def test_a_lane_passes_only_when_every_stratum_reaches_the_threshold() -> None:
-    """99.5% exactly passes; one stratum below it fails the lane."""
-    every = dict.fromkeys(SAFETY_STRATA, 1.0)
-
-    assert gate_outcome(_counts(**every), 0.995) == GateOutcome(
-        status="passed", failing_strata=(), empty_strata=()
-    )
-    assert gate_outcome(_counts(**every | {"edge": 0.995}), 0.995).status == (
-        "passed"
-    )
-    failing = gate_outcome(_counts(**every | {"edge": 0.994}), 0.995)
-    assert failing.status == "failed"
-    assert failing.failing_strata == ("edge",)
-
-
-def test_an_unmeasured_stratum_leaves_the_lane_incomplete() -> None:
-    """An empty safety stratum cannot pass, but a failure still fails."""
-    counts = _counts(**dict.fromkeys(SAFETY_STRATA, 1.0))
-    counts["masked"] = DecisionCounts()
-
-    assert gate_outcome(counts, 0.995) == GateOutcome(
-        status="incomplete", failing_strata=(), empty_strata=("masked",)
-    )
-    counts["edge"] = DecisionCounts(components=10, candidate_only=1)
-    assert gate_outcome(counts, 0.995).status == "failed"
-
-
-def test_compact_is_chosen_only_for_a_passing_lane() -> None:
-    """Plan task 21: otherwise the Rapthor profile stays ``continuum``."""
-    passed = GateOutcome("passed", (), ())
-
-    assert rapthor_profile(passed) == "compact"
-    assert rapthor_profile(GateOutcome("failed", ("all",), ())) == "continuum"
-    assert rapthor_profile(GateOutcome("incomplete", (), ("bright",))) == (
-        "continuum"
-    )
 
 
 def test_emission_pixels_follow_wscleans_threshold_and_auto_mask() -> None:
@@ -696,7 +641,6 @@ def test_the_checked_in_configuration_loads() -> None:
         "compact-estimated",
         "compact-zero",
     ]
-    assert configuration.agreement_threshold == 0.995
     assert configuration.strata.rules() == StratumRules(
         bright_snr=75.0,
         edge_beams=3.0,
@@ -731,7 +675,7 @@ def test_a_configuration_with_an_unknown_field_is_refused(
 ) -> None:
     """A misspelt setting must not be silently ignored."""
     document = json.loads(_CONFIGURATION.read_text(encoding="utf-8"))
-    document["agreement_treshold"] = 0.9
+    document["budget_secconds"] = 60
     path = tmp_path / "configuration.json"
     path.write_text(json.dumps(document), encoding="utf-8")
 
@@ -748,6 +692,14 @@ def test_the_checked_in_configuration_sets_the_truth_measures() -> None:
     assert truth.noise.box_beams == 20.0
     assert truth.noise.tolerance == 0.2
     assert truth.real_emission_sigma == 7.0
+    assert truth.gate.model_dump() == {
+        "lost_real_overall": 0.01,
+        "lost_real_stratum": 0.02,
+        "injected_margin": 0.05,
+        "injected_from_snr": 6.0,
+        "complete_from_snr": 10.0,
+        "false_island_fraction": 0.01,
+    }
 
 
 def test_a_configuration_of_the_first_schema_is_refused(

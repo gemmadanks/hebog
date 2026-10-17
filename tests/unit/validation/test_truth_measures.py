@@ -13,9 +13,12 @@ from hebog.validation.truth_measures import (
     EmissionRecall,
     InjectedSources,
     InjectionOutcome,
+    LevelRecovery,
     MaskIslands,
     NoiseComparison,
     RealEmissionDecisions,
+    TruthGateLimits,
+    TruthGateOutcome,
     compare_noise,
     emission_recall,
     ideal_mask,
@@ -27,6 +30,7 @@ from hebog.validation.truth_measures import (
     real_emission_decisions,
     recovery_by_level,
     significant_emission,
+    truth_gate,
 )
 
 _ROUND_BEAM = BeamShapePixels(
@@ -481,3 +485,120 @@ def test_real_emission_decisions_pool_and_are_unmeasured_when_empty() -> None:
     assert first + first == RealEmissionDecisions(6, 2, 4, 6, 2, 2)
     assert RealEmissionDecisions().lost_real_fraction is None
     assert RealEmissionDecisions().gained_real_fraction is None
+
+
+_LIMITS = TruthGateLimits(
+    lost_real_overall=0.01,
+    lost_real_stratum=0.02,
+    injected_margin=0.05,
+    injected_from_snr=6.0,
+    complete_from_snr=10.0,
+    false_island_fraction=0.01,
+)
+
+
+def _level(injected: int, kept: int) -> LevelRecovery:
+    return LevelRecovery(
+        injected=injected, kept=kept, matched=kept, median_flux_ratio=1.0
+    )
+
+
+def _gate(
+    *,
+    lost: dict[str, RealEmissionDecisions] | None = None,
+    injected: dict[float, LevelRecovery] | None = None,
+    false_islands: int = 9,
+) -> TruthGateOutcome:
+    reference = {
+        5.0: _level(90, 30),
+        6.0: _level(90, 68),
+        10.0: _level(90, 90),
+    }
+    return truth_gate(
+        lost=lost
+        if lost is not None
+        else {
+            "all": RealEmissionDecisions(
+                reference_kept_real=1000, lost_real=9
+            ),
+            "edge": RealEmissionDecisions(
+                reference_kept_real=100, lost_real=2
+            ),
+        },
+        injected=injected if injected is not None else dict(reference),
+        reference_injected=reference,
+        false_islands=MaskIslands(islands=false_islands, pixels=40),
+        original_islands=MaskIslands(islands=1000, pixels=90000),
+        limits=_LIMITS,
+    )
+
+
+def test_a_lane_within_every_limit_passes_the_truth_gate() -> None:
+    """Limits are inclusive: 0.9% overall, 2% in a stratum, 0.9% false."""
+    assert _gate() == TruthGateOutcome(
+        status="passed", failures=(), unmeasured=()
+    )
+
+
+def test_the_truth_gate_names_every_failed_limit() -> None:
+    """Overall and stratum losses, injection shortfalls and false islands.
+
+    Below the 6-sigma floor a shortfall does not count; from 10 sigma every
+    source must be kept, however the reference does.
+    """
+    outcome = _gate(
+        lost={
+            "all": RealEmissionDecisions(
+                reference_kept_real=1000, lost_real=11
+            ),
+            "extended": RealEmissionDecisions(
+                reference_kept_real=100, lost_real=3
+            ),
+        },
+        injected={
+            5.0: _level(90, 0),
+            6.0: _level(90, 63),
+            10.0: _level(90, 89),
+        },
+        false_islands=11,
+    )
+
+    assert outcome.status == "failed"
+    assert [failure.split(":")[0] for failure in outcome.failures] == [
+        "lost real all",
+        "lost real extended",
+        "injected 6",
+        "injected 10",
+        "false islands",
+    ]
+
+
+def test_an_unmeasured_part_leaves_the_truth_gate_incomplete() -> None:
+    """A stratum without real components or no injection cannot pass."""
+    outcome = _gate(
+        lost={
+            "all": RealEmissionDecisions(
+                reference_kept_real=1000, lost_real=1
+            ),
+            "masked": RealEmissionDecisions(),
+        },
+        injected={},
+    )
+
+    assert outcome.status == "incomplete"
+    assert outcome.unmeasured == ("lost real masked", "injected")
+
+
+def test_false_islands_are_unmeasured_without_unnegated_islands() -> None:
+    """With no islands on the originals there is no rate to bound."""
+    outcome = truth_gate(
+        lost={"all": RealEmissionDecisions(reference_kept_real=10)},
+        injected={10.0: _level(90, 90)},
+        reference_injected={10.0: _level(90, 90)},
+        false_islands=MaskIslands(),
+        original_islands=MaskIslands(),
+        limits=_LIMITS,
+    )
+
+    assert outcome.status == "incomplete"
+    assert outcome.unmeasured == ("false islands",)
