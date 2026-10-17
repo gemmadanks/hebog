@@ -42,12 +42,14 @@ from hebog.io import zarr as product_store
 pytestmark = pytest.mark.integration
 
 
-def test_uses_zarr_3_2_for_native_strict_missing_chunk_reads() -> None:
-    """The storage contract relies on the Zarr 3.2 strict-read API."""
-    assert tuple(int(part) for part in zarr.__version__.split(".")[:2]) == (
-        3,
-        2,
-    )
+def test_uses_a_zarr_release_reviewed_for_the_store() -> None:
+    """The store uses Zarr internals reviewed only on Zarr 3.2 to 3.4.
+
+    It relies on Zarr 3.2's strict missing-chunk reads and on `zarr.core`
+    helpers, which a minor release may change.
+    """
+    version = tuple(int(part) for part in zarr.__version__.split(".")[:2])
+    assert (3, 2) <= version <= (3, 4)
 
 
 def _manifest(
