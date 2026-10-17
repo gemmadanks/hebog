@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.22.0](https://github.com/gemmadanks/hebog/compare/v0.21.0...v0.22.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* RapthorCompatibilityConfig now defaults to profile="compact", background="zero" (was continuum/estimated), so find_sector_sources' default products change. Pass profile="continuum", background="estimated" for the previous behaviour.
+
+### 🚀 Features
+
+* default the prepared Rapthor patch to compact with a zero background ([#164](https://github.com/gemmadanks/hebog/issues/164)) ([9a3c3b9](https://github.com/gemmadanks/hebog/commit/9a3c3b92bb22422c71f708039ee4ef88b3f67a68))
+* estimate an image's source count and size Rapthor's reservation from it ([#166](https://github.com/gemmadanks/hebog/issues/166)) ([9ab3d8b](https://github.com/gemmadanks/hebog/commit/9ab3d8bd173e86f87bfd69032b8b28ce7ac4e1dd))
+* gate the source-finding part of Rapthor's step and scope 1.0.0 to its sectors ([#175](https://github.com/gemmadanks/hebog/issues/175)) ([5069629](https://github.com/gemmadanks/hebog/commit/506962987fc1b222a859707a4abf84956621668d))
+* measure Rapthor-profile agreement and default the adapter to compact/zero ([#163](https://github.com/gemmadanks/hebog/issues/163)) ([e42b772](https://github.com/gemmadanks/hebog/commit/e42b772136108d5d0234fd752dad96b333d817cf))
+* measure Rapthor's filter step against pinned PyBDSF master ([#165](https://github.com/gemmadanks/hebog/issues/165)) ([816aa1c](https://github.com/gemmadanks/hebog/commit/816aa1c3896eb9ec2cd85db7836f199a49cf6bd4))
+* prepare native Rapthor source-finding integration ([#162](https://github.com/gemmadanks/hebog/issues/162)) ([2bb0dcf](https://github.com/gemmadanks/hebog/commit/2bb0dcf675055f5f57c24bd34d78180adfe2504d))
+* profile one sector across thread and Dask worker counts ([#167](https://github.com/gemmadanks/hebog/issues/167)) ([ce63331](https://github.com/gemmadanks/hebog/commit/ce633313f8c1623bb0e6e0c372c6b61731f5106a))
+* screen the filter step on Dask workers and choose the check's profile ([#174](https://github.com/gemmadanks/hebog/issues/174)) ([5069629](https://github.com/gemmadanks/hebog/commit/506962987fc1b222a859707a4abf84956621668d))
+
+
+### ⚡ Performance
+
+* estimate the background pilot's window batches a square at a time ([#168](https://github.com/gemmadanks/hebog/issues/168)) ([03a571e](https://github.com/gemmadanks/hebog/commit/03a571e09522294608b09c1d8fff697eaa036b61))
+* read object rounds a core at a time and keep tasks to their labels ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
+* reconcile each tile seam once and index features' components ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
+
+
+### 🧹 Refactoring
+
+* split the three largest modules along their seams ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
+
+
+### 📚 Documentation
+
+* record the scaling decisions of 15 October and close task 74 ([699da85](https://github.com/gemmadanks/hebog/commit/699da855f7d4f27034f3c5a2239156b1df8ffa18))
+* record v0.21.0 and ready the plan for task 20 ([#159](https://github.com/gemmadanks/hebog/issues/159)) ([ab62da0](https://github.com/gemmadanks/hebog/commit/ab62da0a45f3a1a8da6ab3bcd38621bcb55d2426))
+* rewrite the glossary and correct stale integration and schema claims ([2bb0dcf](https://github.com/gemmadanks/hebog/commit/2bb0dcf675055f5f57c24bd34d78180adfe2504d))
+
+
+### 🧩 CI
+
+* publish releases to PyPI from 0.22.0 ([#173](https://github.com/gemmadanks/hebog/issues/173)) ([2a07813](https://github.com/gemmadanks/hebog/commit/2a07813b83fd95ea2f2646d7557f8862c81e1d67))
+
+
+### 🧪 Tests
+
+* spin the profile tests' busy helper on CPU time, not wall time ([#176](https://github.com/gemmadanks/hebog/issues/176)) ([9b7f7dc](https://github.com/gemmadanks/hebog/commit/9b7f7dcd10338de8fc4a276d78bdd20003fee8f3))
+
 ## [0.21.0](https://github.com/gemmadanks/hebog/compare/v0.20.0...v0.21.0) (2026-10-12)
 
 
