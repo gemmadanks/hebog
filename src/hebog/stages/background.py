@@ -25,6 +25,7 @@ from hebog.algorithms.background import (
     RmsWindowStatistics,
     assemble_rms_grid_statistics,
     blend_adaptive_background_rms,
+    clean_cell_coverage,
     estimate_rms_grid_batch,
     group_rms_window_batches,
     interpolate_prepared_rms_grid,
@@ -78,6 +79,11 @@ _PROTECTED_CONTEXT_CELLS = 2304
 # and SDC1 cut-outs the 0.1% quantile of the nearest fill is at least 0.806
 # of the coarse RMS, so the floor acts beyond that scatter (plan task 65).
 _LOCAL_NOISE_MINIMUM_COARSE_FRACTION = 0.8
+# Most cells must have a clean fine window within the reach that floors
+# their fills. Where fewer do, as on a deep field where protection leaves a
+# handful of windows clear, most cells would take a distant window's
+# estimate and the map would be a patchwork of those few values.
+_LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE = 0.5
 # Each round's cost per pixel of its largest read, which a task declares
 # (``hebog.stages.task_memory``): the largest traced task peak over that read
 # on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
@@ -1349,22 +1355,29 @@ def refine_background_rms_grids(  # noqa: PLR0913
             executor,
             policy=multiscale_protection,
         )
+        reach = _half_coarse_window_cells(config)
         local_noise = prepare_local_noise_rms_grid(
             statistics,
             coarse_grids.coarse,
             minimum_coarse_fraction=_LOCAL_NOISE_MINIMUM_COARSE_FRACTION,
-            clean_cell_reach_yx=_half_coarse_window_cells(config),
+            clean_cell_reach_yx=reach,
         )
-        # A field so crowded that no fine window anywhere clears source
-        # support is too crowded to protect: a protected coarse estimate there
-        # rests on the few pixels farthest from every source. The unprotected
-        # sigma-clipped estimate stands instead, as PyBDSF's does, with its
-        # anchors, and the local noise refines nothing.
-        if not local_noise.scientifically_available:
+        # A field so crowded that fine windows clear of source support reach
+        # too few of its cells, or none at all, is too crowded to protect: a
+        # protected coarse estimate there rests on the few pixels farthest
+        # from every source, and the local noise would copy a few distant
+        # windows across the field. The unprotected sigma-clipped estimate
+        # stands instead, as PyBDSF's does, with its anchors, and the local
+        # noise refines nothing.
+        if (
+            clean_cell_coverage(statistics.available, reach)
+            < _LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE
+        ):
             coarse_grids, candidate_regions = (
                 unprotected_grids,
                 unprotected_regions,
             )
+            local_noise = replace(local_noise, scientifically_available=False)
         coarse_grids = replace(
             coarse_grids,
             local_noise=local_noise,

@@ -646,6 +646,30 @@ def prepare_refinement_rms_grid(
     )
 
 
+def clean_cell_coverage(
+    available: npt.NDArray[np.bool_], reach_yx: tuple[int, int]
+) -> float:
+    """Return the fraction of grid cells with a clean cell within reach.
+
+    A cell is covered when a clean cell lies within ``reach_yx`` cells of it
+    along each axis, itself included; the grid's edge clips the reach. An
+    empty grid covers nothing.
+    """
+    if available.size == 0:
+        return 0.0
+    reach_y, reach_x = reach_yx
+    covered = np.asarray(
+        maximum_filter(
+            np.asarray(available, dtype=np.uint8),
+            size=(2 * reach_y + 1, 2 * reach_x + 1),
+            mode="constant",
+            cval=0,
+        ),
+        dtype=np.uint8,
+    )
+    return float(np.count_nonzero(covered) / available.size)
+
+
 def prepare_local_noise_rms_grid(
     statistics: RmsGridStatistics,
     coarse: PreparedRmsGrid,

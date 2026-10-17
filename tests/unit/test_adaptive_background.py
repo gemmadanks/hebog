@@ -14,6 +14,7 @@ from hebog.algorithms.background import (
     PreparedRmsGrid,
     RmsGridStatistics,
     blend_adaptive_background_rms,
+    clean_cell_coverage,
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     prepare_local_noise_rms_grid,
@@ -1613,3 +1614,24 @@ def test_coarse_protection_does_not_require_a_bright_adaptive_candidate(
             result.coarse.background, coarse.coarse.background
         )
         np.testing.assert_array_equal(result.coarse.rms, coarse.coarse.rms)
+
+
+def test_clean_cell_coverage_counts_cells_with_a_clean_cell_within_reach() -> (
+    None
+):
+    """A clean cell covers itself and every cell within reach on each axis.
+
+    In a 5 by 9 grid one clean cell at row 2, column 4 with a reach of one
+    row and two columns covers a 3 by 5 block, 15 of 45 cells; the grid's
+    edge clips the block of a clean cell beside it.
+    """
+    available = np.zeros((5, 9), dtype=np.bool_)
+    available[2, 4] = True
+
+    assert clean_cell_coverage(available, (1, 2)) == pytest.approx(15 / 45)
+    corner = np.zeros((5, 9), dtype=np.bool_)
+    corner[0, 0] = True
+    assert clean_cell_coverage(corner, (1, 2)) == pytest.approx(6 / 45)
+    assert clean_cell_coverage(np.ones((5, 9), dtype=np.bool_), (0, 0)) == 1
+    assert clean_cell_coverage(np.zeros((5, 9), dtype=np.bool_), (3, 3)) == 0
+    assert clean_cell_coverage(np.zeros((0, 4), dtype=np.bool_), (1, 1)) == 0
