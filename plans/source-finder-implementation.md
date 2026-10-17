@@ -26,8 +26,8 @@ progress page; the two change together.
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October) and fails. On the 3,000² sector Hebog's finder part is 2.43 times pinned `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
 | Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them; `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands (task 81). `continuum` loses real faint sources on deep fields (task 75). |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, which only many cores can close; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: raise the 22,500² tier unattended (task 11) and start task 72 with a stage profile of the 10,000² anchor in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
-| Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October): tasks 75, 68 and 15 sit before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
+| Next action | Agent: raise the 22,500² tier unattended (task 11) while repairing `continuum`'s local noise (task 75) and choosing Rapthor's profile from the truth-based gate (task 81), then start task 72 with a stage profile of the 10,000² anchor in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October): tasks 68 and 15 sit before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
 
@@ -299,20 +299,28 @@ closes.
 The order, set on 9 October 2026 and amended through 17 October:
 
 1. **Push Rapthor's Hebog branch** (task 79), so Rapthor's CI runs on it
-   and trials install Rapthor from it, with Hebog from PyPI. The integration waits on no tier: its inputs are inside the
-   15,402² envelope, and Rapthor's 3,000² demonstration sector is refused
-   for its 30-pixel synthetic beam, not its size.
-2. **The 22,500² tier** (task 11), beside task 72. The screening of
-   16 October found a finder-part ratio of 1.23 on four Dask workers at
-   the 10,000² anchor, which sends the work on to task 72.
-3. **One sector across the cluster** (task 72). Rapthor usually images one
+   and trials install Rapthor from it, with Hebog from PyPI. The
+   integration waits on no tier: its inputs are inside the 15,402²
+   envelope, and Rapthor's 3,000² demonstration sector is refused for its
+   30-pixel synthetic beam, not its size.
+2. **The 22,500² tier and the profile Rapthor runs** (tasks 11, 75 and
+   81). The truth-based gate showed on 17 October that both profiles
+   Rapthor could run give incorrect outputs: `compact` trims bright
+   emission and `continuum` loses faint sources. The profile is therefore
+   repaired and chosen before task 72 measures and models one sector's
+   cost, taking the time scientific accuracy needs rather than a fixed
+   budget, while the tier runs unattended beside it (decision of
+   17 October).
+3. **One sector across the cluster** (task 72), on the profile chosen.
+   The screening of 16 October found a finder-part ratio of 1.23 on four
+   Dask workers at the 10,000² anchor. Rapthor usually images one
    sector, 17,000 to 20,000 pixels a side, on nodes of up to 192 cores;
    its interim thread path cannot use a node's cores, and only many cores
    can close the gap, so the distributed path comes before everything
    else (decisions of 15 and 16 October).
 4. **The deployment envelope and gate** (tasks 22 and 23), with the store,
    planner and cluster benchmark packaging (tasks 24, 25 and 27).
-5. **Science before the freeze** (tasks 75, 68 and 15), deferred until the
+5. **Science before the freeze** (tasks 68 and 15), deferred until the
    work above is complete unless an output is confirmed incorrect.
 6. **Qualification and 1.0.0** (tasks 28 to 34).
 
@@ -322,11 +330,13 @@ The order, set on 9 October 2026 and amended through 17 October:
 | --- | --- | --- | --- |
 | 79 | Human pushes, agent prepares | Push Rapthor's Hebog branch. | The pins moved to Rapthor `aff26023` and LSMTool `156ae6a` on 17 October, with the change rebased, the integration container rebuilt and its summary re-recorded; they move again before the push only if upstream changes the filter step. The branch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching change on the branch. Done when the tested commit is on a branch of Rapthor's repository and Rapthor's CI passes on it. The trial (task 32) and the cluster benchmark (task 27) use the branch; the merge request, with the dual-run mode and the PyBDSF fallback described, follows when the maintainer chooses. |
 
-### Truth measures and the next tier
+### The next tier and Rapthor's profile
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
+| 75 | Agent, human dispositions | Stop `continuum`'s local-noise refinement taking faint sources for noise. | `continuum` refines the local noise on 35-pixel windows everywhere, and a window that holds faint sources reads their emission as noise: on the ELAIS-N1 deep field it loses 1,346 of pinned `master`'s 5,762 islands (`compact` 257) with an RMS a median twice `master`'s there and 2.3 times the negative-pixel noise, and the islands it loses peak at a median 7.3 times that noise, so they are real; it also misses one of five injected sources on the quick check's varying-noise case. Task 68 measures the same windows' clipping bias. Done when a repair's effect on `just rapthor-agreement` and the quick check is measured, `continuum` meets the truth-based gate's limits on the real components it loses and the injected sources it keeps, and the maintainer has decided whether to apply it; task 81 then chooses Rapthor's profile. |
+| 81 | Agent, human dispositions | Make the profile Rapthor runs pass the truth-based gate. | `compact` with a zero background fails it three ways: its masks trim bright emission from large islands and split the bridges between blobs, so it rejects real components `master` keeps on extended sources; it rejects them where the image edge cuts a source; and its RMS reads low often enough that it finds more false islands on the negated images than the limit allows. Two routes stay open: repair `compact`, or run `continuum` once task 75 stops it losing faint sources, since it already covers extended emission as `master` does or more and finds the fewest false islands. Done when the profile and background Rapthor runs pass the gate, measured on `just rapthor-agreement` and the quick check, or the maintainer decides how a remaining failure is handled. |
 
 ### One sector across the cluster
 
@@ -423,13 +433,10 @@ invariants, as in ADR-005.
 
 These are scientific improvements that wait until the work above is
 complete (decision of 9 October); a confirmed incorrect supported output
-reopens its item at once. All of them close before the candidate is
-frozen.
+reopens its item at once. Both close before the candidate is frozen.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 81 | Agent, human dispositions | Make the profile Rapthor runs pass the truth-based gate. | `compact` with a zero background fails it three ways: its masks trim bright emission from large islands and split the bridges between blobs, so it rejects real components `master` keeps on extended sources; it rejects them where the image edge cuts a source; and its RMS reads low often enough that it finds more false islands on the negated images than the limit allows. Two routes stay open: repair `compact`, or run `continuum` once task 75 stops it losing faint sources, since it already covers extended emission as `master` does or more and finds the fewest false islands. Done when the profile and background Rapthor runs pass the gate, measured on `just rapthor-agreement` and the quick check, or the maintainer decides how a remaining failure is handled. |
-| 75 | Agent, human dispositions | Stop `continuum`'s local-noise refinement taking faint sources for noise. | `continuum` refines the local noise on 35-pixel windows everywhere, and a window that holds faint sources reads their emission as noise: on the ELAIS-N1 deep field it loses 1,346 of pinned `master`'s 5,762 islands (`compact` 257) with an RMS a median twice `master`'s there and 2.3 times the negative-pixel noise, and the islands it loses peak at a median 7.3 times that noise, so they are real; it also misses one of five injected sources on the quick check's varying-noise case. Task 68 measures the same windows' clipping bias. Done when a repair's effect on `just rapthor-agreement`, its truth measures included, and on the quick check is measured, with `continuum` losing no more of `master`'s islands on the ELAIS-N1 cases than `compact` without losing injected sources; the maintainer has decided whether to apply it; and the Rapthor profile is decided again from agreement and truth (decision of 13 October). |
 | 68 | Agent measures, human decides | Measure a truncation correction for the clipped window RMS. | The window statistic clips at 3σ around the median and takes the standard deviation of what remains, with no correction: 35-pixel windows read 1.6% low on white noise and 3.2 to 3.9% low on beam-correlated noise, and `empty-noise` publishes 0.959 of the injected noise, where PyBDSF applies the PySE correction, about 1.4% at κ = 3. Done when the correction's effect on the quick check, the equivalence lane and the position and flux uncertainty calibration is measured, and the maintainer has decided whether to apply it. |
 | 15 | Agent measures, human dispositions | Measure and document a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF the header beam cannot describe. Done when the effect on fluxes and sizes is measured with injected truth and documented as a limitation with its measured effect; a PSF-map input is work after 1.0.0 unless the effect changes a Rapthor-consumed field (decision of 16 October). |
 

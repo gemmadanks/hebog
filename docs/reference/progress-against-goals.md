@@ -286,19 +286,24 @@ list what the maintainer has still to decide, each with a recommendation.
 
 The next actions, as the plan orders them on 17 October:
 
-1. Agent: raise the 22,500² tier unattended; then one sector across the
-   cluster, starting with a stage profile of the 10,000² anchor in the
-   matched container and sizing tiles and task counts from the core budget
-   and the memory a core needs, in four increments that each release.
-2. Human: push Rapthor's Hebog branch, which testing and trials use
+1. Agent: raise the 22,500² tier unattended while repairing `continuum`'s
+   local noise and choosing Rapthor's profile from the truth-based gate,
+   since both profiles Rapthor could run give incorrect outputs today; the
+   profile comes before the cluster work, which measures its cost.
+   Accuracy takes the time it needs.
+2. Agent: then one sector across the cluster, starting with a stage
+   profile of the 10,000² anchor in the matched container and sizing tiles
+   and task counts from the core budget and the memory a core needs, in
+   four increments that each release.
+3. Human: push Rapthor's Hebog branch, which testing and trials use
    without waiting for a merge; file the Astropy report drafted on
    5 October; take the pending decisions.
-3. Agent: the deployment envelope, the matched benchmarks on the cells the
+4. Agent: the deployment envelope, the matched benchmarks on the cells the
    VM holds, the store and planner work and the cluster benchmark's
-   packaging; the gate itself is measured on the cluster. Scientific
-   improvements (the `continuum` local-noise repair, the clipped-RMS
-   correction and the varying PSF) wait until this work is complete unless
-   an output is confirmed incorrect.
+   packaging; the gate itself is measured on the cluster. The remaining
+   scientific improvements (the clipped-RMS correction and the varying
+   PSF) wait until this work is complete unless an output is confirmed
+   incorrect.
 
 ## Keeping this page current
 
