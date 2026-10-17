@@ -16,11 +16,13 @@ classifiers = [
 ]
 dependencies = [
     "astropy>=8.0.1,<9",
-    "distributed>=2026.7.1,<2027",
+    "distributed>=2026.7.1",
     "numpy>=2.0.2,<3",
     "pydantic>=2.12,<3",
     "scipy>=1.15,<2",
-    "zarr>=3.2,<3.3",
+    # The store calls Zarr internals; accept a new minor release only after
+    # the test suite passes on it (ADR-007).
+    "zarr>=3.2,<3.5",
 ]
 
 [project.urls]

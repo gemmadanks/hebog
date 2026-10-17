@@ -9,13 +9,14 @@ The patch adds `source_finder = hebog` to Rapthor's existing Prefect filter
 task, using a caller-owned ThreadExecutor on its current one-single-threaded-
 worker-per-node layout. It retains the PyBDSF subprocess for the default
 backend and typed Hebog refusals, and adds dual-run reporting, memory
-admission, blank/empty paths and retry reuse. It reserves the analysis
-memory for the sources `hebog.expected_source_count` estimates from the
-detection image, and falls back to PyBDSF when the worker cannot hold the
-analysis and a tile task. Its `rapthor[hebog]` extra needs Hebog 0.22, the
-first release with that function and the first on PyPI. The distributed
-executor and resource annotations are later work. No LSMTool registry entry
-is needed.
+admission, blank/empty paths and retry reuse. It reserves the analysis memory
+for the sources `hebog.expected_source_count` estimates from the detection
+image, and falls back to PyBDSF when the worker cannot hold the analysis and a
+tile task. Its `rapthor[hebog]` extra accepts any Hebog `0.x` release from
+0.22, the first with that function and the first on PyPI; Hebog's feature
+releases also bump the minor version, so a narrower range would block them.
+The distributed executor and resource annotations are later work. No LSMTool
+registry entry is needed.
 
 The patch modifies GPL-3.0 Rapthor and remains under Rapthor's licence. It
 contains no copied PyBDSF implementation. The small dummy-position record
@@ -32,15 +33,17 @@ git am /path/to/hebog/scripts/validation/patches/rapthor-native-hebog.patch
 ```
 
 A replayed commit can have a different committer/hash. Record its actual
-identity when archiving it for the [container](../containers/rapthor/README.md).
-The versioned integration summary records the originally tested commit and
-tree. The patch is prepared locally; upstream publication and merge remain
-human actions. Its parset defaults, `hebog_profile = compact` and
-`hebog_background = zero`, are the interim choice for Rapthor, which
-the adapter also defaults to: of the four settings, they made LSMTool keep
-the sky-model components pinned PyBDSF `master`'s mask keeps most often.
-They are not scientifically qualified, and the matched benchmark measures
-the step's performance.
+identity when archiving it for the
+[container](../containers/rapthor/README.md). The versioned integration
+summary records the originally tested commit and tree, `d830c1c8`; the patch
+differs from it only in the extra's Hebog range, the install note in
+`parset.rst` and its message. The patch is prepared locally; upstream
+publication and merge remain human actions. Its parset defaults,
+`hebog_profile = compact` and `hebog_background = zero`, are the interim
+choice for Rapthor, which the adapter also defaults to: of the four settings,
+they made LSMTool keep the sky-model components pinned PyBDSF `master`'s mask
+keeps most often. They are not scientifically qualified, and the matched
+benchmark measures the step's performance.
 
 ## Frozen-field checkpoint
 

@@ -1,65 +1,36 @@
-From d830c1c85fa8144d6cc4851e8556ef5a532a3479 Mon Sep 17 00:00:00 2001
+From f39d61ca5ac0b7c49fdc5f1443e5285b29385b50 Mon Sep 17 00:00:00 2001
 From: Gemma Danks <gemma.danks@skao.int>
 Date: Mon, 12 Oct 2026 22:21:50 +0100
-Subject: [PATCH] feat: run optional Hebog source finding inside the Prefect
- task
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH] feat: add Hebog as an optional source finder in the filter
+ step
 
-The filter task previously reached every finder through LSMTool in a fresh
-interpreter. Add source_finder=hebog through the public Hebog adapter and
-LSMTool filtering on a Rapthor-owned ThreadExecutor. Keep the PyBDSF default
-and the subprocess as the fallback for typed Hebog refusals, and retain
-separate dual products with comparisons in normal image diagnostics.
+The filter_skymodel step runs PyBDSF through LSMTool in a separate
+process. With `source_finder = hebog` in [imaging], it instead runs Hebog
+in-process on a thread executor and then filters with LSMTool as before.
+PyBDSF stays the default.
 
-Reserve Hebog's analysis memory for the sources hebog.expected_source_count
-estimates from the detection image at threshpix, then admit tile tasks only
-into what the single-threaded Dask worker has left; cap cores and native
-threads, and respect container limits for synchronous runs. WSClean's
-component list is no such estimate: on Hebog plan task 23's 3,000² sector
-its 101,144 components reserved 5.9 GB for 890 sources, where the image's
-1,155 peaks reserve 0.27 GB, and peeled sources are not in the image. When
-no memory remains for the tile tasks, or one needs more than remains,
-Hebog's ExecutorAdmissionError falls back to PyBDSF and records the reason,
-as a typed refusal does (Hebog plan task 77, decided 14 October 2026); an
-invalid worker layout still fails. Preserve no-beam detection, no-model
-dummy, blank and retry semantics; clear normalized masks on blank retries.
-Keep missing inputs and unexpected errors visible. Normalize the
-subprocess's empty beam-list argument and isolate its input-name-derived
-masks for fallback and dual runs.
+- Hebog's memory is reserved for the sources it expects in the detection
+  image. If the worker cannot hold that and a tile task, or Hebog refuses
+  the image (for example an unsupported beam), the step falls back to
+  PyBDSF and records why. Other errors still fail the step.
+- A dual-run mode runs both finders and adds their comparison to the
+  image diagnostics.
+- Blank images, missing beams, missing sky models and retries behave as
+  they do with PyBDSF.
+- Hebog defaults to its compact profile with a zero background, whose
+  mask agreed best with PyBDSF's in Hebog's comparison. Neither the
+  defaults nor the speed are qualified yet.
 
-The maintainer approved this current-layout scope for Hebog plan task 20 on
-12 October 2026. Multi-slot distributed execution belongs to task 72. Hebog
-runs its compact profile with PyBDSF's zero mean map unless the parset says
-otherwise: in Hebog plan task 21's comparison its mask made LSMTool keep or
-reject the same sky-model components as pinned PyBDSF master's most often
-(92.8%, below Hebog's 99.5% target; released PyBDSF reaches 99.3%), the
-maintainer's interim choice of 13 October 2026. Neither these defaults nor
-the runtime gate are qualified here. No LSMTool registry change or new
-dependency in the standalone Hebog library. Target Rapthor d0e7e148 and
-LSMTool 9bac2f7, the authoritative upstream tips at the 13 October 2026
-evening checkpoint; d0e7e148 changes only frequency-BDA defaults since
-c6196cb4, outside the filter step. The rapthor[hebog] extra needs Hebog
-0.22, the first release with expected_source_count; Hebog's science is
-0.21.0's.
+The integration needs Rapthor's current layout of one single-threaded
+Dask worker per node; using all of a node's cores is later work. The
+rapthor[hebog] extra accepts any Hebog 0.x release from 0.22, the first
+on PyPI.
 
-Validation: intended in-process regression failed before implementation;
-review regressions failed before the memory and stale-mask fixes; the
-default-profile tests (parset contents, image payload, native task) failed
-before the compact/zero defaults; and the reservation tests failed before
-it came from the image (a 50-component model and the no-model bound
-reserved 50 and 7,857 sources for one), as did the memory-fallback tests
-before admission refusals fell back. Native, skymodel CLI and parset suites
-pass in the Linux integration container, including real Prefect/Dask,
-LSMTool, PyBDSF fallback on too little memory, and dual runs; the native
-module has full line/branch coverage. Rapthor's library, operation and
-image-flow suites pass. Ruff 0.15.20 lint and format and git diff --check
-pass. No production Measurement Set/EveryBeam trial, full platform matrix,
-held-out science qualification or matched performance run was attempted.
+New tests in tests/execution cover the Hebog path, the fallback and the
+dual run. Developed against LSMTool 9bac2f7.
 ---
  docs/source/development/architecture.rst      |  12 +
- docs/source/parset.rst                        |  56 ++
+ docs/source/parset.rst                        |  58 ++
  pyproject.toml                                |   2 +
  rapthor/execution/image/builders.py           |   3 +
  rapthor/execution/image/hebog_filter.py       | 288 ++++++++++
@@ -75,7 +46,7 @@ held-out science qualification or matched performance run was attempted.
  tests/execution/test_skymodel_filter.py       |  10 +
  .../rapthor_complete.parset_dict.template     |   3 +
  .../rapthor_minimal.parset_dict.template      |   3 +
- 17 files changed, 1039 insertions(+), 25 deletions(-)
+ 17 files changed, 1041 insertions(+), 25 deletions(-)
  create mode 100644 rapthor/execution/image/hebog_filter.py
  create mode 100644 tests/execution/test_hebog_filter.py
 
@@ -100,10 +71,10 @@ index 4dab35e1..935719da 100644
 +imports no Rapthor, Prefect or LSMTool. The current one-task-per-worker layout
 +remains unchanged; a distributed Hebog subgraph needs a later layout change.
 diff --git a/docs/source/parset.rst b/docs/source/parset.rst
-index d709cfc6..cbb3aa70 100644
+index d709cfc6..8cf7747f 100644
 --- a/docs/source/parset.rst
 +++ b/docs/source/parset.rst
-@@ -1058,3 +1058,59 @@ for how these options are used.
+@@ -1058,3 +1058,61 @@ for how these options are used.
          :term:`generate_initial_skymodel` = ``True``. If photometry and/or astrometry
          skymodels are not provided, then these will not be downloaded and the image
          diagnostics will not be generated.
@@ -111,10 +82,12 @@ index d709cfc6..cbb3aa70 100644
 +Native Hebog source finding (experimental)
 +------------------------------------------
 +
-+Install the optional ``rapthor[hebog]`` dependency on Python 3.12 or newer,
-+using an exact Hebog 0.22.x release from PyPI. Set
-+``source_finder = hebog`` in ``[imaging]``. PyBDSF remains the default and
-+runs in its existing subprocess; Hebog runs inside the Prefect filter task.
++Install the optional ``rapthor[hebog]`` dependency on Python 3.12 or newer;
++it installs Hebog 0.22 or a later 0.x release from PyPI. Hebog is
++experimental and its releases can change results, so pin the version you
++have checked. Set ``source_finder = hebog`` in ``[imaging]``. PyBDSF remains
++the default and runs in its existing subprocess; Hebog runs inside the
++Prefect filter task.
 +
 +The current integration requires one single-threaded Dask worker per node.
 +Each filter task occupies that worker's only task slot and creates a
@@ -164,7 +137,7 @@ index d709cfc6..cbb3aa70 100644
 +repeat filtering. Keep the bundle and dual-run directories with their cycle's
 +working products until restart and comparison inspection are no longer needed.
 diff --git a/pyproject.toml b/pyproject.toml
-index ad4cbddb..64f8d9a9 100644
+index ad4cbddb..88d5dc69 100644
 --- a/pyproject.toml
 +++ b/pyproject.toml
 @@ -62,6 +62,8 @@ rapthor = "rapthor.cli:main"
@@ -172,7 +145,7 @@ index ad4cbddb..64f8d9a9 100644
  
  [project.optional-dependencies]
 +# Hebog requires Python >=3.12; the default backend keeps Rapthor's Python range.
-+hebog = ["hebog>=0.22,<0.23", "threadpoolctl>=3.6,<4"]
++hebog = ["hebog>=0.22,<1", "threadpoolctl>=3.6,<4"]
  test = [
      "tox",
  ]
@@ -1309,3 +1282,5 @@ index c9614af5..7a74a301 100644
                        'do_multiscale_clean': True,
                        'grid_center_dec': None,
                        'grid_center_ra': None,
+-- 
+2.50.1 (Apple Git-155)
