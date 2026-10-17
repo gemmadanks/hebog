@@ -27,11 +27,15 @@ median ratio exceeds 1.05 without an approved trade-off.
 
 The deployment gate is the single `pybdsf_master` record: the upper one-sided
 95% bound of the Hebog/PyBDSF median wall-time ratio must be at most 0.50
-against pinned PyBDSF `master` (`c70103b`) on matched complete
-`filter_skymodel` runs. Released 1.14.1 is checked once before 1.0.0 and is
-not a gate in this file. The
+against pinned PyBDSF `master` (`c70103b`) over the record's
+`measured_phase`, the source-finding part of Rapthor's `filter_skymodel`
+step from the task's start to LSMTool's `filter_sources` call, which the
+finder controls. The complete step, whose LSMTool filtering is the same for
+either finder, is reported beside it and never gated (decision of
+16 October 2026). Released 1.14.1 is checked once before 1.0.0 and is not a
+gate in this file. The
 [matched benchmark](../how-to/index.md#run-the-matched-filter_skymodel-benchmark)
-applies this rule to Rapthor's complete step, both finders in one container.
+applies this rule to both finders in one container.
 The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
 repetition counts and both comparison rules from this file; its `master`
 ratio is diagnostic because the environments are not matched.
@@ -90,8 +94,9 @@ Strong-scaling qualification preserves every result at 1, 10, 50, 100 and
 and 90 seconds, scheduler overhead at most 10% of the critical path and at
 most 50,000 tasks in the graph. Occupancy and strong/weak efficiency floors
 are recorded per topology in the machine-readable contract. The plan's task
-26 amends this to the development-machine tier and a final 1, 2, 5 and
-10-node cluster benchmark, keeping the larger node counts as design targets.
+27 amends this to the development-machine tier and the 1.0.0 cluster
+benchmark of one Rapthor sector at 1, 2, 5 and 10 nodes, keeping the larger
+node counts as design targets.
 Only controlled multi-node evidence in the versioned evidence schema can
 demonstrate these gates.
 

@@ -76,13 +76,18 @@ class PyBdsfMasterGate(_ContractModel):
 
     A candidate passes a matrix cell when the upper one-sided confidence
     bound of its median wall-time ratio to the pinned commit is at most
-    ``maximum_ratio``.
+    ``maximum_ratio`` over the ``measured_phase``: the source-finding part
+    of Rapthor's ``filter_skymodel`` step, from the task's start to
+    LSMTool's ``filter_sources`` call, which the finder controls. The
+    complete step is reported beside it, never gated (decision of
+    16 October 2026).
     """
 
     commit_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
     maximum_ratio: float = Field(gt=0, lt=1)
     confidence_level: float = Field(gt=0, lt=1)
     bound: Literal["upper-one-sided"]
+    measured_phase: Literal["finder"]
 
 
 class PerformanceMatrixContract(_ContractModel):

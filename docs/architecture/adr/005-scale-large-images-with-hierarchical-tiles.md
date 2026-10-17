@@ -19,7 +19,7 @@ tags:
 
 ## Context
 
-Hebog must eventually process radio-continuum images up to 100,000 by
+Hebog must eventually process radio continuum images up to 100,000 by
 100,000 pixels and distribute useful work across 100 to several hundred Dask
 worker nodes. Production nodes are expected to have hundreds of GB of RAM.
 Such an image contains 10 billion pixels. One plane requires

@@ -151,7 +151,7 @@ matters most.
 | Chunk | One stored piece of a Zarr plane, one per tile core. A chunk is a storage unit; a tile is a work unit. |
 | Staging directory | The hidden `.<output name>.<random>` directory beside the output in which a run builds its planes and products. A finished run removes it; a killed run leaves it with an owner record, which the next run to the same output reclaims once the owner has provably stopped. |
 | Atomic publication | Writing the whole bundle into the staging directory, validating it, then moving it into place with one rename, so that a partial result is never visible. |
-| Secede | A Dask worker task stepping out of its thread slot while it waits on other tasks, so that a waiting analysis does not block the tasks it submitted. Planned for Hebog's analysis inside a Rapthor task (plan task 72). |
+| Secede | A Dask worker task stepping out of its thread slot while it waits on other tasks, so that a waiting analysis does not block the tasks it submitted. Planned for Hebog's analysis inside a Rapthor task. |
 
 ## Rapthor and sky models
 

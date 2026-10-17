@@ -38,7 +38,7 @@ for its checks when `DC_Maj` is under 10 arcsec and both errors are under
 2 arcsec. Under `continuum` a source of one fitted Gaussian publishes that
 Gaussian's values, so it passes the cuts as a `compact` row does; a source
 of several components has no position error and no deconvolved size, so
-Rapthor leaves it out of those checks. On plan task 21's cases that dropped
+Rapthor leaves it out of those checks. On the agreement check's cases that dropped
 151 to 168 sources pinned PyBDSF `master` keeps; under `compact`, the profile
 Rapthor runs, every source is one Gaussian. A source whose fit is not
 significantly extended publishes `DC_Maj` 0 however wide the fit, so it

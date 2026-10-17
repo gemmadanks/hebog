@@ -20,6 +20,18 @@ directory::
 
     python /worker.py --finder hebog --directory /sector --ncores 4 \\
         --threshpix 5 --threshisl 3 --beam-ms /sector/beam.ms
+
+The patched Rapthor runs Hebog only on threads. For a screening measurement
+of what a Dask path could give (plan task 72), ``--dask-workers`` swaps the
+native task's ``ThreadExecutor`` for a ``DaskExecutor`` on that many
+single-threaded local worker processes. They split the task's memory budget
+evenly, with Dask's spilling, pausing and restarting off, as in the scaling
+profile, and starting and closing them is part of the measured span. They
+are this process's children, so the CPU time includes them, and the native
+task's diagnostics still name threads.
+
+When Hebog refuses the sector, Rapthor falls back to PyBDSF. Such a Hebog
+run writes ``run.json`` and exits 1, because it measured the wrong finder.
 """
 
 from __future__ import annotations
@@ -29,13 +41,21 @@ import hashlib
 import importlib.metadata
 import json
 import resource
+import sys
 import time
+from collections.abc import Generator
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from pathlib import Path
+from unittest import mock
 
+import dask.config
 from astropy.table import Table
+from distributed import Client, LocalCluster
 from rapthor.execution.config import ExecutionConfig
-from rapthor.execution.image import outputs
+from rapthor.execution.image import hebog_filter, outputs
 from rapthor.lib.records import file_record
+
+from hebog.executors import DaskExecutor
 
 _INPUTS = (
     "sector_1-MFS-image.fits",
@@ -53,6 +73,10 @@ _PRODUCTS = (
     "source_filtering_mask",
 )
 _KIB = 1024
+_MEMORY_ACTIONS_OFF = {
+    f"distributed.worker.memory.{name}": False
+    for name in ("target", "spill", "pause", "terminate")
+}
 
 
 def _sha256(path: Path) -> str:
@@ -69,6 +93,35 @@ def _components(path: Path) -> int:
     return sum(1 for row in rows if row.strip() and not row.startswith(" ,"))
 
 
+@contextmanager
+def _native_task_on_dask(worker_count: int) -> Generator[None]:
+    """Run the native task's Hebog work on local Dask worker processes."""
+    replaced_thread_counts: list[int] = []
+
+    @contextmanager
+    def dask_executor(
+        *, thread_count: int, memory_bytes_per_worker: int
+    ) -> Generator[DaskExecutor]:
+        replaced_thread_counts.append(thread_count)
+        with (
+            dask.config.set(_MEMORY_ACTIONS_OFF),
+            LocalCluster(
+                n_workers=worker_count,
+                threads_per_worker=1,
+                processes=True,
+                dashboard_address=":0",
+                memory_limit=memory_bytes_per_worker // worker_count,
+            ) as cluster,
+            Client(cluster) as client,
+        ):
+            yield DaskExecutor(client)
+
+    with mock.patch.object(hebog_filter, "ThreadExecutor", dask_executor):
+        yield
+    if not replaced_thread_counts:
+        raise RuntimeError("the native task never asked for an executor")
+
+
 def main() -> int:
     """Run and measure one filter step."""
     parser = argparse.ArgumentParser(
@@ -80,7 +133,10 @@ def main() -> int:
     parser.add_argument("--threshpix", type=float, required=True)
     parser.add_argument("--threshisl", type=float, required=True)
     parser.add_argument("--beam-ms", type=Path)
+    parser.add_argument("--dask-workers", type=int)
     args = parser.parse_args()
+    if args.dask_workers is not None and args.finder != "hebog":
+        parser.error("--dask-workers applies to Hebog's native task only")
     directory = args.directory
     sector = {
         "save_source_list": True,
@@ -101,11 +157,21 @@ def main() -> int:
     )
     own_before = resource.getrusage(resource.RUSAGE_SELF)
     children_before = resource.getrusage(resource.RUSAGE_CHILDREN)
+    executor: AbstractContextManager[None] = (
+        nullcontext()
+        if args.dask_workers is None
+        else _native_task_on_dask(args.dask_workers)
+    )
     started_at = time.time()
     started = time.perf_counter()
-    result = outputs.filter_skymodel_products(
-        sector, "sector_1", *records, str(directory), execution_config=config
-    )
+    with executor:
+        result = outputs.filter_skymodel_products(
+            sector,
+            "sector_1",
+            *records,
+            str(directory),
+            execution_config=config,
+        )
     wall_seconds = time.perf_counter() - started
     own = resource.getrusage(resource.RUSAGE_SELF)
     children = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -134,6 +200,7 @@ def main() -> int:
     run = {
         "finder": args.finder,
         "ncores": args.ncores,
+        "dask_workers": args.dask_workers,
         "beam_ms": None if args.beam_ms is None else str(args.beam_ms),
         "wall_seconds": wall_seconds,
         "finder_seconds": clipped_at - started_at,
@@ -162,6 +229,14 @@ def main() -> int:
     (directory / "run.json").write_text(
         json.dumps(run, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    source_finding = run["source_finding"] or {}
+    if args.finder == "hebog" and source_finding.get("selected") != "hebog":
+        print(
+            "Rapthor ran PyBDSF instead of Hebog: "
+            f"{source_finding.get('fallback_reason')}",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

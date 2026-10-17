@@ -83,7 +83,12 @@ def test_checked_in_performance_matrix_covers_curve_and_workloads() -> None:
 
 
 def test_performance_matrix_gates_only_on_pinned_pybdsf_master() -> None:
-    """One upper-bound ratio against pinned ``master`` is the runtime gate."""
+    """One upper-bound ratio against pinned ``master`` is the runtime gate.
+
+    It binds the source-finding part of Rapthor's step, which Hebog
+    controls, not the complete step with LSMTool's filtering (decision of
+    16 October 2026).
+    """
     matrix = load_performance_matrix(_PERFORMANCE_PATH)
 
     assert matrix.schema_version == 2
@@ -93,6 +98,7 @@ def test_performance_matrix_gates_only_on_pinned_pybdsf_master() -> None:
     assert matrix.pybdsf_master.maximum_ratio == 0.5
     assert matrix.pybdsf_master.confidence_level == 0.95
     assert matrix.pybdsf_master.bound == "upper-one-sided"
+    assert matrix.pybdsf_master.measured_phase == "finder"
     assert "released_pybdsf_maximum_ratio" not in type(matrix).model_fields
 
 

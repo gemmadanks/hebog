@@ -325,7 +325,7 @@ source measurement semantics rather than assume its cube workflow is a
 like-for-like continuum comparison ([SoFiA 2 paper](https://arxiv.org/abs/2106.15789)).
 
 For a next continuum comparison, consider ProFound first. Its segmentation
-approach has been studied on compact and extended radio-continuum emission,
+approach has been studied on compact and extended radio continuum emission,
 including flux recovery for complex sources
 ([radio ProFound study](https://arxiv.org/abs/1902.01440)). This is a recommendation
 for a separate increment, not a new dependency or qualification requirement.

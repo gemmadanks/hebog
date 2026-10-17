@@ -111,7 +111,7 @@ flowchart LR
 
 One run analyses the true-sky image and then estimates the flat-noise
 image's background and RMS, one after the other on the same executor;
-submitting both branches' tasks together is plan task 72. Both produce files
+submitting both branches' tasks together is planned. Both produce files
 before the diagnostics join, so retries and restarts never serialize image
 objects through Dask.
 

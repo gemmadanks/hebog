@@ -2,11 +2,10 @@
 
 Release Please publishes each release through
 `.github/workflows/release-please.yaml` to
-[PyPI](https://pypi.org/project/hebog/). Releases up to 0.21.0 went to
-TestPyPI only; from 0.22.0 they go to PyPI, still as experimental `0.x`
-releases with an alpha classifier, so that Rapthor's optional Hebog
-dependency installs from the usual index and the name is held (plan task 13,
-decision of 15 October 2026).
+[PyPI](https://pypi.org/project/hebog/), as experimental `0.x` releases
+with an alpha classifier, so that Rapthor's optional Hebog dependency
+installs from the usual index; releases before 0.22.0 are on GitHub and
+TestPyPI only.
 
 ## Configure Trusted Publishing once
 
