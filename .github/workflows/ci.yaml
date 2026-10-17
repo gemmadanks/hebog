@@ -46,7 +46,7 @@ jobs:
 
       - name: Restore the last completed main timing baseline
         if: steps.paths.outputs.full == 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: test-results/durations.json
           key: ci-test-durations-v1-${{ github.sha }}
@@ -507,7 +507,7 @@ jobs:
       # shards have already consumed their own immutable baseline artifact.
       - name: Save the main timing baseline
         if: github.event_name == 'push'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: test-results/durations.json
           key: ci-test-durations-v1-${{ github.sha }}
