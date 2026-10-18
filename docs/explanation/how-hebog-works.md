@@ -132,10 +132,20 @@ window (35 pixels) of it; farther away the coarse RMS stands, so in a
 crowded field, where few fine windows are clean, one window's noise is not
 carried across the image or across a step in the noise. Beside such a step
 in a crowded field the published noise is then the coarse estimate, which
-mixes the two sides over about half a coarse window. A field so crowded that
-no fine window anywhere is clean is too crowded to protect: it keeps the
-unprotected sigma-clipped coarse statistics for both background and RMS,
-which, like PyBDSF's, include the sources' wings.
+mixes the two sides over about half a coarse window. In a field so crowded
+that clean fine windows lie within about half a coarse window of fewer than
+half its grid cells, filling the rest from them would copy a few distant
+windows across the field. There a clean window's RMS stands only within
+that reach; beyond it the coarse RMS stands, as PyBDSF's does, unless it
+reads more than three times the nearest clean window's noise, as over a
+source wider than a coarse window, where that noise stands instead. A field
+so crowded that no fine window anywhere is clean is too crowded to protect:
+it keeps the unprotected sigma-clipped coarse statistics, which, like
+PyBDSF's, include the sources' wings. The bright-region grid still refines
+the background around bright sources there, but not the RMS: its windows
+protect only the bright source's own emission, so in such a field they
+would read a neighbouring extended source as noise and cut into its side
+nearest the bright source.
 
 Background refinement around bright sources is triggered at 75σ, or at your
 detection threshold if your island threshold is higher than that. This never

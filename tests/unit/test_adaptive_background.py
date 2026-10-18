@@ -17,6 +17,7 @@ from hebog.algorithms.background import (
     clean_cell_coverage,
     interpolate_prepared_rms_grid,
     plan_rms_grid,
+    prepare_crowded_local_noise_rms_grid,
     prepare_local_noise_rms_grid,
     prepare_refinement_rms_grid,
     prepare_rms_grid_for_interpolation,
@@ -299,6 +300,52 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
     local_x = int(candidate[0][1] - centre_tile.bounds.x_start)
     assert centre_tile.rms[local_y, local_x] > 2.0 * grids.coarse.rms.mean()
     np.testing.assert_allclose(far_tile.rms[0, 0], grids.coarse.rms[0, 0])
+
+
+def test_refused_local_noise_keeps_the_coarse_rms_beside_candidates() -> None:
+    """A field too crowded for local noise keeps the coarse RMS.
+
+    Fine windows around a bright candidate protect only its own support, so
+    in a crowded field they read neighbouring sources' emission as noise.
+    Where local noise was refused, that raise is not applied; the background
+    is still refined around the candidate.
+    """
+    y, x = np.indices((40, 44))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    image[15:26, 17:28] *= 5.0
+    image[20, 22] = 50.0
+    source = _ArrayImageSource(image)
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        _config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    refused = replace(
+        grids,
+        local_noise=replace(grids.coarse, scientifically_available=False),
+    )
+    tile = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    ).tiles[0]
+
+    raised, kept = (
+        estimate_background_rms_tile(
+            source, prepare_background_rms_tile_request(tile, case, _config())
+        )
+        for case in (grids, refused)
+    )
+    coarse = interpolate_prepared_rms_grid(
+        grids.coarse, tile.core_bounds, np.isfinite(image)
+    )
+
+    assert np.any(raised.rms > coarse.rms)
+    np.testing.assert_array_equal(kept.rms, coarse.rms)
+    np.testing.assert_array_equal(kept.background, raised.background)
 
 
 def test_adaptive_refinement_excludes_connected_bright_source_support() -> (
@@ -799,6 +846,88 @@ def test_a_refinement_cell_takes_a_clean_window_only_within_one_window() -> (
         prepared.fallback_cells, ~statistics.available
     )
     assert prepared.scientifically_available
+
+
+def test_a_crowded_field_keeps_its_coarse_rms_to_three_times_the_noise() -> (
+    None
+):
+    """Beyond its clean windows' reach, a crowded field's coarse RMS stands.
+
+    The one clean window, cell (20, 20), reads 0.4 and reaches five cells
+    along each axis, so the cells within that box take its noise, as local
+    noise does. Beyond it the coarse RMS, rising from 1.0 along x, stands
+    wherever it reads at most three times that noise, however far the cell
+    is from the clean window; above that, a coarse window holds emission
+    rather than noise, as over a source wider than one, and the clean
+    window's noise stands.
+    """
+    shape_yx = (300, 300)
+    coarse = _coarse_grid(shape_yx)
+    statistics = _fine_statistics(shape_yx, {(20, 20): 0.4})
+
+    prepared = prepare_crowded_local_noise_rms_grid(
+        statistics,
+        coarse,
+        maximum_noise_ratio=3.0,
+        clean_cell_reach_yx=(5, 5),
+    )
+
+    for within in ((20, 20), (25, 25), (15, 20), (20, 25)):
+        assert prepared.rms[within] == 0.4
+    published = {
+        cell: _coarse_rms_at_cell(coarse, statistics, cell)
+        for cell in ((0, 0), (20, 26), (38, 0), (0, 38), (20, 38))
+    }
+    assert any(value <= 1.2 for value in published.values())
+    assert any(value > 1.2 for value in published.values())
+    for cell, value in published.items():
+        expected = value if value <= 1.2 else 0.4
+        assert prepared.rms[cell] == pytest.approx(expected, rel=1e-12)
+    assert prepared.scientifically_available
+
+
+def test_a_crowded_field_without_a_clean_window_has_no_local_noise() -> None:
+    """With no clean window there is no noise to hold the coarse RMS to."""
+    shape_yx = (300, 300)
+
+    prepared = prepare_crowded_local_noise_rms_grid(
+        _fine_statistics(shape_yx, {}),
+        _coarse_grid(shape_yx),
+        maximum_noise_ratio=3.0,
+        clean_cell_reach_yx=(5, 5),
+    )
+
+    assert not prepared.scientifically_available
+
+
+@pytest.mark.parametrize("ratio", (0.5, float("nan"), float("inf")))
+def test_a_crowded_field_needs_a_finite_ratio_of_at_least_one(
+    ratio: float,
+) -> None:
+    """A ratio below one would hold the RMS below the clean noise."""
+    shape_yx = (300, 300)
+    with pytest.raises(ValueError, match="maximum_noise_ratio"):
+        prepare_crowded_local_noise_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.4}),
+            _coarse_grid(shape_yx),
+            maximum_noise_ratio=ratio,
+            clean_cell_reach_yx=(5, 5),
+        )
+
+
+def test_a_crowded_field_with_clean_windows_needs_a_coarse_estimate() -> None:
+    """Without a coarse RMS there is nothing to stand beyond the reach."""
+    shape_yx = (300, 300)
+    unavailable = replace(
+        _coarse_grid(shape_yx), scientifically_available=False
+    )
+    with pytest.raises(ValueError, match="coarse grid"):
+        prepare_crowded_local_noise_rms_grid(
+            _fine_statistics(shape_yx, {(20, 20): 0.4}),
+            unavailable,
+            maximum_noise_ratio=3.0,
+            clean_cell_reach_yx=(5, 5),
+        )
 
 
 def test_a_refinement_cell_within_reach_takes_its_nearest_clean_window() -> (

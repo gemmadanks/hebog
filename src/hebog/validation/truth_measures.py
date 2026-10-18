@@ -20,7 +20,9 @@ mistake. These measures need no reference finder.
   counts them.
 - :func:`negative_pixel_noise` estimates the noise from negative pixels,
   which faint sources cannot inflate, and :func:`compare_noise` compares a
-  finder's RMS map with it.
+  finder's RMS map with it. On any image, :func:`bright_emission_recall`
+  measures how much of the emission well above that noise a finder's mask
+  holds.
 - :func:`real_emission_decisions` splits a finder's disagreements with the
   reference by whether the component lies on real emission: the ideal
   mask on generated images, :func:`significant_emission` on real ones.
@@ -33,14 +35,19 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from astropy.wcs.utils import proj_plane_pixel_scales
 from scipy import ndimage
 from scipy.spatial import cKDTree
 
+from hebog.algorithms.astrometry import celestial_wcs_from_metadata
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.data_models import ImageMetadata
+from hebog.validation.products import load_fits_plane
 from hebog.validation.rapthor_agreement import (
     ALL_COMPONENTS,
     ComponentPixels,
@@ -53,6 +60,14 @@ BoolArray = npt.NDArray[np.bool_]
 # PyBDSF's and LSMTool's islands are 8-connected.
 _EIGHT_CONNECTED = ndimage.generate_binary_structure(2, 2)
 _FWHM_PER_SIGMA = 2.0 * math.sqrt(2.0 * math.log(2.0))
+# A Gaussian beam's area is pi / (4 ln 2) times the product of its FWHM,
+# as PyBDSF takes it.
+_BEAM_AREA_FACTOR = 1.1331
+# The quick check's bright emission: ten times the negative-pixel noise,
+# in boxes as wide as the agreement check's.
+_BRIGHT_EMISSION_SIGMA = 10.0
+_NOISE_BOX_BEAMS = 20.0
+_NOISE_MINIMUM_PIXELS = 500
 # A beam-shaped source is drawn out to three major FWHM, where it has
 # fallen below 1e-10 of its peak.
 _STAMP_HALF_WIDTH_FWHM = 3.0
@@ -185,6 +200,80 @@ def negative_pixel_noise(
     noise[enough] = np.sqrt(squares[enough] / counts[enough])
     expanded = np.repeat(np.repeat(noise, box_pixels, axis=0), box_pixels, 1)
     return np.asarray(expanded[:height, :width], dtype=np.float64)
+
+
+def bright_emission_recall(
+    image: FloatArray,
+    mask: BoolArray,
+    *,
+    box_pixels: int,
+    minimum_pixels: int,
+    threshold_sigma: float,
+) -> float | None:
+    """Return the share of bright emission inside a finder's mask.
+
+    Bright emission is every valid pixel at least ``threshold_sigma`` times
+    the :func:`negative_pixel_noise` above zero. A box that a source fills,
+    and which so holds too few negative pixels, takes its nearest measured
+    box's noise, so a giant source left out of the mask still counts as
+    lost. Well above the detection and island thresholds, a finder's mask
+    should hold all of it; a mask that leaves some out has read emission as
+    background or noise there. None without measurable noise or any bright
+    pixel.
+    """
+    noise = negative_pixel_noise(
+        image, box_pixels=box_pixels, minimum_pixels=minimum_pixels
+    )
+    measured = np.isfinite(noise)
+    if not np.any(measured):
+        return None
+    nearest = cast(
+        npt.NDArray[np.intp],
+        ndimage.distance_transform_edt(
+            ~measured, return_distances=False, return_indices=True
+        ),
+    )
+    filled = noise[tuple(nearest)]
+    bright = np.isfinite(image) & (image >= threshold_sigma * filled)
+    if not np.any(bright):
+        return None
+    return float(np.mean(mask[bright]))
+
+
+def bright_emission_metrics(
+    *, image_path: Path, mask_path: Path, beam_fwhm_pixels: float
+) -> dict[str, float | None]:
+    """Report the share of bright emission inside the published mask.
+
+    For the quick check, ``image.bright_emission_recall`` is
+    :func:`bright_emission_recall` at ten times the negative-pixel noise,
+    in boxes 20 beams wide as the agreement check takes them. It needs no
+    truth or reference, so every case reports it, and a finder that reads a
+    bright source as background or noise, on one side of it or all of it,
+    shows as a drop.
+    """
+    return {
+        "image.bright_emission_recall": bright_emission_recall(
+            load_fits_plane(image_path),
+            np.nan_to_num(load_fits_plane(mask_path)) > 0,
+            box_pixels=max(1, round(_NOISE_BOX_BEAMS * beam_fwhm_pixels)),
+            minimum_pixels=_NOISE_MINIMUM_PIXELS,
+            threshold_sigma=_BRIGHT_EMISSION_SIGMA,
+        )
+    }
+
+
+def beam_pixels(metadata: ImageMetadata) -> tuple[float, float]:
+    """Return the beam's geometric-mean FWHM and its area, in pixels."""
+    scale_x, scale_y = (
+        float(scale)
+        for scale in proj_plane_pixel_scales(
+            celestial_wcs_from_metadata(metadata)
+        )
+    )
+    major = metadata.beam.major_fwhm_degrees / scale_x
+    minor = metadata.beam.minor_fwhm_degrees / scale_y
+    return math.sqrt(major * minor), _BEAM_AREA_FACTOR * major * minor
 
 
 @dataclass(frozen=True, slots=True)

@@ -363,21 +363,20 @@ def test_a_field_too_crowded_for_fine_noise_is_not_protected() -> None:
     assert refined.coarse_protected_pixel_count == 0
 
 
-@pytest.mark.parametrize(
-    ("clean_shape_yx", "refined_locally"),
-    (((34, 34), False), ((64, 72), True)),
-)
+@pytest.mark.parametrize("clean_shape_yx", ((34, 34), (64, 72)))
 def test_local_noise_needs_clean_windows_within_reach_of_most_cells(
-    clean_shape_yx: tuple[int, int], refined_locally: bool
+    clean_shape_yx: tuple[int, int],
 ) -> None:
-    """Clean windows reaching too little of the field leave it unprotected.
+    """Clean windows reaching too little of the field set only their reach.
 
     A 34-pixel clean patch in a field of source support clears four fine
     windows, which reach a fifth of the cells: every other cell would take a
     distant window's estimate, as on a deep field where protection leaves a
-    handful of windows clear. The unprotected estimate stands instead, as
-    when no window is clean. A 64 by 72 patch clears windows within reach
-    of most cells, and local noise refines the field.
+    handful of windows clear. Beyond their reach the coarse estimate stands
+    instead, held to the clean windows' noise. A 64 by 72 patch clears
+    windows within reach of most cells, and those windows refine the field.
+    Either way the protected coarse estimate stands, since clean windows
+    exist.
     """
     yy, xx = np.mgrid[:80, :96]
     noise = np.where((yy + xx) % 2, -1.0, 1.0)
@@ -408,8 +407,63 @@ def test_local_noise_needs_clean_windows_within_reach_of_most_cells(
     )
 
     assert refined.local_noise is not None
-    assert refined.local_noise.scientifically_available is refined_locally
-    assert (refined.coarse is coarse.coarse) is not refined_locally
+    assert refined.local_noise.scientifically_available
+    assert refined.coarse is not coarse.coarse
+
+
+def test_a_crowded_field_keeps_its_noise_over_a_wider_source() -> None:
+    """A crowded field's noise over a source wider than its windows holds.
+
+    Compact sources every 16 pixels leave no fine window clear except in a
+    60-pixel margin, whose windows reach about a third of the cells, so the
+    unprotected coarse estimate stands. Over the giant source, 42 pixels
+    wide at half maximum against the 32-pixel coarse window, every coarse
+    window holds its emission and reads it as noise many times the
+    injected noise of 1, as over a giant radio galaxy in a crowded SDC1
+    field; the margin's noise stands there instead.
+    """
+    yy, xx = np.mgrid[:240, :240]
+    image = np.where((yy + xx) % 2, -1.0, 1.0)
+    for y_centre in range(8, 240, 16):
+        for x_centre in range(72, 240, 16):
+            image += 30.0 * np.exp(
+                -((yy - y_centre) ** 2 + (xx - x_centre) ** 2) / 2.0
+            )
+    giant = 40.0 * np.exp(
+        -((yy - 120.0) ** 2 + (xx - 150.0) ** 2) / (2 * 18.0**2)
+    )
+    image += giant
+    config = _config()
+    source = _Source(image)
+    coarse = estimate_background_rms_grids(
+        source,
+        image.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+    refined = refine_background_rms_grids(
+        source,
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        refine_local_noise=True,
+    )
+    tile = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    ).tiles[0]
+
+    rms = estimate_background_rms_tile(
+        source, prepare_background_rms_tile_request(tile, refined, config)
+    ).rms
+
+    assert refined.coarse is coarse.coarse
+    assert np.median(rms[giant >= 3.0]) < 1.5
 
 
 @pytest.mark.parametrize("protect_coarse", (False, True))

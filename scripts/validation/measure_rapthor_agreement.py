@@ -50,7 +50,6 @@ import numpy as np
 import numpy.typing as npt
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.wcs.utils import proj_plane_pixel_scales
 
 import hebog
 from hebog import public_api
@@ -58,7 +57,7 @@ from hebog.adapters import RapthorCompatibilityConfig
 from hebog.adapters.rapthor import pybdsf_minimum_island_pixels
 from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.algorithms.astrometry import celestial_wcs_from_metadata
-from hebog.data_models import ImageMetadata, SourceCatalogue
+from hebog.data_models import SourceCatalogue
 from hebog.executors import SerialExecutor
 from hebog.io import FitsImageSource, read_catalogue_fits_product
 from hebog.science.catalogue_rows import CatalogueSource
@@ -115,6 +114,7 @@ from hebog.validation.truth_measures import (
     NoiseComparison,
     RealEmissionDecisions,
     TruthGateLimits,
+    beam_pixels,
     compare_noise,
     emission_recall,
     ideal_mask,
@@ -138,7 +138,6 @@ _QUICK_CHECK_SCRIPT = _ROOT / "scripts/validation/quick_science_check.py"
 _MASTER = "pinned-pybdsf-master"
 _CONTROL = "released-pybdsf"
 # PyBDSF's beam area: 2 pi / (8 ln 2) times the product of the FWHMs.
-_BEAM_AREA_FACTOR = 1.1331
 
 ImageKind = Literal["true-sky", "apparent"] | None
 DerivedKind = Literal["injected", "negated"]
@@ -297,19 +296,6 @@ def _run_lanes(
     }
 
 
-def _beam_pixels(metadata: ImageMetadata) -> tuple[float, float]:
-    """Return the beam's geometric-mean FWHM and its area, in pixels."""
-    scale_x, scale_y = (
-        float(scale)
-        for scale in proj_plane_pixel_scales(
-            celestial_wcs_from_metadata(metadata)
-        )
-    )
-    major = metadata.beam.major_fwhm_degrees / scale_x
-    minor = metadata.beam.minor_fwhm_degrees / scale_y
-    return float(np.sqrt(major * minor)), _BEAM_AREA_FACTOR * major * minor
-
-
 def _real_noise(
     image: FloatArray, beam_fwhm_pixels: float, settings: NoiseSettings
 ) -> FloatArray:
@@ -365,7 +351,7 @@ def _derived_cases(
         data = np.asarray(primary.data)
     plane = np.asarray(data.reshape(data.shape[-2:]), dtype=np.float64)
     metadata = FitsImageSource(source, prepared.supplied_metadata).metadata()
-    beam_fwhm_pixels, _ = _beam_pixels(metadata)
+    beam_fwhm_pixels, _ = beam_pixels(metadata)
     settings = truth.injection
     injected = plan_injection(
         plane,
@@ -602,7 +588,7 @@ def _measure_case(  # noqa: PLR0913
         prepared.input_path, prepared.supplied_metadata
     ).metadata()
     wcs = celestial_wcs_from_metadata(metadata)
-    beam_fwhm_pixels, beam_area_pixels = _beam_pixels(metadata)
+    beam_fwhm_pixels, beam_area_pixels = beam_pixels(metadata)
     image = load_fits_plane(prepared.input_path)
     reference_mask = load_mask_plane(
         _artifact(root, result, "island-mask-fits")
@@ -839,7 +825,7 @@ def _measure_derived(
         prepared.input_path, prepared.supplied_metadata
     ).metadata()
     wcs = celestial_wcs_from_metadata(metadata)
-    beam_fwhm_pixels, _ = _beam_pixels(metadata)
+    beam_fwhm_pixels, _ = beam_pixels(metadata)
     catalogues = {
         name: public_catalogue_sources(
             read_catalogue_fits_product(cast(Path, run.catalogue_path)),

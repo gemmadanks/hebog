@@ -721,6 +721,7 @@ _HIGHER_IS_BETTER = (
     "reliability",
     "mask_iou",
     "support_recall",
+    "bright_emission_recall",
 )
 _LOWER_IS_BETTER_SEPARATION = ("separation_p50_beams", "separation_p95_beams")
 _LOWER_IS_BETTER_FRACTION = (

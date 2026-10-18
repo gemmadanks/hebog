@@ -646,6 +646,75 @@ def prepare_refinement_rms_grid(
     )
 
 
+def prepare_crowded_local_noise_rms_grid(
+    statistics: RmsGridStatistics,
+    coarse: PreparedRmsGrid,
+    *,
+    maximum_noise_ratio: float,
+    clean_cell_reach_yx: tuple[int, int],
+) -> PreparedRmsGrid:
+    """Hold a crowded field's coarse RMS to its clean windows' noise.
+
+    In a field too crowded for its clean fine windows to reach most of its
+    cells, filling every cell from a few distant windows would copy their
+    noise across the field. A cell with a clean window within
+    ``clean_cell_reach_yx`` cells takes its nearest clean window's RMS, as
+    local noise does; beyond that reach the unprotected coarse RMS stands, as
+    PyBDSF's does, wherever it reads at most ``maximum_noise_ratio`` times
+    the nearest clean window's RMS. Above that, a coarse window holds
+    emission rather than noise, as over a source wider than one, and the
+    clean window's noise stands there, as local noise fills a source wider
+    than its reach. The background is filled from the clean windows, as any
+    filled grid's; a grid without a clean window stays unavailable.
+
+    Args:
+        statistics: The local-noise grid's assembled window statistics.
+        coarse: The prepared unprotected coarse grid of the same image.
+        maximum_noise_ratio: How many times the nearest clean window's RMS
+            the coarse RMS may read and still stand.
+        clean_cell_reach_yx: How many cells along each axis, either side of
+            a cell, a clean window may lie and set its RMS.
+
+    Raises:
+        ValueError: If the ratio is not finite or below 1, or the local
+            noise grid is available and the coarse grid is not.
+    """
+    if not isfinite(maximum_noise_ratio) or maximum_noise_ratio < 1:
+        raise ValueError("maximum_noise_ratio must be finite and at least 1")
+    prepared = prepare_rms_grid_for_interpolation(statistics)
+    if not prepared.scientifically_available:
+        return prepared
+    if not coarse.scientifically_available:
+        raise ValueError("a crowded local-noise grid needs a coarse grid")
+    cell_y, cell_x = np.meshgrid(
+        np.asarray(statistics.geometry.sample_coordinates_y, dtype=np.float64),
+        np.asarray(statistics.geometry.sample_coordinates_x, dtype=np.float64),
+        indexing="ij",
+    )
+    coarse_rms = np.asarray(
+        _extended_rms_interpolator(coarse)(
+            np.stack((cell_y, cell_x), axis=-1)
+        ),
+        dtype=np.float64,
+    )
+    reach_y, reach_x = clean_cell_reach_yx
+    within_reach = maximum_filter(
+        np.asarray(statistics.available, dtype=np.uint8),
+        size=(2 * reach_y + 1, 2 * reach_x + 1),
+        mode="constant",
+        cval=0,
+    ).astype(np.bool_)
+    rms = np.where(
+        within_reach | (coarse_rms > maximum_noise_ratio * prepared.rms),
+        prepared.rms,
+        coarse_rms,
+    )
+    return replace(
+        prepared,
+        rms=cast(npt.NDArray[np.float64], _read_only(rms)),
+    )
+
+
 def clean_cell_coverage(
     available: npt.NDArray[np.bool_], reach_yx: tuple[int, int]
 ) -> float:
