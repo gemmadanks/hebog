@@ -63,6 +63,10 @@ from hebog.validation.quick_check import (
     truth_metrics,
     write_report,
 )
+from hebog.validation.truth_measures import (
+    beam_pixels,
+    bright_emission_metrics,
+)
 
 _ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_CONFIGURATION = _ROOT / "config/checks/quick-science-check.json"
@@ -277,17 +281,19 @@ def _case_metrics(
     reference: tuple[Path, dict[str, Any]] | None,
     configuration: QuickCheckConfiguration,
 ) -> MetricValues:
-    beam = (
-        FitsImageSource(prepared.input_path, prepared.supplied_metadata)
-        .metadata()
-        .beam
-    )
+    metadata = FitsImageSource(
+        prepared.input_path, prepared.supplied_metadata
+    ).metadata()
     beam_fwhm_degrees = math.sqrt(
-        beam.major_fwhm_degrees * beam.minor_fwhm_degrees
+        metadata.beam.major_fwhm_degrees * metadata.beam.minor_fwhm_degrees
     )
     catalogue = read_catalogue_fits_product(finder_result.catalogue)
     separation = configuration.maximum_separation_beams
-    metrics: MetricValues = {}
+    metrics: MetricValues = bright_emission_metrics(
+        image_path=prepared.input_path,
+        mask_path=finder_result.mask_path,
+        beam_fwhm_pixels=beam_pixels(metadata)[0],
+    )
     if prepared.truth is not None and prepared.noise_rms_jy_per_beam:
         metrics |= truth_metrics(
             prepared.truth,

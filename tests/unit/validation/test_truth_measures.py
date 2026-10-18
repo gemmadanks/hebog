@@ -1,3 +1,6 @@
+# pyright: reportMissingTypeStubs=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
 """Each finder's correctness, measured beside its agreement with PyBDSF."""
 
 from __future__ import annotations
@@ -6,8 +9,10 @@ import math
 
 import numpy as np
 import pytest
+from astropy.wcs import WCS
 
 from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.data_models import CelestialWcs, ImageMetadata, RestoringBeam
 from hebog.validation.rapthor_agreement import ComponentPixels
 from hebog.validation.truth_measures import (
     EmissionRecall,
@@ -19,6 +24,8 @@ from hebog.validation.truth_measures import (
     RealEmissionDecisions,
     TruthGateLimits,
     TruthGateOutcome,
+    beam_pixels,
+    bright_emission_recall,
     compare_noise,
     emission_recall,
     ideal_mask,
@@ -150,6 +157,82 @@ def test_negative_pixel_noise_recovers_gaussian_noise_under_sources() -> None:
     noise = negative_pixel_noise(image, box_pixels=128, minimum_pixels=100)
 
     np.testing.assert_allclose(noise, 2.0, rtol=0.05)
+
+
+def _bright_recall(image: np.ndarray, mask: np.ndarray) -> float | None:
+    return bright_emission_recall(
+        image, mask, box_pixels=40, minimum_pixels=500, threshold_sigma=10.0
+    )
+
+
+def test_bright_emission_recall_is_the_share_of_bright_pixels_masked() -> None:
+    """A mask over half of a bright block recalls half of its pixels."""
+    image = np.random.default_rng(5).normal(0.0, 1.0, (120, 120))
+    image[40:60, 30:90] = 50.0
+    mask = np.zeros(image.shape, dtype=np.bool_)
+    mask[40:60, 60:90] = True
+
+    assert _bright_recall(image, mask) == 0.5
+
+
+def test_bright_emission_filling_noise_boxes_takes_its_neighbours_noise() -> (
+    None
+):
+    """A source filling whole boxes, which hold no negative pixel, counts.
+
+    Its boxes have no noise of their own, so they take the nearest measured
+    box's: a giant bright source left out of the mask is still a loss.
+    """
+    image = np.random.default_rng(6).normal(0.0, 1.0, (120, 120))
+    image[:80, :80] = 50.0
+    mask = np.zeros(image.shape, dtype=np.bool_)
+    mask[:80, :40] = True
+
+    assert _bright_recall(image, mask) == 0.5
+
+
+def test_bright_emission_recall_skips_blanks_and_needs_bright_pixels() -> None:
+    """Blank pixels never count; no bright pixel, or no noise, no recall."""
+    image = np.random.default_rng(7).normal(0.0, 1.0, (120, 120))
+    mask = np.zeros(image.shape, dtype=np.bool_)
+    assert _bright_recall(image, mask) is None
+
+    image[40:60, 30:90] = 50.0
+    image[40:60, 30:60] = np.nan
+    mask[40:60, 60:90] = True
+    assert _bright_recall(image, mask) == 1.0
+    assert _bright_recall(np.full((120, 120), 5.0), mask) is None
+
+
+def test_beam_pixels_are_the_mean_fwhm_and_the_gaussian_area() -> None:
+    """A 4 by 1 pixel beam has a 2-pixel mean FWHM and 1.1331 x 4 area."""
+    wcs = WCS(naxis=2)
+    wcs.wcs.ctype = ["RA---SIN", "DEC--SIN"]
+    wcs.wcs.cunit = ["deg", "deg"]
+    wcs.wcs.crpix = [50.0, 40.0]
+    wcs.wcs.crval = [10.0, 50.0]
+    wcs.wcs.cdelt = [-0.001, 0.001]
+    metadata = ImageMetadata(
+        shape_yx=(80, 100),
+        unit="Jy/beam",
+        beam=RestoringBeam(
+            major_fwhm_degrees=0.004,
+            minor_fwhm_degrees=0.001,
+            position_angle_degrees=0.0,
+        ),
+        celestial_wcs=CelestialWcs(
+            fits_header=wcs.to_header(relax=True).tostring(
+                sep="\n", endcard=False, padding=False
+            ),
+            coordinate_frame="icrs",
+        ),
+        reference_frequency_hz=150_000_000.0,
+    )
+
+    fwhm, area = beam_pixels(metadata)
+
+    assert fwhm == pytest.approx(2.0)
+    assert area == pytest.approx(1.1331 * 4.0)
 
 
 def test_noise_comparison_counts_inflated_and_deflated_pixels() -> None:

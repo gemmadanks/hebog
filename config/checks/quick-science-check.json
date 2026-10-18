@@ -71,6 +71,11 @@
       "kind": "generated"
     },
     {
+      "case_id": "crowded-giant-source",
+      "dataset_id": "quick-crowded-giant-source",
+      "kind": "generated"
+    },
+    {
       "case_id": "sdc1-b2-1000h-sparse",
       "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-sparse/image.fits",
       "kind": "image",
@@ -96,6 +101,38 @@
           "size": 1024,
           "x_start": 16896,
           "y_start": 16896
+        }
+      },
+      "supplied_metadata": {
+        "beam_position_angle_degrees": 0.0
+      }
+    },
+    {
+      "case_id": "sdc1-b2-1000h-giant-source",
+      "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-giant-source/image.fits",
+      "kind": "image",
+      "remote_source": {
+        "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+        "window": {
+          "size": 768,
+          "x_start": 17748,
+          "y_start": 14370
+        }
+      },
+      "supplied_metadata": {
+        "beam_position_angle_degrees": 0.0
+      }
+    },
+    {
+      "case_id": "sdc1-b2-1000h-bright-neighbour",
+      "image": "benchmark-results/quick-check/cutouts/sdc1-b2-1000h-bright-neighbour/image.fits",
+      "kind": "image",
+      "remote_source": {
+        "url": "https://zenodo.org/api/records/4328029/files/SKAMid_B2_1000h_v3.fits/content",
+        "window": {
+          "size": 512,
+          "x_start": 16588,
+          "y_start": 17456
         }
       },
       "supplied_metadata": {

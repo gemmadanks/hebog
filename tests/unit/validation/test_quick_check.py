@@ -71,6 +71,7 @@ from hebog.validation.quick_check import (
     truth_metrics,
     write_report,
 )
+from hebog.validation.truth_measures import bright_emission_metrics
 
 _ROOT = Path(__file__).parents[3]
 _CONFIGURATION = _ROOT / "config/checks/quick-science-check.json"
@@ -335,6 +336,26 @@ def test_support_metrics_compare_rms_and_mask_with_injected_emission(
     )
 
 
+def test_bright_emission_metrics_read_the_image_and_the_mask(
+    tmp_path: Path,
+) -> None:
+    """A mask over half of a bright block reports half its emission held."""
+    image = np.random.default_rng(8).normal(0.0, 1.0, (120, 120))
+    image[40:60, 30:90] = 50.0
+    mask = np.zeros(image.shape, dtype=np.uint8)
+    mask[40:60, 60:90] = 1
+    fits.writeto(tmp_path / "image.fits", image)
+    fits.writeto(tmp_path / "mask.fits", mask)
+
+    metrics = bright_emission_metrics(
+        image_path=tmp_path / "image.fits",
+        mask_path=tmp_path / "mask.fits",
+        beam_fwhm_pixels=2.0,
+    )
+
+    assert metrics == {"image.bright_emission_recall": 0.5}
+
+
 def test_support_metrics_are_unmeasurable_on_a_non_finite_rms(
     tmp_path: Path,
 ) -> None:
@@ -460,6 +481,8 @@ def test_support_metrics_need_noise_and_emission_above_it() -> None:
         ("truth.support_rms_error_p50", 0.1, 0.05, False),
         ("truth.support_rms_error_p95", 0.1, 0.5, True),
         ("truth.support_rms_error_p95", 0.5, 0.1, False),
+        ("image.bright_emission_recall", 0.95, 0.9, True),
+        ("image.bright_emission_recall", 0.9, 0.95, False),
     ],
 )
 def test_regressions_follow_each_metric_direction(

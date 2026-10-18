@@ -159,6 +159,21 @@ def _wide_extended_source(x: float, y: float) -> list[dict[str, float]]:
     ]
 
 
+def _crowded_giant_source(size: int) -> list[dict[str, float]]:
+    """Return a crowded field with a source wider than a coarse window.
+
+    Compact sources every 56 pixels leave clean fine windows within reach of
+    about an eighth of the cells, too few for local noise; the giant source,
+    165 by 106 pixels at half maximum, is wider than the 150-pixel coarse
+    window, so the clipped coarse estimate over it holds its emission.
+    """
+    return [
+        source
+        for source in _crowded_field(size, 56.0)
+        if max(source["x_pixel"], source["y_pixel"]) < size
+    ] + [_ellipse(300.0, 700.0, 150.0, 70.0, 45.0, 30.0)]
+
+
 def _cases() -> list[dict[str, Any]]:
     """Return the ordered case definitions before provenance is added."""
     blend_offsets = (1.0, 1.5, 2.5)
@@ -396,6 +411,20 @@ def _cases() -> list[dict[str, Any]]:
             ),
             "shape_yx": (1024, 1024),
             "sources": _wide_extended_source(512.0, 512.0),
+        },
+        {
+            "identifier": "crowded-giant-source",
+            "purpose": (
+                "A bright source wider than the coarse background window in "
+                "a field too crowded for local noise, as a giant radio "
+                "galaxy in the crowded SDC1 field. The published RMS over "
+                "its emission must stay near the injected noise and the "
+                "mask must keep it: on 18 October the crowded-field "
+                "fallback read it as noise 33 times the injected noise and "
+                "masked none of it."
+            ),
+            "shape_yx": (1024, 1024),
+            "sources": _crowded_giant_source(1024),
         },
     ]
 
