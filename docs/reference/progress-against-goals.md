@@ -64,8 +64,8 @@ writes. A
 row passes the three cuts Rapthor applies (`DC_Maj`, `E_RA`, `E_DEC`), as a
 `compact` row does; a source of several components leaves them empty,
 which on the agreement check's cases dropped 151 to 168 sources pinned `master`
-keeps. Under
-`compact`, which Rapthor runs, every source is one Gaussian.
+keeps. Rapthor runs `continuum`, so its cuts drop those sources; under
+`compact` every source is one Gaussian.
 
 ## Science
 
