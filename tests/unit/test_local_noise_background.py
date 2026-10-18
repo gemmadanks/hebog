@@ -363,6 +363,55 @@ def test_a_field_too_crowded_for_fine_noise_is_not_protected() -> None:
     assert refined.coarse_protected_pixel_count == 0
 
 
+@pytest.mark.parametrize(
+    ("clean_shape_yx", "refined_locally"),
+    (((34, 34), False), ((64, 72), True)),
+)
+def test_local_noise_needs_clean_windows_within_reach_of_most_cells(
+    clean_shape_yx: tuple[int, int], refined_locally: bool
+) -> None:
+    """Clean windows reaching too little of the field leave it unprotected.
+
+    A 34-pixel clean patch in a field of source support clears four fine
+    windows, which reach a fifth of the cells: every other cell would take a
+    distant window's estimate, as on a deep field where protection leaves a
+    handful of windows clear. The unprotected estimate stands instead, as
+    when no window is clean. A 64 by 72 patch clears windows within reach
+    of most cells, and local noise refines the field.
+    """
+    yy, xx = np.mgrid[:80, :96]
+    noise = np.where((yy + xx) % 2, -1.0, 1.0)
+    image = noise + 100.0
+    height, width = clean_shape_yx
+    image[8 : 8 + height, 10 : 10 + width] = noise[
+        8 : 8 + height, 10 : 10 + width
+    ]
+    config = _config()
+    coarse = estimate_background_rms_grids(
+        _Source(noise),
+        noise.shape,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+    )
+
+    refined = refine_background_rms_grids(
+        _Source(image),
+        coarse,
+        config,
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3,
+        multiscale_protection=_policy(),
+        protect_coarse_source_support=True,
+        refine_local_noise=True,
+    )
+
+    assert refined.local_noise is not None
+    assert refined.local_noise.scientifically_available is refined_locally
+    assert (refined.coarse is coarse.coarse) is not refined_locally
+
+
 @pytest.mark.parametrize("protect_coarse", (False, True))
 def test_local_noise_is_not_estimated_without_a_coarse_estimate(
     protect_coarse: bool,
