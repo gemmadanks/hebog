@@ -1,32 +1,32 @@
 {
   "container": {
     "build_lock_sha256": "58817cda7d033ed54f70a93941aaaa7753fcefed02523cada221c532261fb10d",
-    "dependency_inventory_sha256": "5bba44182b6bde6d77fa0c92b6aa34c7330a538e3d303382ba3ea6f34b3ff086",
-    "hebog_wheel_sha256": "5fe6b230311987aeb42d3ca68e545443d682809d2494a1a00771964867cf37de",
-    "image_id": "d13a98fd69478b4e0d0cbeb61e59ef1fb47cd178750f35c21f7c1d1bfe4c3a6a",
+    "dependency_inventory_sha256": "02a30db36dc6858b5a941094465685f56ee99700e7716bd11c48ea4045e524ab",
+    "hebog_wheel_sha256": "95330e38a7b44549ff13f6a5bbb073412eae330ce7cef4be93431eee9ac8da34",
+    "image_id": "47bda3c81412fc9c258a4509ef357914ec757a3fd1b599621b1ca1e31b0cf7de",
     "lsmtool_version": "1.9.1.dev27+g156ae6a",
     "pip_check": "No broken requirements found",
     "platform": "Linux x86-64, Python 3.12.3, Podman/Rosetta on Apple M3 Pro",
     "pybdsf_scope": "Released integration dependency only, not the pinned-master performance gate",
     "pybdsf_version": "1.14.1",
-    "rapthor_archive_sha256": "70b69e179885fd55f9d8ff2ae11b0708b4795ef2c238df2fa266c23683bb09b0",
+    "rapthor_archive_sha256": "8baccad7bc9e1407bba1cbe199a47cf78574160dcdc5a98f71a542eac5699c6b",
     "runtime_lock_sha256": "881dcbcbf28061e404dc1ad05302e912435497059f452398eea56fb9ab0ff569"
   },
   "date": "2026-10-17",
   "defaults": {
     "background": "zero",
-    "decision": "Maintainer's interim choice of 13 October 2026 from Hebog plan task 21: closest of the four lanes to pinned PyBDSF master's sky-model filtering (92.8% agreement against a 99.5% target; released PyBDSF 99.29%); decided again after plan task 75",
-    "profile": "compact"
+    "decision": "Maintainer's choice of 17 October 2026 from the truth-based gate (Hebog plan task 81): continuum passes it under either background since its local noise no longer degenerates in crowded fields, and compact fails it; zero keeps PyBDSF's mean map and covers more of the true emission. Replaces the interim compact choice of 13 October",
+    "profile": "continuum"
   },
   "implementation": {
     "distributed_path": "Deferred to source-finder plan task 72 by maintainer approval on 2026-10-12",
-    "hebog_science_commit": "5a38ae36e1a9292964d1d5e60b047d6b02e59a6d",
-    "hebog_version": "0.22.0, the wheel published on PyPI (its SHA-256 matches PyPI's)",
+    "hebog_science_commit": "f9b5476780f999f2647c6ad86224d96304058ae4",
+    "hebog_version": "A wheel built from Hebog commit f9b54767, labelled 0.22.0 until it is released; it carries the continuum repair and default that 0.23 will be the first release to include",
     "layout": "One single-threaded Dask worker per node; native ThreadExecutor inside the Prefect task",
     "memory_reservation": "hebog.analysis_memory_bytes for the sources hebog.expected_source_count estimates from the detection image at threshpix; an ExecutorAdmissionError, when no memory remains for the tile tasks or one needs more than remains, falls back to PyBDSF (Hebog plan task 77, decided 14 October 2026)",
-    "publication": "On a branch of https://git.astron.nl/RD/rapthor; not merged",
-    "rapthor_commit": "5e5d9dcde342061fef340c01d31ff7e45d479470",
-    "rapthor_tree": "879249628867dc71ea223360e9567583b6e8eed4"
+    "publication": "Commit 632f6211 on a local branch over add-hebog-source-finder of https://git.astron.nl/RD/rapthor; not pushed, not merged",
+    "rapthor_commit": "632f6211fd81550bc1b287e142137aa0388fb06c",
+    "rapthor_tree": "fd356a152d73bec997725d889531de6eb9d56724"
   },
   "memory_estimate": {
     "bound": "Bounded the most sources any profile/background lane published on all 21 quick-check, Rapthor-agreement and task-23 cases, at 1.0 to 21 times; 1.1 to 1.9 on the LOFAR and simulated SKA fields; 21 on wide-extended-source",
@@ -133,7 +133,7 @@
     "quick_science": "just quick-science-check --label task20-recheck --baseline benchmark-results/quick-check/runs/t17-declared/report.json --skip-references"
   },
   "schema_version": 1,
-  "scope": "Current-layout integration with the compact/zero defaults, the image-sized memory reservation and the PyBDSF fallback, at the Rapthor and LSMTool pins of 17 October 2026; no scientific or performance qualification",
+  "scope": "Current-layout integration with the continuum/zero defaults, the image-sized memory reservation and the PyBDSF fallback, at the Rapthor and LSMTool pins of 17 October 2026; no scientific or performance qualification",
   "status": "exploratory",
   "upstream_audit": {
     "lsmtool": "156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2",
@@ -142,7 +142,7 @@
   },
   "validation": {
     "archived_container_tests": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task79 python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task81 python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py",
       "passed": 39,
       "scope": "No checkout mount; committed source and installed dependencies from the final image"
     },
@@ -158,32 +158,32 @@
     },
     "native_parset_cli": {
       "command": "python -m pytest -q tests/execution/test_hebog_filter.py tests/execution/test_skymodel_filter.py tests/lib/test_parset.py tests/lib/test_parset_option_behavior.py tests/lib/test_parset_option_coverage.py --cov=rapthor.execution.image.hebog_filter --cov-branch",
-      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; image-sized reservation and PyBDSF fallback on too little memory; compact/zero defaults from the parset, the image payload and the native task",
+      "includes": "Actual production Prefect task on process Dask worker; real LSMTool; released PyBDSF fallback and dual subprocesses; blank, dummy, retries, memory/core limits, configuration; image-sized reservation and PyBDSF fallback on too little memory; continuum/zero defaults from the parset, the image payload and the native task",
       "module_line_branch_coverage_percent": 100,
       "passed": 94
     },
     "omitted": [
       "Full Rapthor/hosted Python/platform matrix",
       "Production Measurement Set/EveryBeam operational trial",
-      "Retained/rejected correctness against truth (Hebog plan task 76)",
       "Multi-slot distributed executor path",
-      "Matched complete-step performance at these pins: the benchmark image is rebuilt on this image before the next matched run"
+      "Matched complete-step performance at these pins: the benchmark image is rebuilt on this image before the next matched run",
+      "The Hebog release check of the 0.23 candidate, which is not yet released"
     ],
     "option_admission_boundaries": {
       "command": "python -m pytest -q tests/execution/test_image_flow.py tests/execution/test_hebog_filter.py -k 'hebog_options or invalid_worker_admission'",
       "passed": 8,
-      "scope": "Run in the task79 image"
+      "scope": "Run in the task81 image"
     },
     "rapthor_agreement": {
-      "command": "just rapthor-agreement --jobs 4 --label task79-pin --skip-references",
-      "report_sha256": "85690145e3e2b625c65fe3e6874ed7fb2a5a3d8d9f9be66767b22ae3991644fd",
-      "result": "Every lane's record and the released-PyBDSF control are identical to run task23-pin-st at Hebog 0.21.0; the check does not run Rapthor or LSMTool, so it shows Hebog's changes only"
+      "command": "just rapthor-agreement --jobs 2 --label t75-coverage-1",
+      "report_sha256": "3969bb033ba6d879264ea0c6b13b6aa982d7099431cb13f898b07f6518ce889a",
+      "result": "continuum passes the truth-based gate under either background and compact fails it; released PyBDSF passes; the check does not run Rapthor or LSMTool, so it shows Hebog's changes only"
     },
     "rapthor_broader_suites": {
-      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task79 python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
+      "command": "podman run --rm --platform linux/amd64 --workdir /opt/rapthor-source localhost/hebog-rapthor:task81 python -m pytest -q -p no:cacheprovider tests/lib tests/operations tests/execution/test_image_flow.py",
       "passed": 662
     },
     "rapthor_docs": "Strict Sphinx 9.1.0 build (-W --keep-going), with numpydoc 1.11.0 and sphinxcontrib-mermaid 2.1.1, of the archived Rapthor source in the image succeeds with no warning",
-    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass"
+    "rapthor_lint": "Ruff 0.15.20 lint and format check of the changed Python files and git diff --check pass on both Rapthor commits"
   }
 }

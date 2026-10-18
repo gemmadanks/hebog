@@ -18,8 +18,9 @@ admission, blank/empty paths and retry reuse. It reserves the analysis memory
 for the sources `hebog.expected_source_count` estimates from the detection
 image, and falls back to PyBDSF when the worker cannot hold the analysis and a
 tile task. Its `rapthor[hebog]` extra accepts any Hebog `0.x` release from
-0.22, the first with that function and the first on PyPI; Hebog's feature
-releases also bump the minor version, so a narrower range would block them.
+0.23, the first whose `continuum` profile keeps its noise estimate sound in
+crowded fields; Hebog's feature releases also bump the minor version, so a
+narrower range would block them.
 The distributed executor and resource annotations are later work. No LSMTool
 registry entry is needed.
 
@@ -30,19 +31,19 @@ that writer rather than duplicating its output format.
 
 ## Install and test
 
-Install Rapthor at the summary's `rapthor_commit`, with Hebog from PyPI:
+Install Rapthor at the summary's `rapthor_commit`, with Hebog from PyPI once
+0.23 is released (a wheel built from Hebog's checkout until then):
 
 ```bash
 python -m pip install "rapthor[hebog] @ git+https://git.astron.nl/RD/rapthor.git@<rapthor_commit>"
 ```
 
 The [container guide](../containers/rapthor/README.md) builds and tests
-that commit. The branch's parset defaults, `hebog_profile = compact` and
-`hebog_background = zero`, are the interim choice for Rapthor, which the
-adapter also defaults to: of the four settings, they made LSMTool keep the
-sky-model components pinned PyBDSF `master`'s mask keeps most often. They are
-not scientifically qualified, and the matched benchmark measures the step's
-performance.
+that commit. The branch's parset defaults, `hebog_profile = continuum` and
+`hebog_background = zero`, which the adapter also defaults to, are the
+profile that passes the truth-based gate of `just rapthor-agreement`, with
+PyBDSF's zero mean map. They are not scientifically qualified, and the
+matched benchmark measures the step's performance.
 
 ## Frozen-field checkpoint
 

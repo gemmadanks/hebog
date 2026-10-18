@@ -78,10 +78,11 @@ class RapthorCompatibilityConfig:
     early self-calibration cycles). The minimum island size is not a
     setting: :func:`find_sector_sources` applies PyBDSF's rule to the
     sector's beam. ``profile`` and ``background`` choose Hebog's science
-    profile and background. Rapthor's are ``compact`` and ``zero``, PyBDSF's
-    zero mean map: of the four, they make Rapthor keep the sky-model
-    components pinned PyBDSF ``master`` keeps most often, though below the
-    99.5% the plan targets (plan task 21). The other options LSMTool passes
+    profile and background. Rapthor's are ``continuum`` and ``zero``,
+    PyBDSF's zero mean map: ``continuum`` passes the truth-based gate under
+    either background, and with a zero background it covers more of the
+    true emission and keeps the mean map Rapthor passes to PyBDSF. The
+    ``compact`` profile fails that gate. The other options LSMTool passes
     to PyBDSF (the RMS boxes, the bright-source threshold and the wavelet
     scales) are fixed by Hebog's reviewed science, and LSMTool's mask filter
     is LSMTool's own; the Rapthor source-finding contract maps each to what
@@ -90,7 +91,7 @@ class RapthorCompatibilityConfig:
 
     threshpix: float
     threshisl: float
-    profile: Literal["continuum", "compact"] = "compact"
+    profile: Literal["continuum", "compact"] = "continuum"
     background: Literal["estimated", "zero"] = "zero"
 
     def __post_init__(self) -> None:

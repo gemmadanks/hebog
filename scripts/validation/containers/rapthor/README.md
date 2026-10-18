@@ -58,7 +58,7 @@ assert '/site-packages/' in rapthor.__file__
 checks = runpy.run_path('/opt/rapthor-source/tests/execution/test_hebog_filter.py')
 for name in (
     'test_dual_run_retains_separate_products_and_selects_hebog',
-    'test_hebog_defaults_to_compact_with_zero_background',
+    'test_hebog_defaults_to_continuum_with_zero_background',
     'test_insufficient_memory_falls_back_to_pybdsf',
     'test_reservation_counts_the_image_sources_not_the_sky_model',
 ):

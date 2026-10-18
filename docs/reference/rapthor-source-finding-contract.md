@@ -73,7 +73,7 @@ LSMTool's; the rest are LSMTool's.
 
 | PyBDSF behaviour | Value | Hebog | Status |
 | --- | --- | --- | --- |
-| `mean_map` | `"zero"`: no background is subtracted | `SourceFinderConfig.background`: `estimated` (default) subtracts Hebog's spatial background; `zero` subtracts nothing and keeps the RMS estimate, as PyBDSF does | Implemented as a setting. Against injected truth zero is worse; against pinned `master` it gives closer fluxes and lower SDC1 completeness. Rapthor runs `zero` with the `compact` profile, the lane closest to `master` in what Rapthor keeps |
+| `mean_map` | `"zero"`: no background is subtracted | `SourceFinderConfig.background`: `estimated` (default) subtracts Hebog's spatial background; `zero` subtracts nothing and keeps the RMS estimate, as PyBDSF does | Implemented as a setting. Against injected truth zero is worse; against pinned `master` it gives closer fluxes and lower SDC1 completeness. Rapthor runs `zero` with the `continuum` profile, which passes the truth-based gate under either background and covers more of the true emission with this one |
 | `rms_map`, `rms_box` | On, `(150, 50)` | The coarse RMS grid is 150-pixel windows on a 50-pixel step | Implemented |
 | `adaptive_rms_box`, `rms_box_bright`, `adaptive_thresh` | On, `(35, 7)`, `75.0` | Bright-region refinement on 35-pixel windows on a 7-pixel step around candidates at 75σ or more, plus local-noise refinement on the same windows everywhere | Implemented, with two bounded differences: the `continuum` RMS tail and a clipped RMS 1.6 to 3.9% low on noise alone |
 | `thresh`, `thresh_pix`, `thresh_isl` | `"hard"`; Rapthor's 5/3, 5/4 or the helper's 7.5/5 | `SourceFinderConfig`'s detection and island thresholds, executed exactly | Implemented |
@@ -90,7 +90,7 @@ LSMTool's; the rest are LSMTool's.
 
 `RapthorCompatibilityConfig` holds what the finder honours, under Rapthor's
 names: `threshpix` and `threshisl`, and Hebog's `profile` and `background`,
-which default to Rapthor's `compact` and `zero`. The minimum island follows PyBDSF's
+which default to Rapthor's `continuum` and `zero`. The minimum island follows PyBDSF's
 rule, LSMTool's `filter_by_mask` stays with Rapthor's call to
 `filter_sources`, and the other options are fixed by Hebog's reviewed
 science.
@@ -265,8 +265,9 @@ The no-beam branch supplies the flat image as both adapter inputs, as pinned
 LSMTool does. A configured missing peeled model is an error. Native selection
 and memory/configuration details live in `<root>.image_diagnostics.json` and
 survive Rapthor's normal diagnostic update and restart reuse. The branch's
-parset defaults are `hebog_profile = compact` and `hebog_background = zero`,
-the interim choice for Rapthor, which the adapter also defaults to. Either
+parset defaults are `hebog_profile = continuum` and `hebog_background = zero`,
+which the adapter also defaults to: the profile that passes the truth-based
+gate, with PyBDSF's mean map. Either
 setting can be changed in the parset, and invalid settings fail
 validation.
 

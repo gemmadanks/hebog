@@ -190,10 +190,9 @@ Rapthor's current single-task worker layout. It runs the caller-owned ThreadExec
 the Prefect task, admits memory, and retains the PyBDSF fallback. Set
 `hebog_dual_run = True` to retain both filtered product sets and place their
 comparison in ordinary image diagnostics. The branch is not yet merged
-into Rapthor. The adapter defaults to the `compact` profile
-with a zero background, Rapthor's interim choice, and
-the branch's parset defaults to them too; neither is a qualified Rapthor
-profile,
+into Rapthor. The adapter and the branch's parset default to the
+`continuum` profile with a zero background, which passes the truth-based
+gate where `compact` does not; it is not yet a qualified Rapthor profile,
 and a distributed Hebog subgraph needs the later worker-layout change.
 
 ## Versioning
