@@ -25,12 +25,16 @@ baseline over one warm-up and at least five measured repetitions. A change is
 a regression when the lower one-sided 95% bootstrap bound of the new/previous
 median ratio exceeds 1.05 without an approved trade-off.
 
-The deployment gate is the single `pybdsf_master` record: the upper one-sided
-95% bound of the Hebog/PyBDSF median wall-time ratio must be at most 0.50
-against pinned PyBDSF `master` (`c70103b`) over the record's
-`measured_phase`, the source-finding part of Rapthor's `filter_skymodel`
-step from the task's start to LSMTool's `filter_sources` call, which the
-finder controls. The complete step, whose LSMTool filtering is the same for
+The deployment gate is the `pybdsf_master` record, against pinned PyBDSF
+`master` (`c70103b`) over the record's `measured_phase`, the
+source-finding part of Rapthor's `filter_skymodel` step from the task's
+start to LSMTool's `filter_sources` call, which the finder controls. The
+upper one-sided 95% bound of the Hebog/PyBDSF median wall-time ratio must
+be at most 0.50 on a dense sector, provisionally one where `master` finds
+at least 10,000 sources, and at most 1.05 on the rest (decision of
+18 October 2026). The record holds the dense limit, which the matched
+benchmark applies to every sector until it classifies sectors by
+`master`'s source count. The complete step, whose LSMTool filtering is the same for
 either finder, is reported beside it and never gated (decision of
 16 October 2026). Released 1.14.1 is checked once before 1.0.0 and is not a
 gate in this file. The
