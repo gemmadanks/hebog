@@ -55,8 +55,7 @@ the rest, with products unchanged.
 
 ### Non-goals
 
-- Changing the science, thresholds or semantics for speed; task 68 lands
-  first.
+- Changing the science, thresholds or semantics for speed.
 - Native code, which needs its own gates and an accepted ADR.
 - The cluster benchmark itself (tasks 27 and 30), Zarr sharding (task 25)
   and the 45,000² memory work (task 56).
@@ -236,3 +235,4 @@ quick benchmark and profile before and after show the gain.
 | Date | Type | Update | Owner/next action |
 | --- | --- | --- | --- |
 | 2026-10-18 | Decision | The gate binds dense sectors at 0.50 and the rest at parity; serial-work cuts are in scope where the gain is clear; task 68 precedes this task. | Agent: step 1 after task 68 |
+| 2026-10-18 | Decision | The window RMS keeps no truncation correction (task 68 closed), so step 1 measures the noise as it is now. | Agent: step 1 after the 22,500² tier |

@@ -26,8 +26,8 @@ progress page; the two change together.
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October): at most 0.50 of pinned `master`'s on dense sectors, provisionally those where `master` finds at least 10,000 sources, and no slower than `master` on the rest (decision of 18 October). No dense sector has been measured, and both sparse cells fail parity. On the 3,000² sector Hebog's finder part is 2.43 times `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor, where `master` finds 9,276 sources, it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. The ratio falls as the source count rises. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
 | Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate. |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap on dense sectors, not yet measured, and on sparse ones, where Hebog is slower; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: raise the 22,500² tier (task 11), measure the window RMS correction (task 68) for the maintainer's decision, then start task 72 by measuring both finders against the source count and cores in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
-| Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October), except task 68, which follows the 22,500² tier (decision of 18 October); task 15 sits before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
+| Next action | Agent: raise the 22,500² tier (task 11), then start task 72 by measuring both finders against the source count and cores in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October); task 15 sits before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
 
@@ -98,9 +98,12 @@ dense sectors, provisionally those where pinned `master` finds at least
 10,000 sources, at 0.50 of `master`'s finder part, and the rest at no
 slower than `master` (an upper bound of 1.05), with each finder's growth
 against the source count and cores reported beside them, not gated;
-reducing serial work is part of task 72 where it gives clear gains; task 68
-follows the 22,500² tier and precedes task 72. Decided on 17 October: the
-Rapthor and LSMTool pins
+reducing serial work is part of task 72 where it gives clear gains; no
+change may degrade the science (see the [scientific gates](#scientific-gates));
+the window RMS keeps no truncation correction, since correcting it lowered
+completeness on every truth measure without a measurable gain in
+reliability, and the scatter of its windows is a [risk](#risks).
+Decided on 17 October: the Rapthor and LSMTool pins
 move to their heads before the Rapthor change is pushed, done the same day;
 the change lives on a branch of Rapthor's repository, not as a patch in
 Hebog, and testing, trials and benchmarks use the branch without waiting
@@ -326,10 +329,7 @@ The order, set on 9 October 2026 and amended through 18 October:
    noise was repaired and Rapthor now runs it, before task 72 measures and
    models one sector's cost, scientific accuracy taking the time it needs
    (decision of 17 October).
-3. **The window RMS calibration** (task 68). It follows the tier, whose
-   evidence it does not change materially, and precedes task 72, which
-   should measure the calibrated noise (decision of 18 October).
-4. **One sector across the cluster** (task 72), on the profile chosen.
+3. **One sector across the cluster** (task 72), on the profile chosen.
    The screening of 16 October found a finder-part ratio of 1.23 on four
    Dask workers at the 10,000² anchor. Rapthor usually images one
    sector, 17,000 to 20,000 pixels a side, on nodes of up to 192 cores;
@@ -337,11 +337,11 @@ The order, set on 9 October 2026 and amended through 18 October:
    path comes before everything else (decisions of 15 and 16 October).
    It starts by measuring where PyBDSF is slow: both finders against the
    source count and cores (decision of 18 October).
-5. **The deployment envelope and gate** (tasks 22 and 23), with the store,
+4. **The deployment envelope and gate** (tasks 22 and 23), with the store,
    planner and cluster benchmark packaging (tasks 24, 25 and 27).
-6. **Science before the freeze** (task 15), deferred until the work above
+5. **Science before the freeze** (task 15), deferred until the work above
    is complete unless an output is confirmed incorrect.
-7. **Qualification and 1.0.0** (tasks 28 to 34).
+6. **Qualification and 1.0.0** (tasks 28 to 34).
 
 ### Release and publication
 
@@ -354,12 +354,6 @@ The order, set on 9 October 2026 and amended through 18 October:
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
-
-### The window RMS calibration
-
-| # | Owner | Task | Done when |
-| --- | --- | --- | --- |
-| 68 | Agent measures, human decides | Measure a truncation correction for the clipped window RMS. | The window statistic clips at 3σ around the median and takes the standard deviation of what remains, with no correction: 35-pixel windows read 1.6% low on white noise and 3.2 to 3.9% low on beam-correlated noise, and `empty-noise` publishes 0.959 of the injected noise, where PyBDSF applies the PySE correction, about 1.4% at κ = 3; the PySE correction covers the clipping, not the correlated samples. Done when the clipping correction, alone and with an allowance for correlated samples, is measured on the quick check, the agreement check's truth measures, the equivalence lane and the position and flux uncertainty calibration, and the maintainer has decided whether to apply it. |
 
 ### One sector across the cluster
 
@@ -522,6 +516,7 @@ allow.
 | The cluster benchmark depends on hardware not yet scheduled, acceptance on reviewers not yet named, and selecting Hebog from released Rapthor on the Rapthor branch merging. | 1.0.0 waits on a session and on reviews; until the merge, Rapthor users install Rapthor from the branch. | Testing, the trial and the cluster benchmark use the branch at a recorded commit, so none waits on the merge; Rapthor calls Hebog directly, so no LSMTool registry entry is required; the cluster session is one sector at four node counts after a local dry run (task 27); reviewers are approached when the branch is pushed (decision 1). |
 | Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate a scientific trade-off to the human rather than weakening invariance silently. |
 | Large public images have minimal or non-standard headers, and no large public SKA-Low image exists. | Anchors cannot run unmodified, their science comparison is weak, or SKA-Low coverage relies on precursor data after 1.0.0. | Headers checked against the input header contract before download; explicit request metadata; per-facet LOFAR-HD catalogues for science; GLEAM-X DR1 with its PSF maps at the 45,000² release, and SKA-Low science-verification data once released (expected from 2027). |
+| A noise window is fixed at 35 pixels, so under a beam several pixels wide it holds few independent samples: its estimate scatters, and patches of each noise map read well below the true noise. | Noise peaks in those patches pass as faint sources, and single cases move by chance whenever the noise estimate changes. | Judge a noise change by whole-map tails against injected noise, not single cases; windows scaled with the restoring beam (deferred) would narrow the scatter. |
 | Short checks miss a rare regression, or scientific campaigns absorb the schedule again. | A defect reaches a `0.x` release, or performance and scale slip. | Releases stay experimental and each escaped defect adds a fixed case; iteration budgets, cached references and endpoints limited to Rapthor-consumed fields hold the schedule; the one powered study at task 29 is the backstop. |
 
 ## Scientific gates
@@ -535,6 +530,11 @@ adopted only by a deliberate plan decision, which invalidates cached
 reference outputs. Aegean comparisons are paused: neither binding nor run
 routinely, and task 29's design decides whether to reinstate them.
 
+- No change degrades the science (decision of 18 October): a change keeps
+  or improves every case it moves on the quick check, the agreement
+  check's truth measures and the truth catalogues, not only the gated
+  endpoints, and an escaped defect first gains a fixed case that fails
+  without its repair.
 - Each campaign uses its own prospectively reviewed endpoint registry and
   decision contract. Choose a whole incumbent before viewing results; never
   combine historical best values into a synthetic comparator.
