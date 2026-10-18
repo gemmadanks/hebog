@@ -29,7 +29,7 @@ that calls it is not yet.
 | --- | --- | --- |
 | 1 | **Scientific equivalence** with what the consuming pipeline needs | Serial execution is the reference; every other mode must reproduce it |
 | 2 | **Scalability** to 100,000 × 100,000-pixel images on hundreds of nodes | No step may need a whole image on one worker |
-| 3 | **Performance**: the complete pipeline step at least 50% faster than the PyBDSF reference | Measured end to end, never from isolated kernels |
+| 3 | **Performance**: the source-finding part of the pipeline step at least twice as fast as the PyBDSF reference where PyBDSF is slow, on sectors with many sources, and no slower elsewhere | Measured end to end, never from isolated kernels |
 | 4 | **Interoperability** with any pipeline | No dependency on Rapthor, Prefect or LSMTool; Dask is imported only when a Dask executor is requested |
 | 5 | **Maintainability** | Pure functions, immutable records, inward-pointing dependencies |
 
