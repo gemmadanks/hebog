@@ -31,6 +31,7 @@ from hebog.algorithms.background import (
     interpolate_prepared_rms_grid,
     plan_rms_grid,
     plan_rms_window_batches,
+    prepare_crowded_local_noise_rms_grid,
     prepare_local_noise_rms_grid,
     prepare_refinement_rms_grid,
     prepare_rms_grid_for_interpolation,
@@ -84,6 +85,11 @@ _LOCAL_NOISE_MINIMUM_COARSE_FRACTION = 0.8
 # handful of windows clear, most cells would take a distant window's
 # estimate and the map would be a patchwork of those few values.
 _LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE = 0.5
+# In a crowded field the unprotected coarse RMS includes confusion, and near a
+# bright source its artefacts, which can raise it to two or three times the
+# noise a clean window reads; a coarse window over a source wider than it
+# reads ten to a hundred times that.
+_CROWDED_MAXIMUM_NOISE_RATIO = 3.0
 # Each round's cost per pixel of its largest read, which a task declares
 # (``hebog.stages.task_memory``): the largest traced task peak over that read
 # on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
@@ -1234,6 +1240,38 @@ def _adopt_protected_coarse(  # noqa: PLR0913
     return protected_grids, supported_regions
 
 
+def _prepare_local_noise(
+    statistics: RmsGridStatistics,
+    coarse: PreparedRmsGrid,
+    config: BackgroundRmsConfig,
+) -> PreparedRmsGrid:
+    """Fill the local-noise grid from its clean windows.
+
+    Where clean windows reach too few cells, filling the rest from them
+    would copy a few distant windows across the field, so beyond their
+    reach the coarse estimate stands, except where it reads well above the
+    nearest clean window's noise, as over a source wider than a coarse
+    window (:func:`prepare_crowded_local_noise_rms_grid`).
+    """
+    reach = _half_coarse_window_cells(config)
+    if (
+        clean_cell_coverage(statistics.available, reach)
+        < _LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE
+    ):
+        return prepare_crowded_local_noise_rms_grid(
+            statistics,
+            coarse,
+            maximum_noise_ratio=_CROWDED_MAXIMUM_NOISE_RATIO,
+            clean_cell_reach_yx=reach,
+        )
+    return prepare_local_noise_rms_grid(
+        statistics,
+        coarse,
+        minimum_coarse_fraction=_LOCAL_NOISE_MINIMUM_COARSE_FRACTION,
+        clean_cell_reach_yx=reach,
+    )
+
+
 def refine_background_rms_grids(  # noqa: PLR0913
     source: WindowReadable,
     coarse_grids: BackgroundRmsGrids,
@@ -1355,30 +1393,21 @@ def refine_background_rms_grids(  # noqa: PLR0913
             executor,
             policy=multiscale_protection,
         )
-        reach = _half_coarse_window_cells(config)
-        local_noise = prepare_local_noise_rms_grid(
-            statistics,
-            coarse_grids.coarse,
-            minimum_coarse_fraction=_LOCAL_NOISE_MINIMUM_COARSE_FRACTION,
-            clean_cell_reach_yx=reach,
+        local_noise = _prepare_local_noise(
+            statistics, coarse_grids.coarse, config
         )
-        # A field so crowded that fine windows clear of source support reach
-        # too few of its cells, or none at all, is too crowded to protect: a
-        # protected coarse estimate there rests on the few pixels farthest
-        # from every source, and the local noise would copy a few distant
-        # windows across the field. The unprotected sigma-clipped estimate
-        # stands instead, as PyBDSF's does; its anchors refine the
-        # background but not the RMS (interpolate_background_rms_tile), and
-        # local noise refines nothing.
-        if (
-            clean_cell_coverage(statistics.available, reach)
-            < _LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE
-        ):
+        # A field so crowded that no fine window anywhere clears source
+        # support is too crowded to protect: a protected coarse estimate
+        # there rests on the few pixels farthest from every source. The
+        # unprotected sigma-clipped estimate stands instead, as PyBDSF's
+        # does; its anchors refine the background but not the RMS
+        # (interpolate_background_rms_tile), and the local noise refines
+        # nothing.
+        if not local_noise.scientifically_available:
             coarse_grids, candidate_regions = (
                 unprotected_grids,
                 unprotected_regions,
             )
-            local_noise = replace(local_noise, scientifically_available=False)
         coarse_grids = replace(
             coarse_grids,
             local_noise=local_noise,
