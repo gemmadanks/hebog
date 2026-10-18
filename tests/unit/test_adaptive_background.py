@@ -301,6 +301,52 @@ def test_adaptive_refinement_raises_local_rms_only_near_candidate() -> None:
     np.testing.assert_allclose(far_tile.rms[0, 0], grids.coarse.rms[0, 0])
 
 
+def test_refused_local_noise_keeps_the_coarse_rms_beside_candidates() -> None:
+    """A field too crowded for local noise keeps the coarse RMS.
+
+    Fine windows around a bright candidate protect only its own support, so
+    in a crowded field they read neighbouring sources' emission as noise.
+    Where local noise was refused, that raise is not applied; the background
+    is still refined around the candidate.
+    """
+    y, x = np.indices((40, 44))
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    image[15:26, 17:28] *= 5.0
+    image[20, 22] = 50.0
+    source = _ArrayImageSource(image)
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        _config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=((20.0, 22.0),),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    refused = replace(
+        grids,
+        local_noise=replace(grids.coarse, scientifically_available=False),
+    )
+    tile = plan_image_partitions(
+        image_shape_yx=image.shape,
+        tile_core_shape_yx=image.shape,
+        halo_yx=(0, 0),
+    ).tiles[0]
+
+    raised, kept = (
+        estimate_background_rms_tile(
+            source, prepare_background_rms_tile_request(tile, case, _config())
+        )
+        for case in (grids, refused)
+    )
+    coarse = interpolate_prepared_rms_grid(
+        grids.coarse, tile.core_bounds, np.isfinite(image)
+    )
+
+    assert np.any(raised.rms > coarse.rms)
+    np.testing.assert_array_equal(kept.rms, coarse.rms)
+    np.testing.assert_array_equal(kept.background, raised.background)
+
+
 def test_adaptive_refinement_excludes_connected_bright_source_support() -> (
     None
 ):

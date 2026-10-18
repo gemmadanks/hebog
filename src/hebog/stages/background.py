@@ -1367,8 +1367,9 @@ def refine_background_rms_grids(  # noqa: PLR0913
         # protected coarse estimate there rests on the few pixels farthest
         # from every source, and the local noise would copy a few distant
         # windows across the field. The unprotected sigma-clipped estimate
-        # stands instead, as PyBDSF's does, with its anchors, and the local
-        # noise refines nothing.
+        # stands instead, as PyBDSF's does; its anchors refine the
+        # background but not the RMS (interpolate_background_rms_tile), and
+        # local noise refines nothing.
         if (
             clean_cell_coverage(statistics.available, reach)
             < _LOCAL_NOISE_MINIMUM_CLEAN_COVERAGE
@@ -1668,9 +1669,11 @@ def interpolate_background_rms_tile(
                 float, request.transition_width_pixels
             ),
         )
-    # Local noise that keeps no cell anywhere refines nothing, as a bright
-    # region without a usable fine cell does: the noise above stands, which
-    # refine_background_rms_grids has made the unprotected coarse estimate.
+    # Local noise refused for a field too crowded to measure it leaves the
+    # unprotected coarse RMS that refine_background_rms_grids keeps. The fine
+    # windows around a bright candidate protect only its own support, so in
+    # such a field they read neighbouring sources as noise, and raising the
+    # RMS from them cuts into those sources on the candidate's side.
     if (
         request.local_noise is not None
         and request.local_noise.scientifically_available
@@ -1687,6 +1690,8 @@ def interpolate_background_rms_tile(
             fallback_cell_count=result.fallback_cell_count
             + noise.fallback_cell_count,
         )
+    elif request.local_noise is not None:
+        result = replace(result, rms=coarse.rms)
     if request.background == "zero":
         # PyBDSF's mean_map="zero": the RMS above stands, and nothing is
         # subtracted where a background was defined.

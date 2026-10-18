@@ -77,7 +77,7 @@ is checked once before 1.0.0. The limits are the plan's
 
 | Measurement | Target | Latest | Date and source |
 | --- | --- | --- | --- |
-| Rapthor retained/rejected components | The truth-based limits of the plan's scientific gates: real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background: 0.11 to 0.13% lost, injected sources kept as `master` keeps them, 0.15 to 0.20% false islands. `compact` with a zero background fails: 0.81% lost overall but 5.4% on extended sources and 3.5% at image edges, and 1.03% false islands. Released 1.14.1 passes. Agreement with `master`, 92.1 to 92.6%, is reported, not gated; strata and causes are [below](#rapthor-profile-agreement) | 17 October, `just rapthor-agreement` run `t75-coverage-1` |
+| Rapthor retained/rejected components | The truth-based limits of the plan's scientific gates: real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background: 0.09 to 0.12% lost, injected sources kept as `master` keeps them, 0.15 to 0.20% false islands. `compact` with a zero background fails: 0.83% lost overall but 5.5% on extended sources and 3.5% at image edges, and 1.03% false islands. Released 1.14.1 passes. Agreement with `master`, 92.3 to 92.6%, is reported, not gated; strata and causes are [below](#rapthor-profile-agreement) | 18 October, `just rapthor-agreement` run `rmsfix-1` |
 | Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated quick-check case with compact truth, 0.998 on the crowded field; the wide extended source's disc and knots are not fitted one by one (0.300), which this gate does not cover | 9 October, quick check `release-0.19.0-rc2` |
 | Isolated SNR ≥10 position, median / p95 | ≤0.02 / 0.10 beam | 0.0003 / 0.0005 (`continuum`), 0.0002 / 0.0006 (`compact`) | 6 October, equivalence lane on the frozen 256² input |
 | Isolated SNR ≥10 source and component peak flux, median / p95 | ≤2% / 5% | 0.17% / 0.21% (`continuum`), 0.04% / 0.13% (`compact`) | same |
@@ -143,10 +143,10 @@ survey's PyBDSF catalogue has 22,420 sources and 28,559 Gaussians
 ### Rapthor-profile agreement
 
 Rapthor keeps a sky-model component where the finder's mask is set at its
-pixel. `just rapthor-agreement` (run `t75-coverage-1`, 17 October, with
-the repair of `continuum`'s local noise below) counts how often Hebog's
+pixel. `just rapthor-agreement` (run `rmsfix-1`, 18 October, with the
+repairs of `continuum`'s local noise below) counts how often Hebog's
 mask and pinned `master`'s decide alike, over every distinct pixel holding
-a Gaussian centre that `master` or any lane fitted: 20,221 on the quick
+a Gaussian centre that `master` or any lane fitted: 20,277 on the quick
 check's cases with a `master` reference, a 3,000² LoTSS-DR3 window and the
 ELAIS-N1 true-sky and apparent images at 2,048². Percentages agree;
 grouping is the share of components both keep whose patch holds the same
@@ -154,12 +154,12 @@ components.
 
 | Lane | All | Bright | Extended | Edge | Crowded | Sparse | True-sky | Apparent | Grouping |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `compact`, zero background | 92.6 | 99.2 | 91.1 | 92.0 | 91.1 | 93.7 | 91.9 | 92.0 | 0.969 |
-| `compact`, estimated | 91.6 | 98.3 | 87.5 | 91.5 | 90.3 | 92.6 | 90.8 | 90.8 | 0.963 |
-| `continuum`, zero background (Rapthor's) | 92.1 | 100 | 97.6 | 94.2 | 91.5 | 92.6 | 92.3 | 92.4 | 0.965 |
-| `continuum`, estimated | 91.6 | 100 | 97.3 | 93.5 | 91.9 | 91.4 | 91.6 | 91.6 | 0.962 |
-| Released PyBDSF 1.14.1 (control) | 99.3 | 100 | 99.0 | 100 | 98.6 | 99.9 | 99.3 | 99.3 | 0.999 |
-| Components | 20,221 | 1,011 | 1,568 | 600 | 8,639 | 11,582 | 8,236 | 8,251 | |
+| `compact`, zero background | 92.6 | 99.2 | 91.4 | 92.1 | 91.0 | 93.7 | 91.9 | 92.0 | 0.969 |
+| `compact`, estimated | 91.5 | 98.3 | 87.7 | 91.6 | 90.1 | 92.6 | 90.7 | 90.8 | 0.963 |
+| `continuum`, zero background (Rapthor's) | 92.3 | 100 | 97.7 | 94.2 | 91.7 | 92.7 | 92.5 | 92.5 | 0.965 |
+| `continuum`, estimated | 91.8 | 100 | 97.3 | 94.2 | 92.2 | 91.5 | 91.8 | 91.8 | 0.962 |
+| Released PyBDSF 1.14.1 (control) | 99.3 | 100 | 99.3 | 100 | 98.6 | 99.9 | 99.3 | 99.3 | 0.999 |
+| Components | 20,277 | 1,011 | 1,563 | 604 | 8,694 | 11,583 | 8,264 | 8,279 | |
 
 Every lane agrees on the 3 masked components. The disagreement is on real
 LOFAR fields: the generated cases agree fully but for `varying-noise`, the
@@ -169,7 +169,9 @@ dense and crowded fields and `wide-extended-source`. `continuum` agreed on
 the nearest clear one's estimate, so its RMS was a patchwork from 0.7 to
 2.4 times the noise. A field whose clear windows reach fewer than half its
 cells now keeps the unprotected estimate, as one with no clear window
-did. On Rapthor's catalogue cuts, `continuum` drops 143 to 157 matched
+did; around its bright sources only the background is refined, since
+the windows there read a neighbouring extended source as noise and cut
+its mask on one side (18 October). On Rapthor's catalogue cuts, `continuum` drops 143 to 157 matched
 sources `master` keeps because they have several components, and every
 lane publishes `DC_Maj` 0 for 1,600 to 1,700 fits of 10″ or more, against
 `master`'s 439, so 304 to 343 matched sources that `master`'s cuts drop
@@ -188,14 +190,14 @@ injected sources holds 90, 30 in each real image.
 
 | Measure | `compact`, zero | `compact`, estimated | `continuum`, zero (Rapthor's) | `continuum`, estimated | `master` | Released 1.14.1 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Real components `master` keeps that the finder rejects: all, and worst strata | 0.81% of 12,794; extended 5.4%, edge 3.5% | 1.40%; extended 9.0%, edge 4.0% | 0.11%; edge 0.5% | 0.13%; edge 0.5% | – | 0.02%; extended 0.2% |
-| Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 76, 91, 100% | 74, 93, 100% | 76, 89, 100% | 76, 89, 100% |
+| Real components `master` keeps that the finder rejects: all, and worst strata | 0.83% of 12,798; extended 5.5%, edge 3.5% | 1.41%; extended 9.1%, edge 4.0% | 0.09%; edge 0.5% | 0.12%; edge 0.5% | – | 0.04%; extended 0.3% |
+| Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 78, 91, 100% | 77, 93, 100% | 76, 89, 100% | 76, 89, 100% |
 | Injected flux, median ratio at 10, 20 and 50σ | 0.990, 0.986, 0.989 | 0.998, 0.992, 0.993 | 0.988, 0.986, 0.989 | 1.000, 0.992, 0.992 | 0.984, 0.976, 0.985 | 0.984, 0.976, 0.985 |
 | Generated: components decided as the ideal mask decides, of 1,273 | 97.9% | 95.5% | 98.7% | 98.7% | 99.1% | 99.1% |
 | Generated: ideal-mask pixels and flux covered | 0.64, 0.81 | 0.60, 0.76 | 0.94, 0.99 | 0.87, 0.97 | 0.76, 0.90 | 0.77, 0.90 |
 | Generated: mask on no emission | 0.07% | 0.17% | 0.06% | 0.05% | 0.77% | 0.47% |
-| Negated real images: false islands, of the islands on the originals | 126 of 12,207 | 121 of 12,296 | 25 of 12,448 | 19 of 12,583 | 79 of 12,389 | 76 of 12,333 |
-| Real images: RMS more than 20% above, and below, the negative-pixel noise at components | 22.6%, 2.2% | 22.6%, 2.2% | 11.9%, 5.8% | 11.9%, 5.8% | 30.4%, 1.5% | 30.4%, 1.5% |
+| Negated real images: false islands, of the islands on the originals | 126 of 12,207 | 121 of 12,296 | 25 of 12,486 | 19 of 12,635 | 79 of 12,389 | 76 of 12,333 |
+| Real images: RMS more than 20% above, and below, the negative-pixel noise at components | 22.6%, 2.1% | 22.6%, 2.1% | 10.7%, 5.8% | 10.7%, 5.8% | 30.3%, 1.4% | 30.3%, 1.4% |
 | Truth-based gate | Fails: extended, edge, false islands | Fails: overall, extended, edge, crowded | Passes | Passes | Reference | Passes |
 
 `continuum` now passes the truth-based gate under either background and is
