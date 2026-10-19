@@ -278,8 +278,8 @@ comparison and the quick benchmark never traces.
 
 `audit_task_memory.py` traces one serial run and compares each round's
 largest task peak with the memory the round declares, and the analysis's
-peak between tasks with `hebog.analysis_memory_bytes` for the sources the run
-published. It exits with status
+peak between tasks with `hebog.analysis_memory_bytes` for the image and the
+sources the run published. It exits with status
 1 when a round declares nothing or a peak exceeds its declaration. The
 tracing executor and the document live in `hebog.validation.task_memory_audit`,
 with unit tests in `tests/unit/validation/test_task_memory_audit.py`; the

@@ -15,14 +15,19 @@ from hebog.executors import Executor
 
 # What one analysis holds in the process that runs it, as traced between its
 # tasks with Hebog's modules imported: a fixed part, the records the passes
-# keep for every published source, and a little per pixel. A least-squares
-# fit over the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the
-# dense ELAIS-N1 central 5,000 pixels, with and without a flat-noise image,
-# gave 142 MiB, 42.4 KB a source and 0.17 bytes a pixel; these constants lie
-# above every one of those runs (plan task 17).
+# keep for every published source, and the background's local-noise requests,
+# which are built for the whole image before any is submitted. A
+# least-squares fit over the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3
+# anchors and the dense ELAIS-N1 central 5,000 pixels, with and without a
+# flat-noise image, gave 142 MiB and 42.4 KB a source, but could not separate
+# pixels from sources, because the LoTSS-DR3 anchors' sources grow with their
+# area. The sparse, finely sampled LOFAR-HD ELAIS-N1 mosaic holds about 3.6
+# bytes a pixel over its modules, sources included, at both 7,500 and 22,500
+# pixels a side. These constants lie above every one of those runs.
 _ANALYSIS_TRACED_BASE_BYTES = 152 * 1024 * 1024
 _ANALYSIS_TRACED_BYTES_PER_SOURCE = 44 * 1024
-_ANALYSIS_TRACED_PIXELS_PER_BYTE = 4
+_ANALYSIS_TRACED_PIXEL_BYTES_NUMERATOR = 5
+_ANALYSIS_TRACED_PIXEL_BYTES_DENOMINATOR = 2
 _HEADROOM_NUMERATOR, _HEADROOM_DENOMINATOR = 5, 4
 
 
@@ -140,12 +145,13 @@ def analysis_memory_bytes(
 
     ``find_sources`` keeps Hebog's modules, the records each pass returns
     for every source, and the products it publishes in the process that
-    calls it, so what it holds grows with the sources it finds rather than
-    with the image. Its tasks are not counted: each declares its own memory
-    to the executor, which a ``DaskExecutor`` attaches to the task under
-    the caller's memory resource. Reserve this amount for the task that
-    calls ``find_sources``, for example under the same Dask resource. With
-    a ``SerialExecutor`` or ``ThreadExecutor`` the tasks run in the calling
+    calls it, so what it holds grows with the sources it finds, and with
+    the image through the background's local-noise requests. Its tasks are
+    not counted: each declares its own memory to the executor, which a
+    ``DaskExecutor`` attaches to the task under the caller's memory
+    resource. Reserve this amount for the task that calls
+    ``find_sources``, for example under the same Dask resource. With a
+    ``SerialExecutor`` or ``ThreadExecutor`` the tasks run in the calling
     process, so the memory they are admitted comes on top. A request with a
     flat-noise image is covered.
 
@@ -156,8 +162,8 @@ def analysis_memory_bytes(
             image; the reservation is too small if more are found.
 
     Returns:
-        A fixed amount, an amount per expected source and a byte for every
-        four pixels, with a quarter of headroom, in bytes.
+        A fixed amount, an amount per expected source and two and a half
+        bytes a pixel, with a quarter of headroom, in bytes.
 
     Raises:
         ValueError: If a dimension is not a positive integer or the source
@@ -186,6 +192,9 @@ def analysis_memory_bytes(
     traced = (
         _ANALYSIS_TRACED_BASE_BYTES
         + _ANALYSIS_TRACED_BYTES_PER_SOURCE * int(expected_sources)
-        + int(height) * int(width) // _ANALYSIS_TRACED_PIXELS_PER_BYTE
+        + int(height)
+        * int(width)
+        * _ANALYSIS_TRACED_PIXEL_BYTES_NUMERATOR
+        // _ANALYSIS_TRACED_PIXEL_BYTES_DENOMINATOR
     )
     return -(-traced * _HEADROOM_NUMERATOR // _HEADROOM_DENOMINATOR)
