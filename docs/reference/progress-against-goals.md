@@ -16,7 +16,7 @@ history; none is scientific qualification. User-facing limits are in
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid for 1.0.0 and on SKA-Low precursor data at the later release whose envelope admits it | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run; MeerKAT MIGHTEE images fit the envelope; the only SKA-Low precursor mosaic (GLEAM-X) needs the 45,000-pixel tier and a position-dependent PSF, whose effect is to be measured and documented. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `continuum` profile and a zero background, the profile that passes the truth-based gate, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
-| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and two open defects remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 91.4% of sky-model components under the `continuum` profile with a zero background, which Rapthor runs; released PyBDSF reaches 99.3%, so the former 99.5% target was retired on 16 October for a truth-based gate, whose limits were set on 17 October. `continuum` passes it under either background since the repair of its local noise in crowded fields: it loses almost none of the real components `master` keeps, keeps injected sources as often as `master` or more and covers more of the true emission. `compact` fails it: it loses 5.4% of `master`'s real extended components and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%. | Development evidence only |
+| Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 91.4% of sky-model components under the `continuum` profile with a zero background, which Rapthor runs; released PyBDSF reaches 99.3%, so the former 99.5% target was retired on 16 October for a truth-based gate, whose limits were set on 17 October. `continuum` passes it under either background since the repair of its local noise in crowded fields: it loses almost none of the real components `master` keeps, keeps injected sources as often as `master` or more and covers more of the true emission. `compact` fails it: it loses 5.4% of `master`'s real extended components and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%. | Development evidence only |
 | Performance | The source-finding part of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's `filter_sources` call, ≤0.50 of pinned PyBDSF `master`'s on dense sectors, where PyBDSF is slow (provisionally at least 10,000 sources in `master`'s catalogue), and no slower than `master` on the rest (an upper bound of 1.05), like for like on one node and, on dense sectors, across the nodes Rapthor deploys, for sectors up to the 1.0.0 envelope; each finder's growth with the source count and cores and the complete step reported beside it | No dense sector has been measured, and both sparse cells fail parity. On a 3,000² LoTSS-DR3 window with four cores (emulated x86-64), Hebog's finder part is 2.43 times `master`'s on Rapthor's thread path (162 s against 67 s; complete step 2.03) and 1.99 on four Dask workers in one repetition (171 s against 86 s); both burn about the same CPU, so parity needs Hebog to keep as many of the four cores busy as `master`. On the 10,000² anchor, where `master` finds 9,276 sources, just under the dense threshold, with four Dask workers (16 October, one repetition) the finder part is 1.23 (1,249 s against 1,019 s; complete step 1.19), both finders keeping about three of four cores busy and Hebog using 11% more CPU; PyBDSF could not run the 15,402² mosaic in the 16 GB container VM. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association; with the same settings it takes 2.0 h at 0.22.0, and 1.3 h under the `compact` default. On a local Dask cluster one sector takes 0.36 of one worker's time at four workers and 0.32 at six, with a 20% serial share; twelve threads are barely faster than one, and four Dask workers gain nothing on a 3,000² sector of four tiles. The ratio falls as the source count rises. No regression on the Hebog curve. | Dense gate unmeasured; parity failing |
 | Scalability | The 22,500² tier for 1.0.0, covering Rapthor's default sectors, with one sector scaling across 1, 2, 5 and 10 nodes with invariant products; 45,000² on the 18 GiB development machine and 90,000² on the cluster as later minor releases; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 15,402². Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.7 GiB on the whole 15,402² mosaic and still grows about 1.7 bytes a pixel, which forecasts about 2.1 GiB at 22,500². Every task declares its memory, and the analysis's own records grow with the sources found, about 42 KB each. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 15,402 of 22,500 pixels |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.22.0 (17 October 2026) is the first release on PyPI, published with attestations; it passed its release check on 15 October and installs from PyPI on Python 3.12 and 3.14. Earlier releases are on GitHub and TestPyPI. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
@@ -225,13 +225,19 @@ that it finds 1.03% false islands. The truth-based gate's limits, set on
 
 ### Open scientific defects
 
-- **Clipped RMS reads low.** The clipped window RMS has no
+- **Clipped RMS reads low (kept).** The clipped window RMS has no
   truncation correction: on noise alone it reads 1.6% low on white noise
-  and 3.2 to 3.9% low on beam-correlated noise (7 October). Over whole
-  maps on the agreement check, `continuum` reads 0.999 of the injected
-  noise and 0.982 of the negative-pixel noise, against pinned `master`'s
-  1.097 and 1.054 (18 October). The correction is measured next, before
-  the cluster work.
+  and 3.2 to 3.9% low on beam-correlated noise (7 October), and its median
+  is 0.971 to 0.988 of the injected noise on the quick check's generated
+  maps. Over whole maps on the agreement check, `continuum` reads 0.999 of
+  the injected noise and 0.982 of the negative-pixel noise, against pinned
+  `master`'s 1.097 and 1.054. Correcting it brought the median within
+  about 1.5% of the injected noise but lowered completeness on every truth
+  measure, by 0.5 to 1.1 points at 5σ on SDC1 and from 0.322 to 0.289 of
+  injected 5σ sources under `continuum`, without a measurable gain in
+  reliability, so it stays uncorrected. The windows' scatter matters more:
+  10 to 14% of each generated noise map reads more than 10% below the
+  injected noise (18 October).
 - **Estimated background beside a giant source.** With an estimated
   background, a crowded field's coarse background holds a giant source's
   emission and subtracts it, so the mask loses part of the source: 5 of
@@ -312,17 +318,15 @@ The next actions, as the plan orders them on 18 October:
 
 1. Agent: raise the 22,500² tier, measured on the repaired `continuum`
    profile that Rapthor now runs.
-2. Agent: then measure the clipped-RMS correction for the maintainer's
-   decision, so the cluster work measures the calibrated noise.
-3. Agent: then one sector across the cluster, starting by measuring both
+2. Agent: then one sector across the cluster, starting by measuring both
    finders against the source count and cores in the matched container,
    then sizing tiles and task counts from the core budget and the memory a
    core needs and cutting serial work, in four increments that each
    release.
-4. Human: push Rapthor's Hebog branch, which testing and trials use
+3. Human: push Rapthor's Hebog branch, which testing and trials use
    without waiting for a merge; file the Astropy report drafted on
    5 October; take the pending decisions.
-5. Agent: the deployment envelope, the matched benchmarks on the cells the
+4. Agent: the deployment envelope, the matched benchmarks on the cells the
    VM holds, the store and planner work and the cluster benchmark's
    packaging; the gate itself is measured on the cluster. The remaining
    scientific measurement (the varying PSF) waits until this work is
