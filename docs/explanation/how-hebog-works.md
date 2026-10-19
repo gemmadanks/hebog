@@ -65,7 +65,7 @@ excluded everywhere, as is every pixel of a 3×3 square of one repeated
 value, so zero padding is excluded to its last pixel (see
 [invalid pixels](../reference/input-header-contract.md#invalid-pixels)). Anything else is rejected before analysis, with an error
 that says what is missing. [Capability and status](../reference/release-status.md)
-lists the exact requirements, including the current 15,402-pixel size limit.
+lists the exact requirements, including the current 22,500-pixel size limit.
 
 ### 2. Estimate background and noise
 

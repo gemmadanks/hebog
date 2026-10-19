@@ -93,7 +93,7 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.profile import ContinuumScienceProfile
 
 
-_MAXIMUM_PREVIEW_DIMENSION = 15402
+_MAXIMUM_PREVIEW_DIMENSION = 22500
 # The widest restoring beam, in pixels of FWHM along its major axis, that the
 # finder is measured to serve. The background and noise meshes are fixed in
 # pixels, and on injected isolated sources every source at SNR 10 or more is
@@ -1461,7 +1461,7 @@ def find_sources(
     """Analyse one supported FITS image and atomically publish its products.
 
     The public finder supports ICRS or FK5 J2000 ``Jy/beam`` images no larger
-    than 15,402 pixels on either axis; catalogue positions are ICRS. An image
+    than 22,500 pixels on either axis; catalogue positions are ICRS. An image
     outside the input header contract is refused before the analysis starts,
     and the input file is released whatever the outcome. Relative
     request paths are bound to the caller's working directory before any

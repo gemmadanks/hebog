@@ -140,7 +140,7 @@ matters most.
 | Round | One `map_batches` call on the executor: one function over one set of batches, with one declared memory. A stage runs one or more rounds. |
 | Boundary summary | The small record a tile task returns about its core's edges, such as the labels on each edge and each label's pixel count, bounding box and peak, so that objects crossing tile edges can be joined without sending pixels. |
 | Reconciliation | Joining tile summaries into one global answer, such as one label for a region that crosses several tiles, through a pairwise tree fixed by tile order so that the result does not depend on completion order. |
-| Invariance | The guarantee that tile shape, partition origin, worker count, task order and retries do not change the products. Tested by comparing one tile against an eight-by-eight grid and Serial against Thread and Dask. |
+| Invariance | The guarantee that tile shape, partition origin, worker count, task order and retries do not change the products. Tested by comparing one tile against an eleven-by-eleven grid and Serial against Thread and Dask. |
 | Read budget | `maximum_batch_read_pixels`: the most pixels one object task may read. An object whose window exceeds it is measured from the cores that hold it instead. |
 | Wide object | An object whose window exceeds the read budget: a filament crossing the image, say. The driver reduces it from the pixels its cores return, the one memory term that grows with an object rather than a tile. |
 | Declared memory | The `TaskRequirement` every round states for its tasks: the measured cost per read pixel times the largest read, with headroom. The executor refuses a task larger than a worker admits and runs only as many at once as fit. |

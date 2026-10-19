@@ -17,7 +17,7 @@ version when results must be repeatable.
 | Units | `BUNIT=Jy/beam`, or a supplied unit when the header has no `BUNIT`. |
 | Coordinates | ICRS or FK5 J2000 celestial WCS. A header with `EQUINOX = 2000` and no `RADESYS`, as written by WSClean, is FK5 J2000. Catalogue positions are always ICRS. Other frames are rejected. |
 | Beam and frequency | Finite positive `BMAJ` and `BMIN`, a `BPA`, and a positive reference frequency. The request can supply a value the header omits, never one it already has. A beam wider than 10 pixels (FWHM) is refused. |
-| Image size | At most 15,402 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
+| Image size | At most 22,500 pixels on each side, and at most 1,000,000 pixels in all when the shorter side is under 600. Other images fail before analysis. |
 | Pixel values | Any `BITPIX`. Stored integers are scaled by `BSCALE` and `BZERO`. |
 | Invalid pixels | NaN pixels, stored integers equal to `BLANK`, and every pixel of a 3×3 square of one repeated value, such as zero padding, are excluded from estimation, detection and measurement. |
 | Profiles | `continuum` (default), or `compact`, which omits extended-source association and reports `extended-emission-incomplete`. The background is estimated (default) or, as PyBDSF's zero mean map, zero. |
@@ -29,12 +29,12 @@ Every scientific step runs on bounded tiles through the executor, an image
 larger than 2,048 pixels on either side is reconciled across several tiles
 rather than held as one, and the driver holds no image-sized plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
-evidence is measured. A serial run of the whole 15,402² LoTSS-DR3 mosaic
-allocates at most 1.7 GiB: one tile's working set plus the records the
-passes keep from every tile, which still grow about 1.7 bytes a pixel.
-Bounding them is planned before much larger images are admitted. A
-four-worker local Dask cluster finishes the 10,000² LoTSS-DR3 anchor in
-about 0.4 of the serial time, with identical products. Threads in one
+evidence is measured. A serial run of the whole 22,500² LOFAR-HD ELAIS-N1
+mosaic allocates at most 1.8 GiB, almost all of it what the analysis holds
+between tasks, which grows with the image, and keeps about 50 GiB of
+intermediate planes on disk. Bounding both is planned before much larger
+images are admitted. A four-worker local Dask cluster finishes the 10,000²
+LoTSS-DR3 anchor in about 0.4 of the serial time, with identical products. Threads in one
 process barely speed a run up, because Python's global lock holds them:
 twelve took 0.84 of one thread's time on that anchor. Run in parallel with
 Dask workers in separate processes.
@@ -48,8 +48,8 @@ image, for the caller to reserve, and `hebog.expected_source_count`
 estimates those sources from the image ([integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)).
 One declared limit remains: an object wider than a task's read budget is
 reduced on the driver from its own pixels, so that memory grows with the
-object rather than the tile. A connected object filling a 15,402-pixel
-field would need about 44 GB on the driver; no object in the real LoTSS-DR3
+object rather than the tile. A connected object filling a 22,500-pixel
+field would need about 94 GB on the driver; no object in the real LoTSS-DR3
 fields measured comes within a factor of ten of the budget. The
 [performance profile](performance-profile.md#what-a-run-allocates) and
 [progress against goals](progress-against-goals.md#scalability) have the
