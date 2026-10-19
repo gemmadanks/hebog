@@ -393,7 +393,7 @@ def test_a_refused_sector_leaves_rapthor_free_to_fall_back(
     Rapthor's four files exists, an earlier run's included, so the
     products Rapthor reads afterwards are the fallback's alone.
     """
-    wide = np.random.default_rng(3).normal(0.0, 1.0, (8, 15_403))
+    wide = np.random.default_rng(3).normal(0.0, 1.0, (8, 22_501))
     images = tmp_path / "images"
     request = RapthorSourceFindingRequest(
         true_sky_image_path=_write(
