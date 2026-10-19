@@ -124,9 +124,8 @@ its normalization images 5.9″ cells and 20 to 36″ beams.
 
 PyBDSF's `filter_skymodel` command took between 298 and 2,955 s per
 18,000² sector in one three-node benchmark run (16 and 17 September 2026).
-The default and benchmarked sector sizes exceed Hebog's 15,402-pixel
-envelope; the 22,500-pixel tier that covers them is the planned deployment
-envelope.
+Hebog's 22,500-pixel envelope covers the default and benchmarked sector
+sizes.
 
 ## Materialised products
 

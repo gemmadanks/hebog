@@ -25,8 +25,8 @@ just traced-peak --tier large --repetitions 2
 
 A profile ranks costs; only the quick benchmark establishes a speedup, and
 only `just traced-peak` establishes what a run allocates. All three raise the
-15,402-pixel public limit deliberately so the next tier can be measured
-before it is admitted: a figure above 15,402 pixels here is a measurement,
+22,500-pixel public limit deliberately so the next tier can be measured
+before it is admitted: a figure above 22,500 pixels here is a measurement,
 not a supported size.
 
 !!! warning "Measure on a quiet machine"
@@ -81,11 +81,12 @@ tier.
 `just traced-peak` measures `tracemalloc`'s peak in a fresh single-thread
 process on the quick benchmark's inputs and settings. Every repetition
 reports the process peak (traced from before Hebog is imported), the peak of
-the `find_sources` call alone and the import floor, a fixed 90.4 MiB that a
+the `find_sources` call alone and the import floor, 90.3 to 91.4 MiB, that a
 tracer started after the imports cannot see. Measured 26 to 30 September
-2026, two agreeing repetitions each, and the whole mosaic once more in the
+2026, two agreeing repetitions each, the whole LoTSS mosaic once more in the
 0.19.0 and 0.22.0 release checks of 8 and 15 October (`traced-peak` runs
-`release-0.19.0` and `release-0.22.0`):
+`release-0.19.0` and `release-0.22.0`), and the whole LOFAR-HD ELAIS-N1
+mosaic in two agreeing repetitions on 19 October (`tier-22500-anchor`):
 
 | case | pixels per side | traced peak | components |
 | --- | --- | --- | --- |
@@ -101,6 +102,7 @@ tracer started after the imports cannot see. Measured 26 to 30 September
 | LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
 | LoTSS-DR3 whole mosaic, 0.19.0 release check (one repetition) | 15,402 | 1,692.5 MiB | 20,792 |
 | LoTSS-DR3 whole mosaic, 0.22.0 release check (one repetition) | 15,402 | 1,692.6 MiB | 20,794 |
+| LOFAR-HD ELAIS-N1 whole mosaic | 22,500 | 1,872.7 MiB | 14,472 |
 
 Three things matter more than the exact figures.
 
@@ -116,8 +118,13 @@ multiscale tile task, a flat 1,247 MiB, plus what the pass keeps across
 tiles, which grows about 1.7 bytes a pixel: the tile summaries' per-label
 records (every candidate island, with no size cut), the per-tile island
 summaries and the reconciled label mappings, 112, 262 and 489 MiB at the
-three LoTSS sizes. At that slope the peak would be near 2.1 GiB at 22,500²
-and 4.3 GiB at 45,000². Background and RMS, which peak lower, grew about 3
+three LoTSS sizes. At that slope the peak would have been near 2.1 GiB at
+22,500². The whole LOFAR-HD ELAIS-N1 mosaic traces 1.8 GiB, but its peak is
+no longer a multiscale tile task: the analysis holds 1,854 MiB between
+tasks there, about 3.6 bytes a pixel, as on the mosaic's central 7,500²,
+where the background's local-noise requests held the most between tasks.
+At that rate 45,000² would hold about 7 GiB until the requests are bounded.
+Background and RMS, which peaked lower on the LoTSS sizes, grew about 3
 bytes a pixel (274, 545 and 962 MiB), unattributed on a real image; on
 synthetic grids the local-noise requests account for about 1.9 of it.
 Bounding these terms before the 45,000-pixel tier is planned, and
@@ -138,8 +145,8 @@ return the object's own pixels, which the driver joins in raster order. On a
 synthetic 10⁶-pixel object that costs 81 bytes an object pixel for an island
 row, 121 for a deferred parent's component records and 186 for a catalogue
 row, with no cap on a segment's size: a field-filling object would put about
-1.7 GB on the driver at 3,000², 19 GB at 10,000², 44 GB at 15,402² and 1.9 TB
-at 100,000². The one measured case, the `wide-objects-10000` filament of
+1.7 GB on the driver at 3,000², 19 GB at 10,000², 44 GB at 15,402², 94 GB
+at 22,500² and 1.9 TB at 100,000². The one measured case, the `wide-objects-10000` filament of
 553,817 pixels, cost about 100 MB, below the multiscale peak. No real
 LoTSS-DR3 object comes within a factor of ten of the budget, and a smooth
 object wider than the 150-pixel background box is absorbed by the background

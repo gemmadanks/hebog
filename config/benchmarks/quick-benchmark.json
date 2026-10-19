@@ -169,6 +169,26 @@
       },
       "tier": "large",
       "workload_class": "dense-or-extended"
+    },
+    {
+      "case": {
+        "case_id": "lofar-hd-elais-n1-22500",
+        "image": "benchmark-results/quick-benchmark/cutouts/lofar-hd-elais-n1-22500/image.fits",
+        "kind": "image",
+        "remote_source": {
+          "url": "https://lofar-surveys.org/public/ELAIS-N1-VLBI/mosaics/full_mosaic_12.fits",
+          "window": {
+            "size": 22500,
+            "x_start": 0,
+            "y_start": 0
+          }
+        },
+        "supplied_metadata": {
+          "reference_frequency_hz": 144000000.0
+        }
+      },
+      "tier": "large",
+      "workload_class": "dense-or-extended"
     }
   ],
   "dataset_manifest": "config/datasets/quick-science-check.json",

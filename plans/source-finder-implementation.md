@@ -18,15 +18,15 @@ tooling are in Git history at `4babf0b`.
 The figures behind this table, with their dates and run labels, are on the
 progress page; the two change together.
 
-| Item | Position on 18 October 2026 |
+| Item | Position on 19 October 2026 |
 | --- | --- |
 | Release | v0.22.0 (17 October), the first release on PyPI, carries the Rapthor integration (tasks 16, 20, 21, 23 and 77) and one sector's speed (tasks 73, 74, 71, 55 and 54); it passed its release check on 15 October. Every release is experimental and scientifically unqualified. |
-| Candidate | Public composition v23. The quick check's catalogue, RMS and mask are byte-identical to v0.19.0's; only the composition hash has moved. Development-unqualified. |
-| Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 15,402² envelope. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.22.0 on PyPI the branch is ready to push (task 79). |
+| Candidate | Public composition v23 with `continuum`'s crowded-field noise repaired (18 October); admitting the 22,500² tier moved no quick-check result. Development-unqualified. |
+| Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 22,500² envelope, admitted on 19 October. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.22.0 on PyPI the branch is ready to push (task 79). |
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October): at most 0.50 of pinned `master`'s on dense sectors, provisionally those where `master` finds at least 10,000 sources, and no slower than `master` on the rest (decision of 18 October). No dense sector has been measured, and both sparse cells fail parity. On the 3,000² sector Hebog's finder part is 2.43 times `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor, where `master` finds 9,276 sources, it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. The ratio falls as the source count rises. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
 | Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate. |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap on dense sectors, not yet measured, and on sparse ones, where Hebog is slower; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: raise the 22,500² tier (task 11), then start task 72 by measuring both finders against the source count and cores in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
+| Next action | Agent: start task 72 by measuring both finders against the source count and cores in the matched container. Human: push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and take the [decisions below](#decisions-pending). |
 | Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October); task 15 sits before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
@@ -114,11 +114,11 @@ interim `compact`; the truth-based gate's limits are those the
 rapthor-agreement` applies to every lane and the released control.
 Decided on 16 October and recorded in the rows: the 1.0.0 scope above; the
 gate's finder-part form and its measurement on the cluster; the retirement
-of the 99.5% agreement target; task 11 before task 56, whose
-completion-record split joins task 72 and whose local-noise term waits for
-the 45,000 tier; task 72 as four releases; the cluster benchmark as one
-sector at 1, 2, 5 and 10 nodes; task 15 as measurement and documentation,
-with a PSF-map input after 1.0.0.
+of the 99.5% agreement target; task 56's completion-record split joins
+task 72 and its local-noise term waits for the 45,000 tier; task 72 as
+four releases; the cluster benchmark as one sector at 1, 2, 5 and 10
+nodes; task 15 as measurement and documentation, with a PSF-map input
+after 1.0.0.
 
 1. **Independent acceptance (task 33).** Reviewers have not been named.
    *Recommendation:* approach the radio-astronomy and engineering reviewers
@@ -163,10 +163,11 @@ with a PSF-map input after 1.0.0.
   pinned `master` on a 15,402² sector). A cluster of up to 10 nodes runs
   one benchmark for 1.0.0 and never blocks development; record its
   hardware when that benchmark is scheduled.
-- **Disk.** The 22,500² tier needs about 12 GB; the maintainer frees disk to
-  about 60 GB before the 45,000² tier (8.1 GB of input, up to 16 GB of RMS
-  and mask output, up to about 24 GB of Zarr intermediates). The local
-  ladder stops at 45,000²; 90,000² runs only on the cluster.
+- **Disk.** A 22,500² run holds up to 49 GiB beside its 1.9 GiB input,
+  about 100 bytes a pixel, almost all of it uncompressed Zarr intermediates;
+  at that rate a 45,000² run needs about 200 GiB, so the intermediates shrink
+  before that tier (see [risks](#risks)). The local ladder stops at
+  45,000²; 90,000² runs only on the cluster.
 - **Data.** Scale testing uses public LOFAR images; no generated 100,000²
   image or simulated SKA-Low image is built, and the only generated large
   image is the 10,000² wide-object diagnostic. The public LoTSS-Deep DR2
@@ -316,20 +317,14 @@ test that fails for the reason its row states. **A review's figure is
 confirmed on a real anchor** before a task that changes cost or memory
 closes.
 
-The order, set on 9 October 2026 and amended through 18 October:
+The order, set on 9 October 2026 and amended through 19 October:
 
 1. **Push Rapthor's Hebog branch** (task 79), so Rapthor's CI runs on it
    and trials install Rapthor from it, with Hebog from PyPI. The
-   integration waits on no tier: its inputs are inside the 15,402²
-   envelope, and Rapthor's 3,000² demonstration sector is refused for its
-   30-pixel synthetic beam, not its size.
-2. **The 22,500² tier** (task 11). Rapthor's profile came first: the
-   truth-based gate showed on 17 October that `compact` trims bright
-   emission and `continuum` lost faint sources, so `continuum`'s local
-   noise was repaired and Rapthor now runs it, before task 72 measures and
-   models one sector's cost, scientific accuracy taking the time it needs
-   (decision of 17 October).
-3. **One sector across the cluster** (task 72), on the profile chosen.
+   integration waits on no tier: its inputs are inside the envelope, and
+   Rapthor's 3,000² demonstration sector is refused for its 30-pixel
+   synthetic beam, not its size.
+2. **One sector across the cluster** (task 72), on the profile chosen.
    The screening of 16 October found a finder-part ratio of 1.23 on four
    Dask workers at the 10,000² anchor. Rapthor usually images one
    sector, 17,000 to 20,000 pixels a side, on nodes of up to 192 cores;
@@ -337,23 +332,17 @@ The order, set on 9 October 2026 and amended through 18 October:
    path comes before everything else (decisions of 15 and 16 October).
    It starts by measuring where PyBDSF is slow: both finders against the
    source count and cores (decision of 18 October).
-4. **The deployment envelope and gate** (tasks 22 and 23), with the store,
+3. **The deployment envelope and gate** (tasks 22 and 23), with the store,
    planner and cluster benchmark packaging (tasks 24, 25 and 27).
-5. **Science before the freeze** (task 15), deferred until the work above
+4. **Science before the freeze** (task 15), deferred until the work above
    is complete unless an output is confirmed incorrect.
-6. **Qualification and 1.0.0** (tasks 28 to 34).
+5. **Qualification and 1.0.0** (tasks 28 to 34).
 
 ### Release and publication
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 79 | Human pushes, agent prepares | Push Rapthor's Hebog branch. | The pins moved to Rapthor `aff26023` and LSMTool `156ae6a` on 17 October, with the change rebased, the integration container rebuilt and its summary re-recorded; they move again before the push only if upstream changes the filter step. The branch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching change on the branch. Done when the tested commit is on a branch of Rapthor's repository and Rapthor's CI passes on it. The trial (task 32) and the cluster benchmark (task 27) use the branch; the merge request, with the dual-run mode and the PyBDSF fallback described, follows when the maintainer chooses. |
-
-### The next tier
-
-| # | Owner | Task | Done when |
-| --- | --- | --- | --- |
-| 11 | Human frees disk, agent raises | Raise to 22,500² on the LOFAR-HD ELAIS-N1 mosaic, the 1.0.0 envelope. | About 12 GB of disk is free and the mosaic's restoring beam is read and recorded first: its name suggests about 3 pixels a beam, where the support pass's opening used to remove most 5 to 6σ compact sources (`LOG.md`, 4 October). The tier gate passes, recording the diagnostics' bright candidate count and largest bright-region read, and the raise is a release. Runs unattended beside task 72 (decision of 16 October). |
 
 ### One sector across the cluster
 
@@ -452,7 +441,7 @@ invariants, as in ADR-005.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 22 | Agent proposes, human freezes | Freeze the deployment envelope. | Sizes and workloads match Rapthor's production sectors (17,000 to 20,000 pixels a side; the demonstration sector is 3,000² and refused for its beam), and the 22,500² tier is admitted (task 11). An image above the envelope is refused with a typed error and Rapthor falls back to PyBDSF. |
+| 22 | Agent proposes, human freezes | Freeze the deployment envelope. | Sizes and workloads match Rapthor's production sectors (17,000 to 20,000 pixels a side; the demonstration sector is 3,000² and refused for its beam), and the 22,500² tier is admitted. An image above the envelope is refused with a typed error and Rapthor falls back to PyBDSF. |
 | 23 | Agent | Run matched `filter_skymodel` benchmarks and optimize the finder part towards the gate. | Hebog through Rapthor's native task, and pinned `master` through Rapthor's PyBDSF subprocess on the same cores, in the same Linux container on the development machine, with cached reference timings. `scripts/benchmark/measure_filter_skymodel.py` measures a cell: a sector written from a real image at real resolution with WSClean-like component lists on its island pixels, one warm-up and five measured repetitions of each finder in fresh containers, alternating; the gate's ratio is the finder part's and the complete step's is reported beside it; the image is x86-64 under Rosetta. On the sparse 3,000² sector both finders burn the same CPU, so parity on four cores needs Hebog to keep as many cores busy as `master`; the VM cannot hold `master` on a 15,402² sector, so the ELAIS-N1 central 5,000² is the dense cell it should hold. Done when, on every cell the VM holds, dense and sparse, the finder part's CPU ratio and its wall ratio against cores are measured and recorded, the largest constant factors the profile names are cut, and memory and Hebog-curve non-regression and the quick science check pass; the gate itself is decided by the cluster run (task 30). Native code enters only through the native-code gates and an accepted ADR. |
 
 ### Scale beyond one machine
@@ -493,7 +482,7 @@ rows wait until 1.0.0 ships unless a 1.0.0 task needs them.
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 56 | Agent | Stop the local-noise requests growing with the image. | The local-noise round builds every request before submitting any, each with its own subset of the pilot grid, about 1.9 of background/RMS's 3 bytes a pixel on synthetic grids. On the LOFAR-HD mosaic's central 7,500² they held the most between tasks, and the analysis holds 1.8 GiB on the whole 22,500². Done when the pilot grid is published once and read by window, or requests are built within the in-flight window, which needs the executors' rule of checking every payload before submitting any changed; `scripts/benchmark/attribute_traced_peak.py` confirms the background/RMS slope on the 10,000² anchor; and Serial and Dask products stay byte-identical. Needed before the 45,000² tier, whose forecast background/RMS peak is about 6 GiB. |
-| 12 | Agent, human approves | Raise to 45,000² on the LOFAR-HD mosaic (1.1). | About 60 GB of disk is free. The tier gate passes and the raise is a minor release. This is the out-of-core demonstration: the run completes on 18 GiB with the traced peak bounded by tile size although one `float64` copy of the image (16 GB) would not fit. The local ladder ends here. GLEAM-X's 31,468-pixel side fits this tier, so SKA-Low precursor evidence joins it. |
+| 12 | Agent, human approves | Raise to 45,000² on the LOFAR-HD mosaic (1.1). | The run's scratch fits the free disk with 15 GiB to spare, which needs the intermediates shrunk first (about 200 GiB at today's 100 bytes a pixel). The tier gate passes and the raise is a minor release. This is the out-of-core demonstration: the run completes on 18 GiB with the traced peak bounded by tile size although one `float64` copy of the image (16 GB) would not fit. The local ladder ends here. GLEAM-X's 31,468-pixel side fits this tier, so SKA-Low precursor evidence joins it. |
 | 80 | Human runs, agent analyses | Raise to 90,000² on the cluster (1.2). | The 90,000² LOFAR-HD mosaic runs standalone on the cluster at two node counts within the amended gates, with invariant products, and the raise is a minor release. |
 
 A PSF-map input (task 15's measured limitation) and the deferred science
@@ -508,10 +497,11 @@ allow.
 | Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate fails where Hebog loses real sources. | `just rapthor-agreement` measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors, and re-measures every lane at each pin move and science change. |
 | One sector's speed-up is capped: a 20% serial share on the 10,000² anchor caps it near five; a worker needs about 2 GB a core for the multiscale tasks, so a node short of memory swaps before its cores are busy; rounds hold 7 to 25 tasks and a 3,000² sector only four tiles; Python's global lock throttles a process with many threads; concurrent sectors could deadlock workers that run one task each. | Rapthor's cluster cores go unused, and the gate is missed on occupancy rather than work. | Task 72's cost model sizes tiles and task counts from the core budget and the memory a core needs, with single-threaded tasks on several worker processes a node, resource annotations and seceding while waiting; the cluster benchmark reports where one sector stops scaling. |
 | Scaling across nodes inside Rapthor needs Rapthor to give each node several task slots, which is Rapthor's change to make. | The Rapthor run of the cluster benchmark uses one core a node. | The Rapthor branch documents the layout; the standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
-| The passes keep records from every tile, growing the traced peak about 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS, and the analysis holds about 42 KB a source and a few bytes a pixel: 1.8 GiB on the sparse 22,500² LOFAR-HD mosaic, where on its central 7,500² the background's local-noise requests held the most between tasks. | At those slopes the multiscale peak is about 2.1 GiB at 22,500², within the envelope's budget, and 4.3 GiB at 45,000² with background/RMS about 6 GiB; a dense sector's analysis (over 5 GiB for 123,186 sources) must be reserved by its Rapthor worker. | Task 56 before the 45,000² tier; shard, stream or drop kept records such as candidates that can never become islands; task 24's planner bounds include them; `hebog.analysis_memory_bytes` states the analysis's memory from the image's shape and an expected source count meanwhile. |
-| An object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds, at up to 186 bytes a pixel: about 44 GB for a field-filling object at 15,402². No real LoTSS-DR3 object comes within a factor of ten of the budget. | Driver memory scales with the wide segments of a round, not the tile. | Deferred: associative partial sums on the cores first, then a reviewed design for the local-noise median; reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. A connected network of narrow filaments is the diagnostic that would measure its growth. |
+| The passes keep records from every tile, growing the traced peak about 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS, and the analysis holds about 42 KB a source and a few bytes a pixel, where on the LOFAR-HD mosaic's central 7,500² the background's local-noise requests held the most between tasks. | The whole 22,500² mosaic traces 1.8 GiB, below the 2.1 GiB those slopes forecast, but its peak is what the analysis holds between tasks, about 3.6 bytes a pixel, so 45,000² would reach about 7 GiB; a dense sector's analysis (over 5 GiB for 123,186 sources) must be reserved by its Rapthor worker. | Task 56 before the 45,000² tier; shard, stream or drop kept records such as candidates that can never become islands; task 24's planner bounds include them; `hebog.analysis_memory_bytes` states the analysis's memory from the image's shape and an expected source count meanwhile. |
+| An object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds, at up to 186 bytes a pixel: about 94 GB for a field-filling object at 22,500². No real LoTSS-DR3 object comes within a factor of ten of the budget. | Driver memory scales with the wide segments of a round, not the tile. | Deferred: associative partial sums on the cores first, then a reviewed design for the local-noise median; reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. A connected network of narrow filaments is the diagnostic that would measure its growth. |
 | Source association costs more than the image grows; a dense Rapthor sector (ELAIS-N1, 123,186 sources) took 8.5 h serially on 11 October. | A dense sector takes hours inside the envelope. | Tasks 55 and 54 removed the quadratic hierarchy decision and the strip-shaped reads; under the same `continuum` profile the sector took 2.0 h on 17 October against 8.5 h, and 1.3 h under the `compact` default. Profile the anchors again within task 23. |
-| The development machine's 18 GiB RAM, free disk (30 GiB on 16 October) and 16 GB container VM limit local tiers and matched benchmarks: `master` cannot run a 15,402² sector in the VM. | Local evidence stops at the 10,000² anchor for matched runs and at 22,500² for tiers. | The cluster measures the gate; about 60 GB free before 45,000². |
+| The development machine's 18 GiB RAM, free disk (about 64 GiB on 19 October) and 16 GB container VM limit local tiers and matched benchmarks: `master` cannot run a 15,402² sector in the VM. | Local evidence stops at the 10,000² anchor for matched runs and at 22,500² for tiers. | The cluster measures the gate; the intermediates shrink before 45,000² (next row). |
+| The Zarr intermediates are stored without compression and kept until the run ends, about 100 bytes a pixel: on the 22,500² mosaic five `float64` planes (background, RMS and three multiscale signal planes) of 3.8 to 3.9 GiB each and ten mostly empty `int32` label planes of 1.9 GiB each, 49 GiB at the peak. | A 45,000² run needs about 200 GiB of scratch, more than the development machine has free, and a cluster's shared storage carries the same volume. | Before the 45,000² tier: compress the label planes losslessly and delete each plane after its last reader; `float64` stays unless equivalence evidence admits `float32`. |
 | Rapthor and LSMTool change frequently; their pins moved to the upstream heads on 17 October, and PyBDSF's `master` is 91 commits past the binding reference. | Adapter, contract, benchmark or reference churn, or a backend that only works on a stale revision. | Move the Rapthor and LSMTool pins again only if upstream changes the filter step before the Rapthor branch is pushed (task 79), before the matched benchmarks (task 23) and at the freeze (task 28), re-running the contract audit, the acceptance scenarios and the agreement check and recording the outcome in the commit; keep PyBDSF at `c70103b` until the freeze. |
 | The cluster benchmark depends on hardware not yet scheduled, acceptance on reviewers not yet named, and selecting Hebog from released Rapthor on the Rapthor branch merging. | 1.0.0 waits on a session and on reviews; until the merge, Rapthor users install Rapthor from the branch. | Testing, the trial and the cluster benchmark use the branch at a recorded commit, so none waits on the merge; Rapthor calls Hebog directly, so no LSMTool registry entry is required; the cluster session is one sector at four node counts after a local dry run (task 27); reviewers are approached when the branch is pushed (decision 1). |
 | Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate a scientific trade-off to the human rather than weakening invariance silently. |

@@ -2479,9 +2479,9 @@ def test_public_preview_rejects_inputs_beyond_qualified_envelope(
     tmp_path: Path,
 ) -> None:
     """The finder never extrapolates past the qualified envelope."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 15403)))
+    _write_image(tmp_path / "image.fits", np.zeros((2, 22501)))
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="15402"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="22500"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
     assert not (tmp_path / "products").exists()
@@ -2498,7 +2498,7 @@ def test_public_preview_admits_the_largest_qualified_dimension(
     too small would refuse a documented size and still pass it. This runs the
     boundary itself through the public path.
     """
-    _write_image(tmp_path / "image.fits", np.zeros((2, 15402)))
+    _write_image(tmp_path / "image.fits", np.zeros((2, 22500)))
 
     result = hebog.find_sources(
         _request(tmp_path), _config(), _RecordingExecutor()
@@ -3043,14 +3043,14 @@ def test_oversized_input_is_rejected_before_it_is_hashed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An inadmissible image costs a header read, not a full-file digest."""
-    _write_image(tmp_path / "image.fits", np.zeros((2, 15403)))
+    _write_image(tmp_path / "image.fits", np.zeros((2, 22501)))
 
     def forbidden_hash(_path: Path) -> str:
         pytest.fail("oversized input was hashed")
 
     monkeypatch.setattr(public_api, "_file_sha256", forbidden_hash)
 
-    with pytest.raises(SourceFinderImageTooLargeError, match="15402"):
+    with pytest.raises(SourceFinderImageTooLargeError, match="22500"):
         hebog.find_sources(_request(tmp_path), _config(), _RecordingExecutor())
 
 

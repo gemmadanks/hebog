@@ -3,15 +3,15 @@
 """Public products do not change with the tile grid the passes run on.
 
 The public passes after background and RMS run on 2,048-pixel cores, so the
-15,402-pixel envelope is at most an eight-by-eight grid, with interior tiles
-bounded on all four sides and forty-nine four-way corners. The envelope admits
-every size below its limit, so a last row or column of tiles can be any width
-up to a core, including narrower than a filter halo. These tests give a small
-analytic image that grid by shrinking the cores, end its last row of tiles
-inside the widest filter halo and its last column exactly on a core edge, the
-two extremes a last tile can take, put support on every interior corner, seam
-and image edge, and require the complete product set to equal the one-tile
-run's.
+22,500-pixel envelope is at most an eleven-by-eleven grid, with interior
+tiles bounded on all four sides and a hundred four-way corners. The envelope
+admits every size below its limit, so a last row or column of tiles can be
+any width up to a core, including narrower than a filter halo. These tests
+give a small analytic image that grid by shrinking the cores, end its last
+row of tiles inside the widest filter halo and its last column exactly on a
+core edge, the two extremes a last tile can take, put support on every
+interior corner, seam and image edge, and require the complete product set
+to equal the one-tile run's.
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ from hebog.stages import composition
 pytestmark = pytest.mark.integration
 
 _CORE_PIXELS = 120
-_TILES_PER_SIDE = 8
+_TILES_PER_SIDE = 11
 _GRID_TILES = _TILES_PER_SIDE**2
 # The last row of tiles is 20 pixels high, inside the widest filter halo,
 # and the last column a whole core wide.
@@ -73,9 +73,10 @@ _COMPACT_CENTRES = (
     (_BOTTOM, _SEAMS[6]),
     (_SEAMS[6], _RIGHT),
 )
-# Through the corners (479.5, 119.5), (599.5, 359.5), (719.5, 599.5) and
-# (839.5, 839.5), ending in the narrow last row.
-_LONG_FILAMENT = ((439.75, 40.0), (849.75, 860.0))
+# Through the corners (719.5, 239.5), (839.5, 479.5), (959.5, 719.5),
+# (1079.5, 959.5) and (1199.5, 1199.5), ending where the narrow last row
+# meets the last column.
+_LONG_FILAMENT = ((619.75, 40.0), (1209.75, 1220.0))
 # Across three column seams, with a window the compact bound admits.
 _SHORT_FILAMENT = ((60.0, 250.0), (90.0, 610.0))
 # Background and RMS keep their own fixed cells whatever the object cores are.
@@ -116,14 +117,14 @@ def _filament(
 
 
 def _image() -> npt.NDArray[np.float64]:
-    """Return support on every seam topology of an eight-by-eight grid.
+    """Return support on every seam topology of an eleven-by-eleven grid.
 
-    Units are the unit noise. A compact source sits on each of the forty-nine
+    Units are the unit noise. A compact source sits on each of the hundred
     interior four-way corners, and others on the image corners and where a
     seam meets an image edge. A four-lobe shell is centred on one interior
     corner, a diffuse Gaussian on another, and a close blend straddles a
-    seam. A long filament crosses every column seam and four row seams
-    through four corner sources, ending in the tile where the narrow last row
+    seam. A long filament crosses every column seam and five row seams
+    through five corner sources, ending in the tile where the narrow last row
     meets the last column; its fit window exceeds the reviewed compact bound,
     so its fit parent is deferred on any grid. A short filament crosses three
     column seams and is fitted from one window.
@@ -226,7 +227,7 @@ def one_tile(tmp_path_factory: pytest.TempPathFactory) -> SourceFinderResult:
 
 
 def _grid_cores(monkeypatch: pytest.MonkeyPatch) -> _PlanRecorder:
-    """Run every tiled public pass on the eight-by-eight grid's cores."""
+    """Run every tiled public pass on the eleven-by-eleven grid's cores."""
     _put_passes_on_grid(monkeypatch)
     return _PlanRecorder(monkeypatch)
 
@@ -264,7 +265,7 @@ def test_products_on_the_envelope_grid_equal_one_tile(
     one_tile: SourceFinderResult,
     each_executor: Executor,
 ) -> None:
-    """Sixty-four tiles publish the one-tile products under every executor."""
+    """121 tiles publish the one-tile products under every executor."""
     recorder = _grid_cores(monkeypatch)
 
     grid = _find_sources(
@@ -287,8 +288,8 @@ def test_one_tile_publishes_support_on_every_seam_topology(
     mask = np.asarray(fits.getdata(one_tile.mask_path), dtype=np.bool_)
     for centre in (*_COMPACT_CENTRES, _LONG_FILAMENT[1], *_SHORT_FILAMENT):
         assert _masked_around(mask, centre), centre
-    # Four compact sources lie on the long filament and may join its source.
-    assert one_tile.source_count >= len(_COMPACT_CENTRES) - 4
+    # Five compact sources lie on the long filament and may join its source.
+    assert one_tile.source_count >= len(_COMPACT_CENTRES) - 5
 
 
 def test_wide_objects_decided_on_the_grid_cores_publish_one_tile_products(

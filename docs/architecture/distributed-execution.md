@@ -12,16 +12,16 @@ astronomy background. The decisions behind it are recorded in
 !!! note "Current status"
     Every scientific step runs as tiled tasks through an executor and
     exchanges image planes through Zarr, and the driver holds no image-sized
-    plane. Background and RMS estimation tiles on 128-pixel cores; every
-    other stage uses 2,048-pixel cores, so 3,000 pixels is the first size
-    that reconciles those stages across tiles and 15,402 is an eight-by-eight
-    grid. The public API admits 15,402 pixels per side, and each larger tier
-    is admitted once its traced memory peak and tiled invariance are
-    measured. Every task declares the memory it holds, bounded by its tile,
-    halo, batch and storage chunk. Two terms of the analysis itself are not
-    yet bounded by the tile: an object wider than a task's read budget is
-    reduced on the driver from its own pixels (ADR-008), and what the
-    analysis itself holds grows with the sources found and the image, which
+    plane. Background and RMS estimation tiles on 128-pixel cores; every other
+    stage uses 2,048-pixel cores, so 3,000 pixels is the first size that
+    reconciles those stages across tiles and 22,500 is an eleven-by-eleven
+    grid. The public API admits 22,500 pixels per side, and each larger tier
+    is admitted once its traced memory peak and tiled invariance are measured.
+    Every task declares the memory it holds, bounded by its tile, halo, batch
+    and storage chunk. Two terms of the analysis itself are not yet bounded by
+    the tile: an object wider than a task's read budget is reduced on the
+    driver from its own pixels (ADR-008), and what the analysis itself holds
+    grows with the sources found and the image, which
     `hebog.analysis_memory_bytes` states for the caller to reserve. Scale
     beyond one machine has not been demonstrated.
     [Progress against goals](../reference/progress-against-goals.md#scalability)
@@ -250,9 +250,9 @@ path.
 
 | Guarantee | Level | Evidence |
 | --- | --- | --- |
-| Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eight-by-eight grid, the most a 15,402-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
+| Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eleven-by-eleven grid, the most a 22,500-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
 | Continuous filter responses agree across tilings | within 2 × 10⁻¹³ | multiscale partition-equivalence tests, with knife-edge threshold cases |
-| Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite; the public product set under each executor, on small tiles, for fitted fields with injected fit failures, high-threshold controls and the eight-by-eight grid image above; and one run on Dask workers in separate processes, so that every task's arguments and result are serialized |
+| Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite; the public product set under each executor, on small tiles, for fitted fields with injected fit failures, high-threshold controls and the eleven-by-eleven grid image above; and one run on Dask workers in separate processes, so that every task's arguments and result are serialized |
 | A failed run leaves no partial output, and nothing beside it | — | write-then-rename publication, so the run can be retried with the same request; the contract suite's failure tests, and a public run failing under each executor while another task writes |
 | A killed run's staging directory is reclaimed once its owner has provably stopped, and reported otherwise | — | owner-record and lock tests, and a `slow` test in the weekly slow lane that kills the owning process |
 

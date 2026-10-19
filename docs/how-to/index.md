@@ -245,13 +245,14 @@ The tiers in `config/benchmarks/quick-benchmark.json` are `smoke` (one 512²
 generated image, run in CI), `default` (the 1,024² generated dense field and
 sparse and dense 1,024² LoTSS-DR3 cut-outs) and `large` (the default cases,
 SDC1 crowded cut-outs at 1,024² and 2,048², LoTSS-DR3 cut-outs at 3,000²,
-3,600² and 10,000², the whole 15,402² mosaic they are cut from, and the
-generated `wide-objects-10000` diagnostic, whose filament exercises the
-wide-object paths). 2,048² is the last size the stages outside background and
-RMS run as one tile and 3,000² the first they tile, so that pair measures the
-execution crossover; the 10,000² cut-out and the whole mosaic are the tier
-anchors. The large tier takes hours and runs before profiling or a release
-that claims a runtime change.
+3,600² and 10,000², the whole 15,402² mosaic they are cut from, the whole
+22,500² LOFAR-HD ELAIS-N1 mosaic, and the generated `wide-objects-10000`
+diagnostic, whose filament exercises the wide-object paths). 2,048² is the
+last size the stages outside background and RMS run as one tile and 3,000²
+the first they tile, so that pair measures the execution crossover; the
+10,000² cut-out and the two whole mosaics are the tier anchors. The 22,500²
+case needs about 50 GiB of free disk for its run. The large tier takes hours
+and runs before profiling or a release that claims a runtime change.
 
 The protocol comes from `config/benchmarks/phase-0-performance.json`: one
 warm-up and five measured repetitions, each a fresh single-thread process
