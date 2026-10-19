@@ -20,8 +20,8 @@ astronomy background. The decisions behind it are recorded in
     measured. Every task declares the memory it holds, bounded by its tile,
     halo, batch and storage chunk. Two terms of the analysis itself are not
     yet bounded by the tile: an object wider than a task's read budget is
-    reduced on the driver from its own pixels (ADR-008), and the records the
-    passes keep grow with the sources found, which
+    reduced on the driver from its own pixels (ADR-008), and what the
+    analysis itself holds grows with the sources found and the image, which
     `hebog.analysis_memory_bytes` states for the caller to reserve. Scale
     beyond one machine has not been demonstrated.
     [Progress against goals](../reference/progress-against-goals.md#scalability)
@@ -280,14 +280,18 @@ each worker's amounts, are the caller's. When resources are named, the
 workers' declared amounts are also the admitted budget, and a round that
 no current worker could run is refused rather than left waiting.
 
-The analysis itself holds Hebog's modules and the records each pass
-returns, in the process that calls `find_sources`. Those records grow with
-the sources it finds, about 40 KB each, and not measurably with the pixels:
-the dense ELAIS-N1 central 5,000² held three times what the 10,000² LoTSS
-anchor did. `hebog.analysis_memory_bytes(shape_yx, expected_sources=...)`
-states it for an upper estimate of the source count, fitted to the traced
-peak between tasks on the same anchors, so the caller can reserve it for
-the task that calls `find_sources`. `hebog.expected_source_count` makes
+The analysis itself holds Hebog's modules, the records each pass returns
+and the background's local-noise requests, in the process that calls
+`find_sources`. The records grow with the sources it finds, about 40 KB
+each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
+LoTSS anchor did. The requests, built for the whole image before any is
+submitted, grow with the pixels: the sparse, finely sampled LOFAR-HD
+ELAIS-N1 mosaic held about 3.6 bytes a pixel in all at both 7,500² and
+22,500², and on the smaller the requests held the most between tasks.
+`hebog.analysis_memory_bytes(shape_yx, expected_sources=...)` states it for
+the image's shape and an upper estimate of the source count, above the
+traced peak between tasks on those anchors, so the caller can reserve it
+for the task that calls `find_sources`. `hebog.expected_source_count` makes
 that estimate from the image's bright local maxima, in bounded blocks.
 
 ## What is not decided here

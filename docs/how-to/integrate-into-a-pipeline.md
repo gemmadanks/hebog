@@ -86,11 +86,11 @@ refuses to start when no worker declares them, since Dask would otherwise
 hold the tasks forever. Hebog does not pin tasks to workers; spill policy
 stays under your control.
 
-Reserve memory for the analysis itself too. `find_sources` holds Hebog's
-modules and the records every pass keeps for each source in the process
-that calls it, so what it holds grows with the sources it finds, about
-40 KB each, rather than with the image. `hebog.analysis_memory_bytes` states
-how much for an upper estimate of the source count, which
+Reserve memory for the analysis itself too. In the process that calls it,
+`find_sources` holds Hebog's modules, the records every pass keeps for each
+source, about 40 KB each, and the background's local-noise requests, a few
+bytes a pixel. `hebog.analysis_memory_bytes` states how much for the
+image's shape and an upper estimate of the source count, which
 `hebog.expected_source_count` makes from the image at your detection
 threshold, reading it in bounded blocks. A deconvolution model's component
 list is no such estimate: it holds many components for each source. When
