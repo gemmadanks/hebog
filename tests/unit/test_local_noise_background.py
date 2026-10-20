@@ -941,7 +941,10 @@ def test_unavailable_bright_region_does_not_discard_a_noisy_neighbour(
 
 
 def _refined_local_noise(
-    monkeypatch: pytest.MonkeyPatch, *, context_cells: int
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    context_cells: int,
+    executor: SerialExecutor | None = None,
 ) -> tuple[npt.NDArray[np.float64], int]:
     """Refine one fixed scene with a given local-noise batch size."""
     yy, xx = np.mgrid[:80, :96]
@@ -964,7 +967,7 @@ def _refined_local_noise(
         source,
         coarse,
         config,
-        SerialExecutor(),
+        executor or SerialExecutor(),
         bright_candidate_positions_yx=(),
         source_protection_island_threshold_sigma=3,
         multiscale_protection=_policy(),
@@ -994,6 +997,80 @@ def test_local_noise_grid_does_not_depend_on_the_context_batch_size(
     assert protected > 0, "the scene must exercise source protection"
     np.testing.assert_array_equal(many_batches, one_batch)
     assert protected == also_protected
+
+
+def _copied_cell_bytes(
+    request: background_stage._ProtectedBlockRequest,
+) -> int:
+    """Return the bytes of coarse and pilot cells one request copies."""
+    grids = (request.region.coarse, request.region.detection_rms)
+    return sum(
+        values.nbytes
+        for grid in grids
+        if grid is not None
+        for values in (grid.background, grid.rms, grid.fallback_cells)
+    )
+
+
+class _LocalNoiseRoundExecutor(SerialExecutor):
+    """Record the cells each local-noise round's requests copy."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.round_bytes: list[list[int]] = []
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Record a local-noise round's requests, then run it serially."""
+        inputs = list(batches)
+        requests = [
+            batch
+            for batch in inputs
+            if isinstance(batch, background_stage._ProtectedBlockRequest)
+            and batch.region.protection == "local-noise-windows"
+        ]
+        if requests:
+            self.round_bytes.append(
+                [_copied_cell_bytes(request) for request in requests]
+            )
+        return super().map_batches(function, inputs, requirement=requirement)
+
+
+def test_local_noise_requests_are_submitted_in_rounds_of_bounded_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Requests are built and submitted a bounded number of bytes at a time.
+
+    Neighbouring blocks read overlapping windows, so their requests copy the
+    same pilot cells and together hold several times the pilot grid. Each
+    round holds at most the budget, and splitting the requests into rounds
+    leaves the grid unchanged.
+    """
+    unbounded = _LocalNoiseRoundExecutor()
+    one_round = _refined_local_noise(
+        monkeypatch, context_cells=16, executor=unbounded
+    )
+    assert len(unbounded.round_bytes) == 1
+    budget = sum(unbounded.round_bytes[0]) // 3
+    monkeypatch.setattr(background_stage, "_LOCAL_NOISE_ROUND_BYTES", budget)
+
+    bounded = _LocalNoiseRoundExecutor()
+    in_rounds = _refined_local_noise(
+        monkeypatch, context_cells=16, executor=bounded
+    )
+
+    assert len(bounded.round_bytes) >= 3
+    assert all(sum(sizes) <= budget for sizes in bounded.round_bytes)
+    assert sorted(
+        size for sizes in bounded.round_bytes for size in sizes
+    ) == sorted(unbounded.round_bytes[0])
+    np.testing.assert_array_equal(in_rounds[0], one_round[0])
+    assert in_rounds[1] == one_round[1]
 
 
 @pytest.mark.parametrize("protect_coarse", (False, True))

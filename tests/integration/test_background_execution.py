@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from functools import partial
+from typing import TypeVar
 
 import numpy as np
 import pytest
@@ -36,7 +38,12 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models import ImageBounds
-from hebog.executors import DaskExecutor, Executor, SerialExecutor
+from hebog.executors import (
+    DaskExecutor,
+    Executor,
+    SerialExecutor,
+    TaskRequirement,
+)
 from hebog.io.base import ImageWindow
 from hebog.stages import background as background_stage
 from hebog.stages.background import (
@@ -49,6 +56,9 @@ from hebog.stages.background import (
 )
 
 pytestmark = pytest.mark.integration
+
+Input = TypeVar("Input")
+Output = TypeVar("Output")
 
 
 def test_filtered_response_support_is_serial_dask_retry_invariant() -> None:
@@ -477,6 +487,93 @@ def test_dask_and_serial_background_stages_are_equivalent(
             serial_tile.background,
         )
         np.testing.assert_array_equal(dask_tile.rms, serial_tile.rms)
+
+
+class _LocalNoiseRoundCount(DaskExecutor):
+    """Count the local-noise rounds submitted to an existing client."""
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+        self.local_noise_rounds = 0
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Count a round of local-noise requests, then submit it."""
+        inputs = list(batches)
+        if inputs and all(
+            isinstance(batch, background_stage._ProtectedBlockRequest)
+            and batch.region.protection == "local-noise-windows"
+            for batch in inputs
+        ):
+            self.local_noise_rounds += 1
+        return super().map_batches(function, inputs, requirement=requirement)
+
+
+def test_local_noise_in_rounds_matches_serial_with_existing_dask(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Splitting the local-noise requests into rounds keeps Serial's grid.
+
+    With a one-byte budget every block's request goes in a round of its
+    own, so one client runs and drains many rounds in turn, and the grid
+    matches Serial's single round byte for byte.
+    """
+    y, x = np.indices((80, 96), dtype=np.float64)
+    image = np.where((x + y) % 2 == 0, -1.0, 1.0)
+    image += 30 * np.exp(-0.5 * ((y - 30) ** 2 + (x - 60) ** 2) / 4**2)
+    image[10:20, 10:30] *= 8
+    source = _ArrayImageSource(image)
+    config = _config()
+    protection = MultiscaleSourceProtection(
+        BeamShapePixels(2.0, 1.5, 20.0), SourceFinderConfig(5.0, 3.0, 7), 0.5
+    )
+
+    def refined(executor: Executor) -> BackgroundRmsGrids:
+        coarse = estimate_background_rms_grids(
+            source,
+            image.shape,
+            config,
+            executor,
+            bright_candidate_positions_yx=(),
+        )
+        return refine_background_rms_grids(
+            source,
+            coarse,
+            config,
+            executor,
+            bright_candidate_positions_yx=(),
+            source_protection_island_threshold_sigma=3.0,
+            multiscale_protection=protection,
+            refine_local_noise=True,
+        )
+
+    monkeypatch.setattr(background_stage, "_PROTECTED_CONTEXT_CELLS", 16)
+    serial = refined(SerialExecutor())
+    monkeypatch.setattr(background_stage, "_LOCAL_NOISE_ROUND_BYTES", 1)
+    with Client(
+        processes=False,
+        n_workers=2,
+        threads_per_worker=1,
+        dashboard_address=":0",
+    ) as client:
+        executor = _LocalNoiseRoundCount(client)
+        dask = refined(executor)
+
+    assert executor.local_noise_rounds > 1
+    assert serial.local_noise is not None and dask.local_noise is not None
+    np.testing.assert_array_equal(dask.local_noise.rms, serial.local_noise.rms)
+    np.testing.assert_array_equal(
+        dask.local_noise.fallback_cells, serial.local_noise.fallback_cells
+    )
+    assert (
+        dask.local_noise_protected_window_count
+        == serial.local_noise_protected_window_count
+    )
 
 
 def test_bright_region_noise_beyond_a_fine_window_matches_every_executor(
