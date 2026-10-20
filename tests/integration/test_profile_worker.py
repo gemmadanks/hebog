@@ -37,12 +37,20 @@ pytestmark = [
 ]
 
 
-def _profile(tmp_path: Path, *arguments: str) -> dict[str, Any]:
-    """Profile a two-source image once and return the worker's record."""
+def _profile(
+    tmp_path: Path, *arguments: str, flat_noise: bool = False
+) -> dict[str, Any]:
+    """Profile a two-source image once and return the worker's record.
+
+    With ``flat_noise`` the image is also its own flat-noise counterpart,
+    as Rapthor's sectors pair two images of one field.
+    """
     image = tmp_path / "image.fits"
     fits.PrimaryHDU(
         data=two_source_image(), header=radio_header((192, 192))
     ).writeto(image)
+    if flat_noise:
+        arguments = (*arguments, "--flat-noise", str(image))
     result = tmp_path / "profile.json"
     subprocess.run(
         [
@@ -122,6 +130,45 @@ def test_every_task_is_recorded_and_attributed_to_the_run(
     for item in stages.values():
         assert 0.0 <= item["worker_occupancy"] <= 1.0 + 1e-9
         assert item["executor_idle_seconds"] >= 0.0
+
+
+_DRIVER_STEPS = (
+    "Zarr plane creation",
+    "Zarr generation publication",
+    "retained scale detections",
+    "component measurement reconciliation",
+    "source association decision",
+)
+
+
+def test_driver_steps_between_stages_have_their_own_timers(
+    tmp_path: Path,
+) -> None:
+    """The driver's own steps are not charged to the stage around them.
+
+    Creating and publishing Zarr planes, reconciling component measurements
+    and deciding source membership run on the driver while no task does,
+    so each needs its own timer for the scaling profile to find serial work.
+    """
+    record = _profile(tmp_path)
+
+    named = {item["stage"][-1] for item in record["stages"]}
+    assert set(_DRIVER_STEPS) <= named
+    assert "flat-noise background and RMS" not in named
+
+
+def test_the_flat_noise_estimate_has_its_own_timer(tmp_path: Path) -> None:
+    """A flat-noise image adds one estimate, timed apart from the analysis."""
+    record = _profile(tmp_path, flat_noise=True)
+
+    estimates = [
+        item
+        for item in record["stages"]
+        if item["stage"] == [*_ROOT_STAGE, "flat-noise background and RMS"]
+    ]
+    assert len(estimates) == 1
+    assert estimates[0]["calls"] == 1
+    assert estimates[0]["wall_seconds"] > 0.0
 
 
 def test_every_executor_runs_and_records_the_same_tasks(

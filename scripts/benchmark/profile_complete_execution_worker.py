@@ -16,7 +16,9 @@ its own stage; no Hebog code changes. ``--cprofile`` additionally writes a
 ``cProfile`` statistics file, which sees only the calling thread and slows
 Python-heavy code, so stage times come from runs without it.
 ``--diagnostic-size-limit`` raises the public size limit inside this
-process only, as in the quick-benchmark worker.
+process only, as in the quick-benchmark worker. ``--flat-noise`` names the
+image's flat-noise counterpart, whose background and RMS the run then
+estimates too, as Rapthor's sectors are analysed.
 
 ``--threads N`` runs the same path on a ``ThreadExecutor`` of ``N``
 threads, and ``--dask-workers N`` on a process-based Dask ``LocalCluster`` of
@@ -121,7 +123,17 @@ _STAGES = (
         "_write_source_filtering_mask",
         "tile source-filtering mask writes",
     ),
+    (
+        "hebog.io.zarr",
+        "ZarrProductSink.initialize_product",
+        "Zarr plane creation",
+    ),
     ("hebog.io.zarr", "ZarrProductSink.write_chunk", "Zarr chunk write"),
+    (
+        "hebog.io.zarr",
+        "ZarrProductSink.publish_generation",
+        "Zarr generation publication",
+    ),
     (
         "hebog.io.zarr",
         "ZarrProductSink.read_completed_window",
@@ -141,6 +153,16 @@ _STAGES = (
         "hebog.stages.multiscale",
         "_publish_scale_labels",
         "reconciled per-scale feature labels",
+    ),
+    (
+        "hebog.algorithms.reconciliation",
+        "reconcile_candidate_tiles",
+        "tile label reconciliation",
+    ),
+    (
+        "hebog.algorithms.reconciliation",
+        "reconcile_island_tiles",
+        "tile island reconciliation",
     ),
     (
         "hebog.public_science",
@@ -176,6 +198,11 @@ _STAGES = (
         "hebog.stages.component_topology",
         "run_component_topology_stage",
         "per-parent deblending",
+    ),
+    (
+        "hebog.stages.composition",
+        "retained_scale_detections",
+        "retained scale detections",
     ),
     (
         "hebog.stages.composition",
@@ -233,10 +260,21 @@ _STAGES = (
         "per-core and per-feature overlap reduction",
     ),
     (
+        "hebog.stages.composition",
+        "reconcile_component_measurements",
+        "component measurement reconciliation",
+    ),
+    (
+        "hebog.stages.composition",
+        "_source_association",
+        "source association decision",
+    ),
+    (
         "hebog.public_science",
         "build_hebog_reconstructed_source_catalogues",
         "source association and catalogues",
     ),
+    ("hebog.public_api", "_estimate_noise", "flat-noise background and RMS"),
     ("hebog.public_api", "_public_catalogue", "public catalogue records"),
     (
         "hebog.public_api",
@@ -265,6 +303,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--result", type=Path, required=True)
     parser.add_argument("--settings", required=True, help="finder JSON")
     parser.add_argument("--supplied-metadata", help="metadata JSON")
+    parser.add_argument(
+        "--flat-noise", type=Path, help="the image's flat-noise counterpart"
+    )
     parser.add_argument("--diagnostic-size-limit", type=int)
     parser.add_argument("--cprofile", type=Path, help="statistics path")
     executors = parser.add_mutually_exclusive_group()
@@ -399,6 +440,7 @@ def main() -> None:
                     output_directory=Path(temporary) / "products",
                     run_id="profile",
                     supplied_metadata=supplied,
+                    flat_noise_image_path=args.flat_noise,
                 ),
                 SourceFinderConfig(**json.loads(args.settings)),
                 recording,
