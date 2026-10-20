@@ -8,6 +8,8 @@ runs ``profile_complete_execution.py`` once, in its own process, under
 ``runs/<label>/<case>/<executor>-<workers>``. Every run admits the same
 memory to its tasks, ``--memory-budget-bytes``: the thread executor's whole
 budget, or split evenly between the Dask workers' memory limits.
+``--with-flat-noise`` pairs each image with itself as its flat-noise
+counterpart, as Rapthor's sectors are analysed.
 
 A configuration that fails, as one does when a Dask worker's share of the
 budget is smaller than the largest task declares, is recorded with its
@@ -88,6 +90,11 @@ def _parse_args() -> argparse.Namespace:
         help="memory admitted to every run's tasks",
     )
     parser.add_argument(
+        "--with-flat-noise",
+        action="store_true",
+        help="pair each image with itself as its flat-noise counterpart",
+    )
+    parser.add_argument(
         "--summarise-existing",
         action="store_true",
         help="summarise the configurations already run",
@@ -131,6 +138,8 @@ def _run_configuration(
         "--memory-budget-bytes",
         str(args.memory_budget_bytes),
     ]
+    if args.with_flat_noise:
+        command.append("--with-flat-noise")
     print(f"{case_id} {executor} {workers}", flush=True)
     started = time.perf_counter()
     with log.open("w", encoding="utf-8") as output:
@@ -258,6 +267,7 @@ def main() -> int:
         "configuration_sha256": file_sha256(args.configuration),
         "machine": machine_identity(),
         "memory_budget_bytes": args.memory_budget_bytes,
+        "with_flat_noise": args.with_flat_noise,
         "runs": {
             executor: {"workers": worker_counts, "cases": run_cases}
             for executor, (worker_counts, run_cases) in runs.items()

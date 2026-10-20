@@ -11,9 +11,11 @@ in a fresh single-thread process, and with ``--cprofile`` a second time under
 ``cProfile``. ``--threads N`` runs every case on a thread executor of ``N``
 threads and ``--dask-workers N`` on a local Dask cluster of ``N``
 single-threaded workers instead of the serial executor, within
-``--memory-budget-bytes`` of task memory if given. Under every executor each
-stage also reports the tasks that ran during it, the share of the workers
-they kept busy, the time no task ran and the Zarr chunks moved.
+``--memory-budget-bytes`` of task memory if given. ``--with-flat-noise``
+pairs each image with itself as its flat-noise counterpart, as Rapthor's
+sectors are analysed. Under every executor each stage also reports the
+tasks that ran during it, the share of the workers they kept busy, the time
+no task ran and the Zarr chunks moved.
 
 The summary fits every top-level stage's wall time on the ladder as
 ``fixed + a * megapixels + b * components + c * megapixels * components``, so
@@ -99,6 +101,11 @@ def _parse_args() -> argparse.Namespace:
         "--memory-budget-bytes",
         type=int,
         help="memory admitted to the thread or Dask executor's tasks",
+    )
+    parser.add_argument(
+        "--with-flat-noise",
+        action="store_true",
+        help="pair each image with itself as its flat-noise counterpart",
     )
     parser.add_argument(
         "--summarise-existing",
@@ -203,6 +210,8 @@ def _run_case(
         command += ["--dask-workers", str(args.dask_workers)]
     if args.memory_budget_bytes is not None:
         command += ["--memory-budget-bytes", str(args.memory_budget_bytes)]
+    if args.with_flat_noise:
+        command += ["--flat-noise", str(prepared.input_path)]
     case_root = run_root / case.case_id
     case_root.mkdir(parents=True)
     profile = _run_worker(command, case_root / "profile.json", cprofile=None)
@@ -315,6 +324,7 @@ def main() -> int:
         ),
         "workers": args.threads or args.dask_workers or 1,
         "memory_budget_bytes": args.memory_budget_bytes,
+        "with_flat_noise": args.with_flat_noise,
         "elapsed_seconds": time.perf_counter() - started,
         "size_density_model": _size_density_model(records),
         "cases": [

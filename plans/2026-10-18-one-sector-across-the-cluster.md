@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-18 |
+| Last updated | 2026-10-20 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -131,7 +131,7 @@ The code shows where the serial work comes from:
 | Assumption | Evidence or reason | Impact if false | Owner to verify |
 | --- | --- | --- | --- |
 | `master`'s time grows faster than Hebog's with the source count. | The maintainer's experience in production; the ratio falls from 2.43 to 1.23 between the two measured cells. | The dense gate needs Hebog's CPU to fall, not only its occupancy to rise; the checkpoint after step 4 reorders the work. | Agent, step 3 |
-| The VM holds `master` on the ELAIS-N1 central 5,000² (about 34,000 sources). | A small image; `master` failed only on the 15,402² mosaic. | The dense cell moves to a smaller ELAIS-N1 cut-out locally and to the cluster. | Agent, step 2 |
+| The VM holds `master` on a dense ELAIS-N1 5,000² window. | On the window 3,600 pixels north of the field centre `master` finds 24,780 sources with a 5.8 GB peak, well inside the 16 GB VM; on the central window it stops with an `IndexError` in its moment-analysis fallback (a PyBDSF defect, also in 1.14.1, drafted for upstream), so the north window is the dense cell (decision of 20 October). | The dense cell moves to the cluster. | Agent, step 2 |
 | Per-task inflation with workers is mostly local contention. | Eight workers swapped 24 GB; the I/O-heavy rounds inflate most. | The cost model weights I/O, and the store work of task 25 moves earlier. | Agent, steps 3 and 5 |
 | Rosetta slows both finders alike. | Both run in the same container; only ratios are compared. | Local ratios mislead; the cluster decides. | Human, cluster run |
 
@@ -189,8 +189,8 @@ quick benchmark and profile before and after show the gain.
 
 | Step | Work | Owner | Status | Completion evidence |
 | --- | --- | --- | --- | --- |
-| 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `not started` | Red-green tests; a smoke run of each runner |
-| 2 | Build the source-count ladder: sectors of one size from fields of rising depth up to the ELAIS-N1 central 5,000², and confirm the VM holds `master` on the dense cell | Agent | `not started` | Sector identities and checksums; `master`'s source counts |
+| 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `done` | Red-green tests; a smoke run of each runner |
+| 2 | Build the source-count ladder: 5,000² sectors from fields of rising depth (`config/benchmarks/source-count-ladder.json`), with the gap between the LoTSS-DR3 and deep ELAIS-N1 windows filled by the dense cell with its noise raised 1.5, 2, 3 and 4 times (`scripts/benchmark/build_source_count_ladder.py`), and confirm the VM holds `master` on the dense cell | Agent | `done` | Sector identities and checksums; `master`'s source counts |
 | 3 | Measure: both finders on the ladder at four cores (one warm-up, five repetitions); both on the dense cell at 1, 2, 4 and 6 cores (screening repetitions); Hebog's stage profile on the dense cell and the anchor on 1, 2, 4 and 6 local workers | Agent | `not started` | Evidence records and reports under `benchmark-results/` |
 | 4 | Fit the model, project the ratios and set the targets | Agent | `not started` | Model, projections and targets on the progress page |
 | — | Checkpoint: threshold, targets, increment order and whether per-source costs join | Human | `not started` | Decisions recorded in the implementation plan |
@@ -236,3 +236,5 @@ quick benchmark and profile before and after show the gain.
 | --- | --- | --- | --- |
 | 2026-10-18 | Decision | The gate binds dense sectors at 0.50 and the rest at parity; serial-work cuts are in scope where the gain is clear; task 68 precedes this task. | Agent: step 1 after task 68 |
 | 2026-10-18 | Decision | The window RMS keeps no truncation correction (task 68 closed), so step 1 measures the noise as it is now. | Agent: step 1 after the 22,500² tier |
+| 2026-10-20 | Decision | The dense cell is the deep ELAIS-N1 window 3,600 pixels north of the centre, where `master` completes; the central window stops `master` with a PyBDSF defect, drafted for an upstream report. No local field of rising depth fills the ladder between about 3,500 and 23,000 sources, so its middle rungs raise the dense cell's noise with beam-smoothed noise from a fixed seed; only the depth changes. | Agent: step 3 |
+| 2026-10-20 | Progress | The ladder's sectors hold 2,469 (LoTSS-DR3), 3,847, 5,686, 9,744 and 14,126 (the dense cell's noise raised 4, 3, 2 and 1.5 times) and 24,780 (the dense cell) sources in `master`'s catalogue, its finder part rising from about 210 s to 1,027 s on four cores; a LOFAR-HD window was dropped, since its mosaic has no reference frequency for Rapthor's inputs. | Agent: step 3 on quiet nights |

@@ -28,6 +28,7 @@ from hebog.validation.evidence import (
 from hebog.validation.external_runners import source_tree_sha256
 from hebog.validation.quick_benchmark import (
     SINGLE_THREAD_ENVIRONMENT,
+    BaselineComparison,
     CheckoutIdentity,
     ProcessUsage,
     Repetition,
@@ -217,21 +218,32 @@ def test_previous_release_outcome_follows_both_ratio_bounds() -> None:
     assert slower.ratio.lower_bound > gate.regression_ratio_lower_bound
 
 
-def test_master_comparison_uses_the_deployment_ratio() -> None:
-    """The deployment ratio passes only when the upper bound is within it."""
+def test_master_comparison_uses_the_sector_class_ratio() -> None:
+    """A ratio passes only when its upper bound is within the class's limit.
+
+    Six-tenths of ``master``'s time fails a dense sector and passes a
+    sparse one.
+    """
     gate = _CONTRACT.pybdsf_master
     reference = [10.0, 10.1, 9.9, 10.0, 10.2]
+    faster = [4.0, 4.1, 3.9, 4.0, 4.2]
+    slower = [6.0, 6.1, 5.9, 6.0, 6.2]
 
-    faster = compare_with_pybdsf_master(
-        [4.0, 4.1, 3.9, 4.0, 4.2], reference, gate, resamples=2000
-    )
-    slower = compare_with_pybdsf_master(
-        [6.0, 6.1, 5.9, 6.0, 6.2], reference, gate, resamples=2000
-    )
+    def compare(current: list[float], sources: int) -> BaselineComparison:
+        return compare_with_pybdsf_master(
+            current,
+            reference,
+            gate,
+            master_source_count=sources,
+            resamples=2000,
+        )
 
-    assert faster.outcome == "pass" and faster.baseline == "pybdsf-master"
-    assert slower.outcome == "fail"
-    assert slower.ratio.lower_bound > gate.maximum_ratio
+    assert compare(faster, 10_000).outcome == "pass"
+    assert compare(faster, 10_000).baseline == "pybdsf-master"
+    dense = compare(slower, 10_000)
+    assert dense.outcome == "fail"
+    assert dense.ratio.lower_bound > gate.dense_maximum_ratio
+    assert compare(slower, 9_999).outcome == "pass"
 
 
 def _evidence() -> BenchmarkEvidence:

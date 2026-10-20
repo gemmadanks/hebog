@@ -32,17 +32,19 @@ start to LSMTool's `filter_sources` call, which the finder controls. The
 upper one-sided 95% bound of the Hebog/PyBDSF median wall-time ratio must
 be at most 0.50 on a dense sector, provisionally one where `master` finds
 at least 10,000 sources, and at most 1.05 on the rest (decision of
-18 October 2026). The record holds the dense limit, which the matched
-benchmark applies to every sector until it classifies sectors by
-`master`'s source count. The complete step, whose LSMTool filtering is the same for
-either finder, is reported beside it and never gated (decision of
+18 October 2026). The record holds both limits and the threshold, and the
+matched benchmark classes each sector by the sources in `master`'s
+catalogue, which every measured run must agree on. The complete step,
+whose LSMTool filtering is the same for either finder, is reported beside
+it and never gated (decision of
 16 October 2026). Released 1.14.1 is checked once before 1.0.0 and is not a
 gate in this file. The
 [matched benchmark](../how-to/index.md#run-the-matched-filter_skymodel-benchmark)
 applies this rule to both finders in one container.
 The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
-repetition counts and both comparison rules from this file; its `master`
-ratio is diagnostic because the environments are not matched.
+repetition counts, the regression rule and the confidence level from this
+file; its `master` ratio is diagnostic, with no outcome, because the
+environments are not matched and its cases are not classed.
 
 The warm one-tile framework budgets are 250 ms for configuration, 500 ms for
 FITS I/O, 10 ms for partition planning, 5 ms for serial dispatch, 50 ms for

@@ -137,6 +137,35 @@ def test_the_sweep_summarises_every_executor_and_resumes(
     )
 
 
+def test_the_sweep_can_pair_each_image_with_its_flat_noise(
+    tmp_path: Path,
+) -> None:
+    """With a flat-noise image, every run times its estimate as a stage.
+
+    Rapthor's sectors pair the true-sky image with a flat-noise image of
+    the same field, so the sweep uses the input as its own counterpart.
+    """
+    report = _sweep(
+        tmp_path,
+        _configuration(tmp_path),
+        "--thread-workers",
+        "1",
+        "--dask-workers",
+        "--memory-budget-bytes",
+        "4000000000",
+        "--with-flat-noise",
+    )
+
+    assert report["with_flat_noise"] is True
+    (case,) = (tmp_path / "profiles/runs/sweep").rglob("case.json")
+    stages = json.loads(case.read_text("utf-8"))["profile"]["stages"]
+    assert [
+        item["calls"]
+        for item in stages
+        if item["stage"][-1] == "flat-noise background and RMS"
+    ] == [1]
+
+
 def test_a_refused_run_is_recorded_and_the_sweep_goes_on(
     tmp_path: Path,
 ) -> None:

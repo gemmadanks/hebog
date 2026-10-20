@@ -64,12 +64,12 @@ from hebog.validation.quick_benchmark import (
     benchmark_evidence,
     checkout_identity,
     compare_with_previous_release,
-    compare_with_pybdsf_master,
     development_dataset,
     load_quick_benchmark_configuration,
     local_resources,
     machine_identity,
     measured_wall_seconds,
+    median_ratio,
     physical_memory_bytes,
     run_measured_process,
     summarise_timings,
@@ -681,15 +681,19 @@ def _run_case(  # noqa: PLR0913
         if evidence is None:
             record["pybdsf_master"]["error"] = _cached_failure(directory)
         else:
+            # The environments are not matched and the case's class needs
+            # master's source count, so the ratio is reported without the
+            # deployment gate's outcome.
             record["pybdsf_master"] |= _summary(evidence) | {
-                "comparison": _comparison(
-                    compare_with_pybdsf_master(
+                "comparison": asdict(
+                    median_ratio(
                         current_seconds,
                         measured_wall_seconds(evidence),
-                        contract.pybdsf_master,
                         resamples=contract.previous_hebog.bootstrap_resamples,
+                        confidence_level=contract.pybdsf_master.confidence_level,
                     )
-                ),
+                )
+                | {"outcome": "diagnostic"},
                 "matched": False,
             }
     return record

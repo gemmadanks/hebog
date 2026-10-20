@@ -15,8 +15,10 @@ sector, each run's directory and ``run.json``, one evidence document per
 finder, and ``report.json``: each finder's timings, the ratio of the
 finder-part medians (the task's start to LSMTool's ``filter_sources`` call,
 the span the finder controls) with its one-sided 95% bootstrap bounds
-against the deployment gate (``config/benchmarks/phase-0-performance.json``),
-the complete step's ratio beside it, whether each finder's
+against the deployment gate's limit for the sector's class, dense or sparse
+by the sources in ``master``'s catalogue
+(``config/benchmarks/phase-0-performance.json``), the complete step's ratio
+beside it, whether each finder's
 catalogue, RMS maps and mask repeated byte for byte, and the identities of
 the image, inputs and software::
 
@@ -48,6 +50,7 @@ from hebog.validation.datasets import DatasetRole
 from hebog.validation.evidence import (
     DatasetIdentity,
     ExecutorKind,
+    ResourceAllocation,
     SoftwareIdentity,
     WorkloadClass,
     write_evidence,
@@ -76,6 +79,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _WORKER = Path(__file__).with_name("filter_skymodel_worker.py")
 _AGREEMENT = _ROOT / "config/checks/rapthor-agreement.json"
 _SCALING_PROFILE = _ROOT / "config/benchmarks/sector-scaling-profile.json"
+_SOURCE_COUNT_LADDER = _ROOT / "config/benchmarks/source-count-ladder.json"
 _PERFORMANCE = _ROOT / "config/benchmarks/phase-0-performance.json"
 _DEFAULT_CASE = "lotss-dr3-1312-3000"
 _FINDERS = ("bdsf", "hebog")
@@ -98,8 +102,8 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--case",
         default=_DEFAULT_CASE,
         help=(
-            "an image case of the Rapthor agreement configuration or of the "
-            "sector scaling profile"
+            "an image case of the Rapthor agreement configuration, the "
+            "sector scaling profile or the source-count ladder"
         ),
     )
     parser.add_argument(
@@ -140,14 +144,16 @@ def _case(case_id: str) -> tuple[GeneratedCase | ImageCase, Path]:
     """Return one image case and the dataset manifest that identifies it."""
     agreement = load_agreement_configuration(_AGREEMENT)
     quick_check = load_quick_check_configuration(_ROOT / agreement.quick_check)
-    profile = load_profile_configuration(_SCALING_PROFILE)
     cases: dict[str, tuple[GeneratedCase | ImageCase, Path]] = {
         item.case.case_id: (item.case, _ROOT / quick_check.dataset_manifest)
         for item in agreement.cases
-    } | {
-        item.case.case_id: (item.case, _ROOT / profile.dataset_manifest)
-        for item in profile.cases
     }
+    for path in (_SCALING_PROFILE, _SOURCE_COUNT_LADDER):
+        profile = load_profile_configuration(path)
+        cases |= {
+            item.case.case_id: (item.case, _ROOT / profile.dataset_manifest)
+            for item in profile.cases
+        }
     if case_id not in cases:
         raise ValueError(
             f"unknown case {case_id}; choose one of {', '.join(cases)}"
@@ -278,6 +284,35 @@ def _container_command(
     return command
 
 
+def _finder_resources(
+    finder: str, *, cores: int, dask_workers: int | None, memory_bytes: int
+) -> ResourceAllocation:
+    """Describe how one finder ran on the container's cores and memory.
+
+    ``master`` and Rapthor's native Hebog task each run one process with a
+    thread a core. With ``dask_workers`` Hebog instead runs that many
+    single-threaded worker processes, each limited to an equal share of the
+    memory.
+    """
+    if finder == "hebog" and dask_workers is not None:
+        return ResourceAllocation(
+            executor=ExecutorKind.DASK,
+            worker_nodes=1,
+            workers_per_node=dask_workers,
+            threads_per_worker=1,
+            allocated_cpu_cores=cores,
+            node_memory_bytes=memory_bytes,
+            worker_memory_limit_bytes=memory_bytes // dask_workers,
+            reserved_headroom_per_node_bytes=0,
+            storage_identifier="local-filesystem",
+        )
+    return local_resources(
+        ExecutorKind.LOCAL if finder == "hebog" else ExecutorKind.EXTERNAL,
+        allocated_cpu_cores=cores,
+        memory_bytes=memory_bytes,
+    )
+
+
 def _tree_sha256(directory: Path) -> str:
     """Hash a Measurement Set's relative file names and bytes.
 
@@ -320,19 +355,31 @@ def _compare_phases(
 
     The gate's ``measured_phase`` is the source-finding part of Rapthor's
     step, from the task's start to LSMTool's ``filter_sources`` call, the
-    span the finder controls. The complete step, whose LSMTool filtering is
-    the same for either finder, is reported beside it and never gated.
-    Warm-up repetitions count for neither.
+    span the finder controls. Its limit is the sector class's, from the
+    sources in ``master``'s catalogue, which every measured run must agree
+    on. The complete step, whose LSMTool filtering is the same for either
+    finder, is reported beside it and never gated. Warm-up repetitions
+    count for neither.
     """
     measured = {
         finder: [run for run in finder_runs if not run["warmup"]]
         for finder, finder_runs in runs.items()
     }
+    master_source_counts = sorted(
+        {run["catalogue_rows"] for run in measured["bdsf"]}
+    )
+    if len(master_source_counts) != 1:
+        raise ValueError(
+            "master's catalogue changed between runs: "
+            f"{', '.join(map(str, master_source_counts))} sources"
+        )
+    master_source_count = master_source_counts[0]
     phase = f"{gate.measured_phase}_seconds"
     gated = compare_with_pybdsf_master(
         [run[phase] for run in measured["hebog"]],
         [run[phase] for run in measured["bdsf"]],
         gate,
+        master_source_count=master_source_count,
         resamples=resamples,
     )
     complete = median_ratio(
@@ -343,10 +390,12 @@ def _compare_phases(
     )
     return {
         "phase": gate.measured_phase,
+        "master_source_count": master_source_count,
+        "sector_class": gate.sector_class(master_source_count),
         "ratio": gated.ratio.ratio,
         "lower_bound": gated.ratio.lower_bound,
         "upper_bound": gated.ratio.upper_bound,
-        "maximum_ratio": gate.maximum_ratio,
+        "maximum_ratio": gate.maximum_ratio(master_source_count),
         "outcome": gated.outcome,
         "complete_step": {
             "ratio": complete.ratio,
@@ -454,11 +503,10 @@ def main() -> int:
                 configuration_sha256=configuration_sha256,
                 subject=subjects[finder],
                 environment_sha256=container["dependency_inventory_sha256"],
-                resources=local_resources(
-                    ExecutorKind.LOCAL
-                    if finder == "hebog"
-                    else ExecutorKind.EXTERNAL,
-                    allocated_cpu_cores=args.cores,
+                resources=_finder_resources(
+                    finder,
+                    cores=args.cores,
+                    dask_workers=args.hebog_dask_workers,
                     memory_bytes=container["memory_bytes"],
                 ),
                 finder_stage="rapthor-filter-skymodel-products",
@@ -523,7 +571,10 @@ def main() -> int:
         f"{comparison['ratio']:.3f} (one-sided 95% bounds "
         f"{comparison['lower_bound']:.3f} to "
         f"{comparison['upper_bound']:.3f}); "
-        f"gate {gate.maximum_ratio}: {comparison['outcome']}; complete step "
+        f"{comparison['sector_class']} sector "
+        f"({comparison['master_source_count']} sources in master's "
+        f"catalogue), gate {comparison['maximum_ratio']}: "
+        f"{comparison['outcome']}; complete step "
         f"{complete['ratio']:.3f} ({complete['lower_bound']:.3f} to "
         f"{complete['upper_bound']:.3f}), reported beside the gate",
         flush=True,

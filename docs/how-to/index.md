@@ -300,9 +300,17 @@ each finder in fresh containers, alternating them, and writes one evidence
 document per finder and `report.json` under
 `benchmark-results/filter-skymodel/runs/<label>/`, with the ratio of
 finder-part medians and its one-sided 95% bounds against the gate and the
-complete step's ratio beside it. `--hebog-dask-workers`
-runs Hebog on Dask workers instead of Rapthor's threads, a screening
-measurement the gate does not count. The image runs under Rosetta
+complete step's ratio beside it. The sector is dense, with a limit of
+0.50, when `master`'s catalogue holds at least 10,000 sources, and sparse,
+with a limit of 1.05, otherwise; the report names the class and the count.
+`--cores` sets both finders' cores, and `--hebog-dask-workers`
+runs Hebog on that many single-threaded Dask workers instead of Rapthor's
+threads, a screening measurement the gate does not count; each finder's
+evidence records its own workers and threads. `--case` also takes the
+5,000² sectors of the source-count ladder, from sparse survey windows to a
+dense deep-field window, whose middle rungs
+`scripts/benchmark/build_source_count_ladder.py` writes by raising that
+window's noise. The image runs under Rosetta
 on Apple silicon, so only the ratio is matched; see the
 [benchmark guide](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#matched-filter_skymodel-benchmark)
 for the inputs it constructs.
@@ -404,14 +412,21 @@ driver's thread, and every task times itself where it runs and counts the
 Zarr chunks it reads and writes (`hebog.validation.task_recording`), so
 each stage reports its tasks, the share of the workers they kept busy, the
 time no task ran and its Zarr I/O, and each round its tasks, under every
-executor. A stage with long idle time is waiting on the driver.
+executor. A stage with long idle time is waiting on the driver. The
+driver's own steps between passes, creating and publishing Zarr planes,
+reconciling tile labels and component measurements and deciding source
+membership, are stages of their own, so their time is not charged to the
+pass around them.
 
 `just profile-scaling --label <label> --memory-budget-bytes <bytes>` runs
 the cases in `config/benchmarks/sector-scaling-profile.json`, the 10,000²
 anchor and the whole 15,402² mosaic, at each of `--thread-workers` and
 `--dask-workers` (1, 2, 4, 8 and 12 by default; none skips the executor),
 on `--thread-cases` and `--dask-cases` (every case by default), within one
-budget, resuming where an interrupted sweep stopped. Its `scaling.json`
+budget, resuming where an interrupted sweep stopped. `--with-flat-noise`
+pairs each image with itself as its flat-noise counterpart, as Rapthor's
+sectors are analysed, so the flat-noise estimate is profiled too. Its
+`scaling.json`
 reports each curve's speedup, its serial share as an Amdahl fit, each
 stage's parallel efficiency and serial seconds, and each round's task-time
 inflation; a run whose Dask workers' share of the budget admits no task of

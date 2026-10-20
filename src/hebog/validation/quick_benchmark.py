@@ -472,12 +472,13 @@ def compare_with_pybdsf_master(
     reference: Sequence[float],
     gate: PyBdsfMasterGate,
     *,
+    master_source_count: int,
     resamples: int,
 ) -> BaselineComparison:
-    """Compare with pinned ``master`` against the deployment ratio.
+    """Compare with pinned ``master`` against the sector class's ratio.
 
-    On the quick benchmark this is diagnostic: the environments differ, so
-    only the matched M4 benchmark can pass the deployment gate.
+    ``master_source_count`` is the number of sources in ``master``'s
+    catalogue of the sector, which decides whether it is dense.
     """
     ratio = median_ratio(
         current,
@@ -488,7 +489,7 @@ def compare_with_pybdsf_master(
     return BaselineComparison(
         baseline="pybdsf-master",
         ratio=ratio,
-        outcome=ratio_outcome(ratio, gate.maximum_ratio),
+        outcome=ratio_outcome(ratio, gate.maximum_ratio(master_source_count)),
     )
 
 

@@ -71,29 +71,51 @@ class OneTileOverheadBudget(_ContractModel):
     dask_dispatch_seconds: float = Field(ge=0)
 
 
+# The deployment gate's sector classes, by ``master``'s source count.
+SectorClass = Literal["dense", "sparse"]
+
+
 class PyBdsfMasterGate(_ContractModel):
     """Deployment runtime gate against one pinned PyBDSF ``master`` commit.
 
-    A candidate passes a matrix cell when the upper one-sided confidence
-    bound of its median wall-time ratio to the pinned commit is at most
-    ``maximum_ratio`` over the ``measured_phase``: the source-finding part
-    of Rapthor's ``filter_skymodel`` step, from the task's start to
+    A candidate passes a sector when the upper one-sided confidence bound
+    of its median wall-time ratio to the pinned commit is at most its
+    sector class's limit over the ``measured_phase``: the source-finding
+    part of Rapthor's ``filter_skymodel`` step, from the task's start to
     LSMTool's ``filter_sources`` call, which the finder controls. The
     complete step is reported beside it, never gated (decision of
-    16 October 2026).
+    16 October 2026). A sector is dense, where PyBDSF is slow, when
+    ``master``'s catalogue holds at least ``dense_minimum_sources``
+    sources; Hebog must take at most ``dense_maximum_ratio`` of its time
+    there and no longer than ``sparse_maximum_ratio`` of it on the rest
+    (decision of 18 October 2026).
     """
 
     commit_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
-    maximum_ratio: float = Field(gt=0, lt=1)
+    dense_minimum_sources: int = Field(gt=0)
+    dense_maximum_ratio: float = Field(gt=0, lt=1)
+    sparse_maximum_ratio: float = Field(ge=1)
     confidence_level: float = Field(gt=0, lt=1)
     bound: Literal["upper-one-sided"]
     measured_phase: Literal["finder"]
+
+    def sector_class(self, master_source_count: int) -> SectorClass:
+        """Return the class of a sector where ``master`` found this many."""
+        if master_source_count >= self.dense_minimum_sources:
+            return "dense"
+        return "sparse"
+
+    def maximum_ratio(self, master_source_count: int) -> float:
+        """Return the limit for a sector where ``master`` found this many."""
+        if self.sector_class(master_source_count) == "dense":
+            return self.dense_maximum_ratio
+        return self.sparse_maximum_ratio
 
 
 class PerformanceMatrixContract(_ContractModel):
     """Frozen logarithmic size and scientific-work performance matrix."""
 
-    schema_version: Literal[2]
+    schema_version: Literal[3]
     matrix_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
     status: Literal["frozen-provisional"]
     sizes_pixels: tuple[int, ...] = Field(min_length=2)
