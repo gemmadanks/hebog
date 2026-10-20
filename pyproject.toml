@@ -74,6 +74,10 @@ show_missing = true
 addopts = "--strict-markers"
 testpaths = ["tests"]
 xfail_strict = true
+# Integration tests write Zarr stores and FITS products under tmp_path, many
+# gigabytes over a session; keeping only failed tests' directories stops a
+# CI shard or a local coverage run from filling the disk.
+tmp_path_retention_policy = "failed"
 filterwarnings = [
     "error",
     # pytest-benchmark warns at start-up that xdist disables it. No test
