@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: If you use hebog in your research, please cite it as below.
 title: 'Hebog: a scalable source finder for radio continuum images'
-version: 0.22.0
+version: 0.23.0
 date-released: '2026-10-17'
 authors:
   - family-names: Danks

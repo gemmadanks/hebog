@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.23.0](https://github.com/gemmadanks/hebog/compare/v0.22.0...v0.23.0) (2026-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* RapthorCompatibilityConfig now defaults to profile="continuum" (was "compact"), so find_sector_sources' default products change. Pass profile="compact" for the previous behaviour.
+
+### 🚀 Features
+
+* accept images up to 22,500 pixels a side ([#191](https://github.com/gemmadanks/hebog/issues/191)) ([12bbbfe](https://github.com/gemmadanks/hebog/commit/12bbbfe011b2d88d70d97278fba9ad3f97f1d4ef))
+* measure each Hebog profile against known truth in the Rapthor agreement check ([#183](https://github.com/gemmadanks/hebog/issues/183)) ([0768b31](https://github.com/gemmadanks/hebog/commit/0768b315cfa5a8afc54bf9afaf3cac186e7ac0db))
+* run the continuum profile for Rapthor by default ([#186](https://github.com/gemmadanks/hebog/issues/186)) ([bcd3c85](https://github.com/gemmadanks/hebog/commit/bcd3c85f418ce49e2a437efccaae54a060b9c1d2))
+
+
+### 🐛 Bug Fixes
+
+* keep bright extended sources in crowded fields' masks ([#187](https://github.com/gemmadanks/hebog/issues/187)) ([3a6d130](https://github.com/gemmadanks/hebog/commit/3a6d1306c2a3bd893dee3a81b79f69523ca427aa))
+* reserve enough memory for finely sampled images ([#190](https://github.com/gemmadanks/hebog/issues/190)) ([8a2623c](https://github.com/gemmadanks/hebog/commit/8a2623c23172c00df339891cfd6c4712085d6e82))
+* stop continuum losing real sources in crowded deep fields ([#185](https://github.com/gemmadanks/hebog/issues/185)) ([bd62bc1](https://github.com/gemmadanks/hebog/commit/bd62bc1c1a9f7aaafdd14d2c8d4b513d8f490eec))
+
+
+### 📚 Documentation
+
+* explain how to withdraw a release and write commits for the changelog ([#178](https://github.com/gemmadanks/hebog/issues/178)) ([f1a0978](https://github.com/gemmadanks/hebog/commit/f1a097818e196d60e842930c4e4a398e63ba056f))
+* gate Hebog's speed where PyBDSF is slow and plan scaling one sector ([#188](https://github.com/gemmadanks/hebog/issues/188)) ([23641c8](https://github.com/gemmadanks/hebog/commit/23641c82da6e21f899a68574615799bfe0fd6086))
+* install Rapthor's Hebog task from Rapthor's repository, not a patch ([#182](https://github.com/gemmadanks/hebog/issues/182)) ([0e2783b](https://github.com/gemmadanks/hebog/commit/0e2783b4b486b748f36376354f660670c90cacf2))
+* keep the noise estimate uncorrected for clipping and require no science to degrade ([#189](https://github.com/gemmadanks/hebog/issues/189)) ([050dcf9](https://github.com/gemmadanks/hebog/commit/050dcf98a4a3e0167ecd10888f4ae03744410571))
+* plan a stage profile before scaling one sector across a cluster ([#184](https://github.com/gemmadanks/hebog/issues/184)) ([fd66221](https://github.com/gemmadanks/hebog/commit/fd662217775dbd026f3035efaad39a93c9afcd5c))
+* record the 0.22.0 release and the deep-field speed-up ([#177](https://github.com/gemmadanks/hebog/issues/177)) ([50e4599](https://github.com/gemmadanks/hebog/commit/50e459957a467c7d02da0ce6300a6cd2d77e56fb))
+* record the 0.23.0 release check ([#192](https://github.com/gemmadanks/hebog/issues/192)) ([44cfd58](https://github.com/gemmadanks/hebog/commit/44cfd585909664265f6db07bbc73ce3a03c8d042))
+* simplify PR template ([#179](https://github.com/gemmadanks/hebog/issues/179)) ([032ca90](https://github.com/gemmadanks/hebog/commit/032ca90dc058bfbd719a2a13bca4a51fedc2fd25))
+
+
+### 🧩 CI
+
+* bump the actions group across 1 directory with 2 updates ([#161](https://github.com/gemmadanks/hebog/issues/161)) ([e99c8da](https://github.com/gemmadanks/hebog/commit/e99c8daf84b54bcd850a88024a216d43fbce18c7))
+
+
+### 📦 Build
+
+* let Hebog and its Rapthor patch install beside newer releases ([#180](https://github.com/gemmadanks/hebog/issues/180)) ([b223e76](https://github.com/gemmadanks/hebog/commit/b223e76cfd26d2712b7e24a8cc1487bb093007f7))
+
+
+### 🧪 Tests
+
+* keep temporary files only for failed tests ([#194](https://github.com/gemmadanks/hebog/issues/194)) ([0be63a6](https://github.com/gemmadanks/hebog/commit/0be63a6770c6610ec5583183e36ce5cd0037bb52))
+
 ## [0.22.0](https://github.com/gemmadanks/hebog/compare/v0.21.0...v0.22.0) (2026-10-17)
 
 
