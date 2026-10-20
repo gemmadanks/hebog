@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-18 |
+| Last updated | 2026-10-20 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -189,7 +189,7 @@ quick benchmark and profile before and after show the gain.
 
 | Step | Work | Owner | Status | Completion evidence |
 | --- | --- | --- | --- | --- |
-| 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `not started` | Red-green tests; a smoke run of each runner |
+| 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `in progress` | Red-green tests; a smoke run of each runner |
 | 2 | Build the source-count ladder: sectors of one size from fields of rising depth up to the ELAIS-N1 central 5,000², and confirm the VM holds `master` on the dense cell | Agent | `not started` | Sector identities and checksums; `master`'s source counts |
 | 3 | Measure: both finders on the ladder at four cores (one warm-up, five repetitions); both on the dense cell at 1, 2, 4 and 6 cores (screening repetitions); Hebog's stage profile on the dense cell and the anchor on 1, 2, 4 and 6 local workers | Agent | `not started` | Evidence records and reports under `benchmark-results/` |
 | 4 | Fit the model, project the ratios and set the targets | Agent | `not started` | Model, projections and targets on the progress page |

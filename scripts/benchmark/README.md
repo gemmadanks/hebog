@@ -127,8 +127,9 @@ Rapthor's production two-pass mode. Each warm-up
 and measured repetition runs `filter_skymodel_worker.py` in a fresh
 container, alternating the finders, and the report applies the deployment
 gate's ratio rule to the source-finding part of each run, from the task's
-start to LSMTool's `filter_sources` call, the span the finder controls, and
-reports the complete step's ratio beside it:
+start to LSMTool's `filter_sources` call, the span the finder controls,
+with the limit of the sector's class (dense when `master`'s catalogue holds
+at least 10,000 sources), and reports the complete step's ratio beside it:
 
 ```console
 mkdir -p benchmark-results/filter-skymodel/beam

@@ -83,23 +83,63 @@ def test_checked_in_performance_matrix_covers_curve_and_workloads() -> None:
 
 
 def test_performance_matrix_gates_only_on_pinned_pybdsf_master() -> None:
-    """One upper-bound ratio against pinned ``master`` is the runtime gate.
+    """Upper-bound ratios against pinned ``master`` are the runtime gate.
 
-    It binds the source-finding part of Rapthor's step, which Hebog
+    They bind the source-finding part of Rapthor's step, which Hebog
     controls, not the complete step with LSMTool's filtering (decision of
-    16 October 2026).
+    16 October 2026): 0.50 on a dense sector, provisionally one where
+    ``master`` finds at least 10,000 sources, and 1.05 on the rest
+    (decision of 18 October 2026).
     """
     matrix = load_performance_matrix(_PERFORMANCE_PATH)
 
-    assert matrix.schema_version == 2
+    assert matrix.schema_version == 3
     assert matrix.pybdsf_master.commit_sha == (
         "c70103be3ae9ae9908286f144e6ce956acc0ce5c"
     )
-    assert matrix.pybdsf_master.maximum_ratio == 0.5
+    assert matrix.pybdsf_master.dense_minimum_sources == 10_000
+    assert matrix.pybdsf_master.dense_maximum_ratio == 0.5
+    assert matrix.pybdsf_master.sparse_maximum_ratio == 1.05
     assert matrix.pybdsf_master.confidence_level == 0.95
     assert matrix.pybdsf_master.bound == "upper-one-sided"
     assert matrix.pybdsf_master.measured_phase == "finder"
     assert "released_pybdsf_maximum_ratio" not in type(matrix).model_fields
+
+
+@pytest.mark.parametrize(
+    ("master_source_count", "sector_class", "maximum_ratio"),
+    ((0, "sparse", 1.05), (9_999, "sparse", 1.05), (10_000, "dense", 0.5)),
+)
+def test_master_gate_classifies_a_sector_by_masters_source_count(
+    master_source_count: int, sector_class: str, maximum_ratio: float
+) -> None:
+    """A sector is dense from the threshold up, and takes its class's limit."""
+    gate = load_performance_matrix(_PERFORMANCE_PATH).pybdsf_master
+
+    assert gate.sector_class(master_source_count) == sector_class
+    assert gate.maximum_ratio(master_source_count) == maximum_ratio
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("dense_minimum_sources", 0),
+        ("dense_maximum_ratio", 1.0),
+        ("sparse_maximum_ratio", 0.99),
+    ),
+)
+def test_master_gate_rejects_limits_that_invert_the_classes(
+    field: str, value: float
+) -> None:
+    """Dense sectors must beat ``master``; the rest must merely keep up."""
+    matrix = load_performance_matrix(_PERFORMANCE_PATH)
+    payload = matrix.model_dump(mode="json")
+    payload["pybdsf_master"][field] = value
+
+    with pytest.raises(
+        ValidationError, match=rf"{field}\n\s+Input should be (greater|less)"
+    ):
+        PerformanceMatrixContract.model_validate(payload)
 
 
 def test_performance_matrix_rejects_a_former_release_gate() -> None:
