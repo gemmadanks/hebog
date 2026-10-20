@@ -120,14 +120,19 @@ records (every candidate island, with no size cut), the per-tile island
 summaries and the reconciled label mappings, 112, 262 and 489 MiB at the
 three LoTSS sizes. At that slope the peak would have been near 2.1 GiB at
 22,500². The whole LOFAR-HD ELAIS-N1 mosaic traces 1.8 GiB, but its peak is
-no longer a multiscale tile task: the analysis holds 1,854 MiB between
-tasks there, about 3.6 bytes a pixel, as on the mosaic's central 7,500²,
-where the background's local-noise requests held the most between tasks.
-At that rate 45,000² would hold about 7 GiB until the requests are bounded.
-Background and RMS, which peaked lower on the LoTSS sizes, grew about 3
-bytes a pixel (274, 545 and 962 MiB), unattributed on a real image; on
-synthetic grids the local-noise requests account for about 1.9 of it.
-Bounding these terms before the 45,000-pixel tier is planned, and
+no longer a multiscale tile task: the analysis held 1,854 MiB between
+tasks there, about 3.6 bytes a pixel, as on the mosaic's central 7,500².
+There the peak was the background's local-noise round, whose requests,
+about 1.8 bytes a pixel, were all built before any was submitted, and
+whose grid was assembled while they and every result were still held.
+Built and submitted in rounds of 64 MiB, they leave the round holding
+436 MiB above its start as its tasks start on the whole mosaic, instead of
+1,237 MiB, and peaking 129 MiB above its start on the central 7,500²,
+instead of 174 MiB; what remains is the assembled grid, about 0.7 bytes a
+pixel. The run's new peak has not been traced. Background and RMS,
+which peaked lower on the LoTSS sizes, grew about 3 bytes a pixel (274, 545
+and 962 MiB) before the requests were bounded. Bounding the remaining terms
+before the 45,000-pixel tier is planned, and
 `scripts/benchmark/attribute_traced_peak.py` attributes a peak to passes,
 tasks and call sites.
 

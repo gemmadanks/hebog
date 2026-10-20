@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, replace
 from functools import partial
 from itertools import chain, islice
@@ -57,7 +58,7 @@ from hebog.config import (
     SourceFinderConfig,
 )
 from hebog.data_models.partitioning import ImageBounds, TilePartition
-from hebog.executors.base import Executor
+from hebog.executors.base import Executor, TaskRequirement
 from hebog.io.base import ImageWindow, WindowReadable
 from hebog.stages.task_memory import read_requirement
 
@@ -72,6 +73,12 @@ from hebog.stages.task_memory import read_requirement
 # them (see `_labels_cut_off_by_the_read`), so this trades occupancy for
 # work and moves a value only beside such emission.
 _PROTECTED_CONTEXT_CELLS = 2304
+# Neighbouring local-noise blocks read overlapping windows, so their requests
+# copy the same pilot and coarse cells: together about five times the pilot
+# grid, 1.8 bytes an image pixel on the LOFAR-HD ELAIS-N1 mosaic. They are
+# built and submitted at most this many bytes at a time, a few hundred tasks
+# a round, so what the driver holds for them does not grow with the image.
+_LOCAL_NOISE_ROUND_BYTES = 64 * 1024 * 1024
 # A local-noise cell whose window touches guarded source support takes its
 # nearest clean window's RMS, but never below this fraction of the coarse RMS
 # at its centre, or of the largest clean window within half a coarse window
@@ -1026,34 +1033,32 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
     grid = pilot.geometry
     context_halo = _protection_context_halo(config)
     height, width = grid.image_shape_yx
-    requests: list[_ProtectedBlockRequest] = []
-    reads: list[ImageBounds] = []
-    for block in _local_noise_contexts(grid, config, policy):
-        if (
-            prod(block.read_bounds.shape_yx)
-            > config.maximum_constant_map_pixels
-        ):
-            raise ValueError(
-                "local noise context exceeds bounded read admission"
-            )
-        reads.append(block.read_bounds)
-        requests.append(
-            _ProtectedBlockRequest(
-                block.batch,
-                _AdaptiveRegionRequest(
-                    grid=block.cells,
-                    coarse=subset_prepared_rms_grid(coarse, block.read_bounds),
-                    positions_yx=(),
-                    detection_rms=subset_prepared_rms_grid(
-                        pilot, block.read_bounds
-                    ),
-                    context_halo_pixels=context_halo,
-                    protection="local-noise-windows",
-                    context_limit=ImageBounds(0, height, 0, width),
+    blocks = _local_noise_contexts(grid, config, policy)
+    reads = [block.read_bounds for block in blocks]
+    if any(
+        prod(read.shape_yx) > config.maximum_constant_map_pixels
+        for read in reads
+    ):
+        raise ValueError("local noise context exceeds bounded read admission")
+    requests = (
+        _ProtectedBlockRequest(
+            block.batch,
+            _AdaptiveRegionRequest(
+                grid=block.cells,
+                coarse=subset_prepared_rms_grid(coarse, block.read_bounds),
+                positions_yx=(),
+                detection_rms=subset_prepared_rms_grid(
+                    pilot, block.read_bounds
                 ),
-            )
+                context_halo_pixels=context_halo,
+                protection="local-noise-windows",
+                context_limit=ImageBounds(0, height, 0, width),
+            ),
         )
-    results = executor.map_batches(
+        for block in blocks
+    )
+    results = _map_in_bounded_rounds(
+        executor,
         partial(
             _estimate_protected_block,
             source=source,
@@ -1066,6 +1071,52 @@ def _estimate_local_noise_grid(  # noqa: PLR0913
     )
     return assemble_rms_grid_statistics(
         grid, (statistics for statistics, _ in results)
+    )
+
+
+def _copied_cell_bytes(request: _ProtectedBlockRequest) -> int:
+    """Return the bytes of coarse and pilot cells one request copies."""
+    grids = (request.region.coarse, request.region.detection_rms)
+    return sum(
+        values.nbytes
+        for grid in grids
+        if grid is not None
+        for values in (grid.background, grid.rms, grid.fallback_cells)
+    )
+
+
+def _map_in_bounded_rounds(
+    executor: Executor,
+    function: Callable[
+        [_ProtectedBlockRequest], tuple[RmsGridBatchStatistics, int]
+    ],
+    requests: Iterable[_ProtectedBlockRequest],
+    *,
+    requirement: TaskRequirement,
+) -> Iterator[tuple[RmsGridBatchStatistics, int]]:
+    """Submit requests in rounds, yielding each round's results in order.
+
+    A round closes before its copied cells would exceed
+    ``_LOCAL_NOISE_ROUND_BYTES``, and a larger request goes alone. Each
+    round is built only once the previous one's results are consumed, so
+    the driver holds one round's requests and results at a time.
+    """
+    round_requests: list[_ProtectedBlockRequest] = []
+    held_bytes = 0
+    for request in requests:
+        request_bytes = _copied_cell_bytes(request)
+        if (
+            round_requests
+            and held_bytes + request_bytes > _LOCAL_NOISE_ROUND_BYTES
+        ):
+            yield from executor.map_batches(
+                function, round_requests, requirement=requirement
+            )
+            round_requests, held_bytes = [], 0
+        round_requests.append(request)
+        held_bytes += request_bytes
+    yield from executor.map_batches(
+        function, round_requests, requirement=requirement
     )
 
 
