@@ -1,6 +1,6 @@
 [project]
 name = "hebog"
-version = "0.22.0"
+version = "0.23.0"
 description = "A scalable source finder for radio continuum images"
 authors = [
     {name = "Gemma Danks", email = "gemma.danks@skao.int"},
