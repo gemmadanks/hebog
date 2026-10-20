@@ -281,13 +281,17 @@ workers' declared amounts are also the admitted budget, and a round that
 no current worker could run is refused rather than left waiting.
 
 The analysis itself holds Hebog's modules, the records each pass returns
-and the background's local-noise requests, in the process that calls
+and the background's noise grids, in the process that calls
 `find_sources`. The records grow with the sources it finds, about 40 KB
 each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
-LoTSS anchor did. The requests, built for the whole image before any is
-submitted, grow with the pixels: the sparse, finely sampled LOFAR-HD
-ELAIS-N1 mosaic held about 3.6 bytes a pixel in all at both 7,500² and
-22,500², and on the smaller the requests held the most between tasks.
+LoTSS anchor did. The grids grow with the pixels. Neighbouring local-noise
+tasks read overlapping windows, so their requests copy the same cells,
+about five times the pilot grid in all; they are built and submitted in
+rounds of at most 64 MiB, a few hundred tasks each, so the requests do not
+grow with the image, at the cost of a drain between rounds on a large
+cluster. Built all at once, they made the analysis's peak on the sparse,
+finely sampled LOFAR-HD ELAIS-N1 mosaic's central 7,500², where the
+analysis held about 3.6 bytes a pixel in all, as on the whole 22,500².
 `hebog.analysis_memory_bytes(shape_yx, expected_sources=...)` states it for
 the image's shape and an upper estimate of the source count, above the
 traced peak between tasks on those anchors, so the caller can reserve it
