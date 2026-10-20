@@ -15,15 +15,17 @@ from hebog.executors import Executor
 
 # What one analysis holds in the process that runs it, as traced between its
 # tasks with Hebog's modules imported: a fixed part, the records the passes
-# keep for every published source, and the background's local-noise requests,
-# which are built for the whole image before any is submitted. A
-# least-squares fit over the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3
-# anchors and the dense ELAIS-N1 central 5,000 pixels, with and without a
-# flat-noise image, gave 142 MiB and 42.4 KB a source, but could not separate
-# pixels from sources, because the LoTSS-DR3 anchors' sources grow with their
-# area. The sparse, finely sampled LOFAR-HD ELAIS-N1 mosaic holds about 3.6
-# bytes a pixel over its modules, sources included, at both 7,500 and 22,500
-# pixels a side. These constants lie above every one of those runs.
+# keep for every published source, and the background's noise grids with one
+# bounded round of its local-noise requests. A least-squares fit over the
+# 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense ELAIS-N1
+# central 5,000 pixels, with and without a flat-noise image, gave 142 MiB and
+# 42.4 KB a source, but could not separate pixels from sources, because the
+# LoTSS-DR3 anchors' sources grow with their area. The sparse, finely sampled
+# LOFAR-HD ELAIS-N1 mosaic held about 3.6 bytes a pixel over its modules,
+# sources included, at both 7,500 and 22,500 pixels a side, while the
+# local-noise requests were all built before any was submitted. These
+# constants lie above every one of those runs; the pixel term stays until
+# the anchors are audited again.
 _ANALYSIS_TRACED_BASE_BYTES = 152 * 1024 * 1024
 _ANALYSIS_TRACED_BYTES_PER_SOURCE = 44 * 1024
 _ANALYSIS_TRACED_PIXEL_BYTES_NUMERATOR = 5
@@ -146,7 +148,7 @@ def analysis_memory_bytes(
     ``find_sources`` keeps Hebog's modules, the records each pass returns
     for every source, and the products it publishes in the process that
     calls it, so what it holds grows with the sources it finds, and with
-    the image through the background's local-noise requests. Its tasks are
+    the image through the background's noise grids. Its tasks are
     not counted: each declares its own memory to the executor, which a
     ``DaskExecutor`` attaches to the task under the caller's memory
     resource. Reserve this amount for the task that calls
