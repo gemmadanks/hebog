@@ -1,0 +1,23 @@
+{
+  "base_case": "elais-n1-deep-north-3600-5000",
+  "rungs": [
+    {
+      "case_id": "elais-n1-deep-noise-1p5x-5000",
+      "noise_factor": 1.5
+    },
+    {
+      "case_id": "elais-n1-deep-noise-2x-5000",
+      "noise_factor": 2.0
+    },
+    {
+      "case_id": "elais-n1-deep-noise-3x-5000",
+      "noise_factor": 3.0
+    },
+    {
+      "case_id": "elais-n1-deep-noise-4x-5000",
+      "noise_factor": 4.0
+    }
+  ],
+  "schema_version": 1,
+  "seed": 20261020
+}

@@ -306,7 +306,11 @@ with a limit of 1.05, otherwise; the report names the class and the count.
 `--cores` sets both finders' cores, and `--hebog-dask-workers`
 runs Hebog on that many single-threaded Dask workers instead of Rapthor's
 threads, a screening measurement the gate does not count; each finder's
-evidence records its own workers and threads. The image runs under Rosetta
+evidence records its own workers and threads. `--case` also takes the
+5,000² sectors of the source-count ladder, from sparse survey windows to a
+dense deep-field window, whose middle rungs
+`scripts/benchmark/build_source_count_ladder.py` writes by raising that
+window's noise. The image runs under Rosetta
 on Apple silicon, so only the ratio is matched; see the
 [benchmark guide](https://github.com/gemmadanks/hebog/blob/main/scripts/benchmark/README.md#matched-filter_skymodel-benchmark)
 for the inputs it constructs.

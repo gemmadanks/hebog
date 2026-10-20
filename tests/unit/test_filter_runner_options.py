@@ -111,6 +111,29 @@ def test_filter_benchmark_measures_the_scaling_profile_sectors(
     assert dataset_manifest == _ROOT / profile["dataset_manifest"]
 
 
+_LADDER_CASES = (
+    "lotss-dr3-1312-5000",
+    "elais-n1-deep-north-3600-5000",
+    "elais-n1-deep-central-5000",
+)
+
+
+@pytest.mark.parametrize("case_id", _LADDER_CASES)
+def test_filter_benchmark_measures_the_source_count_ladder(
+    case_id: str,
+) -> None:
+    """Every rung is one size, so only the sources change along it."""
+    case_of = cast(
+        Callable[[str], tuple[Any, Path]], _FILTER_BENCHMARK["_case"]
+    )
+
+    case, _ = case_of(case_id)
+
+    assert case.case_id == case_id
+    assert case.kind == "image"
+    assert case.window.size == 5000
+
+
 def test_filter_benchmark_lists_its_cases_when_given_an_unknown_one() -> None:
     case_of = cast(
         Callable[[str], tuple[Any, Path]], _FILTER_BENCHMARK["_case"]

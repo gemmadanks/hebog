@@ -79,6 +79,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _WORKER = Path(__file__).with_name("filter_skymodel_worker.py")
 _AGREEMENT = _ROOT / "config/checks/rapthor-agreement.json"
 _SCALING_PROFILE = _ROOT / "config/benchmarks/sector-scaling-profile.json"
+_SOURCE_COUNT_LADDER = _ROOT / "config/benchmarks/source-count-ladder.json"
 _PERFORMANCE = _ROOT / "config/benchmarks/phase-0-performance.json"
 _DEFAULT_CASE = "lotss-dr3-1312-3000"
 _FINDERS = ("bdsf", "hebog")
@@ -101,8 +102,8 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--case",
         default=_DEFAULT_CASE,
         help=(
-            "an image case of the Rapthor agreement configuration or of the "
-            "sector scaling profile"
+            "an image case of the Rapthor agreement configuration, the "
+            "sector scaling profile or the source-count ladder"
         ),
     )
     parser.add_argument(
@@ -143,14 +144,16 @@ def _case(case_id: str) -> tuple[GeneratedCase | ImageCase, Path]:
     """Return one image case and the dataset manifest that identifies it."""
     agreement = load_agreement_configuration(_AGREEMENT)
     quick_check = load_quick_check_configuration(_ROOT / agreement.quick_check)
-    profile = load_profile_configuration(_SCALING_PROFILE)
     cases: dict[str, tuple[GeneratedCase | ImageCase, Path]] = {
         item.case.case_id: (item.case, _ROOT / quick_check.dataset_manifest)
         for item in agreement.cases
-    } | {
-        item.case.case_id: (item.case, _ROOT / profile.dataset_manifest)
-        for item in profile.cases
     }
+    for path in (_SCALING_PROFILE, _SOURCE_COUNT_LADDER):
+        profile = load_profile_configuration(path)
+        cases |= {
+            item.case.case_id: (item.case, _ROOT / profile.dataset_manifest)
+            for item in profile.cases
+        }
     if case_id not in cases:
         raise ValueError(
             f"unknown case {case_id}; choose one of {', '.join(cases)}"

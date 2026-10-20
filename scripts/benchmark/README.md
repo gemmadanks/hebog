@@ -149,7 +149,15 @@ The image runs under Rosetta on Apple silicon, so the ratio is matched but
 the times are emulated.
 
 `--case` also takes the sector scaling profile's 10,000² anchor and 15,402²
-mosaic. `--hebog-dask-workers N` runs the native task's Hebog work on N
+mosaic, and the source-count ladder's 5,000² sectors
+(`config/benchmarks/source-count-ladder.json`): a window of the LoTSS-DR3
+mosaic and of the deep ELAIS-N1 field, and the deep window with
+its noise raised 1.5, 2, 3 and 4 times, which
+`build_source_count_ladder.py` writes from
+`config/benchmarks/source-count-ladder-noise.json` with one seed. The deep
+field's central window stops pinned `master` with an `IndexError` in its
+moment-analysis fallback, so the ladder's dense cell lies 3,600 pixels
+north of it. `--hebog-dask-workers N` runs the native task's Hebog work on N
 single-threaded Dask worker processes instead of Rapthor's threads. Rapthor's
 Hebog branch has no Dask path for Hebog yet, so such a run
 screens what one could give and never counts towards the gate.
