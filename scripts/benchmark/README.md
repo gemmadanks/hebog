@@ -137,6 +137,7 @@ git -C <LSMTool checkout> show \
   156ae6abd5cb89e7e622b9bd7a37ef7539a76ea2:tests/resources/test_midbands.ms.tgz \
   | tar -xz -C benchmark-results/filter-skymodel/beam
 uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --container-image localhost/hebog-filter-benchmark:<tag> \
   --beam-ms benchmark-results/filter-skymodel/beam/test_midbands.ms \
   --label <label>
 ```
