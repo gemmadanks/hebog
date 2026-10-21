@@ -17,6 +17,7 @@ to equal the one-tile run's.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Iterable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -39,7 +40,12 @@ from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     WideObjectCounts,
 )
-from hebog.executors import Executor, SerialExecutor
+from hebog.executors import (
+    Executor,
+    SerialExecutor,
+    TaskRequirement,
+    ThreadExecutor,
+)
 from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderResult
 from hebog.stages import composition
@@ -274,6 +280,102 @@ def test_products_on_the_envelope_grid_equal_one_tile(
 
     assert set(recorder.tile_counts) == {_GRID_TILES}
     assert product_hashes(grid) == product_hashes(one_tile)
+
+
+# Three tiles a side. Batched four tiles a task, a round of nine tiles gives
+# a four-thread executor three tasks, the last of them a single tile.
+_SPLIT_CORE_PIXELS = 440
+_SPLIT_TILES = 9
+
+
+class _CountingSerial(SerialExecutor):
+    """The serial reference, counting the tasks of each round."""
+
+    def __init__(self) -> None:
+        """Start with no round submitted."""
+        super().__init__()
+        self.round_sizes: list[int] = []
+
+    def map_batches[Input, Output](
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Record the round's task count, then run it serially."""
+        submitted = tuple(batches)
+        self.round_sizes.append(len(submitted))
+        return super().map_batches(
+            function, submitted, requirement=requirement
+        )
+
+
+class _CountingThreads(ThreadExecutor):
+    """Four threads, counting the tasks of each round."""
+
+    def __init__(self) -> None:
+        """Start with no round submitted."""
+        super().__init__(thread_count=4)
+        self.round_sizes: list[int] = []
+
+    def map_batches[Input, Output](
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Record the round's task count, then run it on the threads."""
+        submitted = tuple(batches)
+        self.round_sizes.append(len(submitted))
+        return super().map_batches(
+            function, submitted, requirement=requirement
+        )
+
+
+def test_a_wider_executor_splits_tile_rounds_and_keeps_the_products(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    one_tile: SourceFinderResult,
+) -> None:
+    """Four threads get more tasks than one, and the same products.
+
+    Batches amortise a task's fixed reads, but a round of a few large tiles
+    batched coarsely leaves most of an executor's threads idle while one
+    finishes. No round may be coarser on four threads than serially.
+    """
+    monkeypatch.setattr(
+        composition,
+        "run_stages_from_background",
+        partial(
+            composition.run_stages_from_background,
+            multiscale_tile_core_pixels=_SPLIT_CORE_PIXELS,
+            support_tile_core_pixels=_SPLIT_CORE_PIXELS,
+        ),
+    )
+    recorder = _PlanRecorder(monkeypatch)
+    serial, threads = _CountingSerial(), _CountingThreads()
+
+    narrow = _find_sources(
+        _shared_input(one_tile), tmp_path / "serial", serial
+    )
+    with threads:
+        wide = _find_sources(
+            _shared_input(one_tile), tmp_path / "threads", threads
+        )
+
+    assert set(recorder.tile_counts) == {_SPLIT_TILES}
+    assert len(threads.round_sizes) == len(serial.round_sizes)
+    assert all(
+        on_threads >= serially
+        for on_threads, serially in zip(
+            threads.round_sizes, serial.round_sizes, strict=True
+        )
+    )
+    assert sum(threads.round_sizes) > sum(serial.round_sizes)
+    assert product_hashes(wide) == product_hashes(narrow)
+    assert product_hashes(wide) == product_hashes(one_tile)
 
 
 def test_one_tile_publishes_support_on_every_seam_topology(

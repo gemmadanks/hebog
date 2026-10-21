@@ -1,8 +1,9 @@
-"""The one rule every per-object round batches its reads under."""
+"""The rules object rounds and tile rounds batch their work under."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from math import ceil
 from typing import TypeVar
 
 import pytest
@@ -10,8 +11,13 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from hebog.data_models.partitioning import ImageBounds
-from hebog.executors import SerialExecutor, TaskRequirement
-from hebog.stages.batching import batch_object_windows, map_round, read_pixels
+from hebog.executors import ExecutorCapacity, SerialExecutor, TaskRequirement
+from hebog.stages.batching import (
+    batch_object_windows,
+    map_round,
+    read_pixels,
+    tiles_per_batch,
+)
 
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
@@ -317,3 +323,52 @@ def test_a_silent_round_fails_closed() -> None:
             round_name="lost",
             requirement=_REQUIREMENT,
         )
+
+
+def _slots(workers: int, threads: int) -> ExecutorCapacity:
+    """Return a budget of ``workers`` workers of ``threads`` threads."""
+    return ExecutorCapacity(workers, threads, workers * threads)
+
+
+@pytest.mark.parametrize(
+    ("tile_count", "workers", "threads", "expected"),
+    [
+        pytest.param(9, 1, 1, 4, id="serial"),
+        pytest.param(3, 1, 1, 4, id="serial-few-tiles"),
+        pytest.param(9, 1, 4, 1, id="5000-on-four-threads"),
+        pytest.param(9, 2, 1, 2, id="5000-on-two-workers"),
+        pytest.param(25, 6, 1, 2, id="10000-on-six-workers"),
+        pytest.param(121, 1, 4, 4, id="22500-on-four-threads"),
+        pytest.param(1, 6, 1, 1, id="one-tile"),
+    ],
+)
+def test_tile_rounds_batch_as_coarsely_as_their_slots_allow(
+    tile_count: int, workers: int, threads: int, expected: int
+) -> None:
+    """Four tiles a task until the round would leave task slots idle."""
+    assert (
+        tiles_per_batch(tile_count, _slots(workers, threads), maximum=4)
+        == expected
+    )
+
+
+@given(
+    tile_count=st.integers(1, 400),
+    workers=st.integers(1, 16),
+    threads=st.integers(1, 8),
+    maximum=st.integers(1, 8),
+)
+def test_a_tile_batch_shrinks_until_every_slot_has_two(
+    tile_count: int, workers: int, threads: int, maximum: int
+) -> None:
+    """A batch above one tile leaves each slot two; more never coarsen it."""
+    size = tiles_per_batch(
+        tile_count, _slots(workers, threads), maximum=maximum
+    )
+    wider = tiles_per_batch(
+        tile_count, _slots(workers + 1, threads), maximum=maximum
+    )
+
+    assert 1 <= wider <= size <= maximum
+    if workers * threads > 1 and size > 1:
+        assert ceil(tile_count / size) >= 2 * workers * threads

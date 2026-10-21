@@ -34,6 +34,7 @@ from hebog.config import BackgroundRmsConfig, SourceFinderConfig
 from hebog.data_models import (
     BrightRegionCounts,
     ImageBounds,
+    PartitionManifest,
     WideObjectCounts,
 )
 from hebog.data_models.images import ImageMetadata, RestoringBeam
@@ -41,6 +42,7 @@ from hebog.executors import Executor
 from hebog.io import ZarrProductSink
 from hebog.io.base import WindowReadable
 from hebog.science.continuum import retained_scale_detections
+from hebog.stages.batching import tiles_per_batch
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
@@ -77,6 +79,17 @@ _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 _OWNER_OBJECTS_PER_BATCH = 256
 _DENOISED_POSITION_PEAK_TO_MEAN_RATIO = 3.0
 _ENVELOPE_PAIRS_PER_BATCH = 256
+
+
+def _support_tiles_per_batch(
+    manifest: PartitionManifest, executor: Executor
+) -> int:
+    """Return the tiles each batch of a later pass's tile round holds."""
+    return tiles_per_batch(
+        len(manifest.tiles),
+        executor.capacity,
+        maximum=_SUPPORT_TILES_PER_BATCH,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -471,7 +484,9 @@ def reduce_support_topology(  # noqa: PLR0913
         manifest,
         config=SupportTopologyStageConfig(
             scale_orders=scale_orders,
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
         ),
         executor=executor,
         sink=sink,
@@ -585,7 +600,9 @@ def publish_component_topology(  # noqa: PLR0913
         manifest,
         config=ComponentTopologyStageConfig(
             deblend=compact_deblend_config(config),
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         executor=executor,
@@ -674,7 +691,9 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
                 _DENOISED_POSITION_PEAK_TO_MEAN_RATIO
             ),
             with_position_diagnostics=with_position_diagnostics,
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
@@ -734,7 +753,9 @@ def publish_detection_islands(  # noqa: PLR0913
                 * beam.minor_fwhm_pixels
                 / (4.0 * log(2.0))
             ),
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
@@ -787,7 +808,9 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         component_source,
         manifest,
         config=SourceLabelStageConfig(
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
         ),
         source_by_owner=source_label_by_owner(association),
         executor=executor,
@@ -805,7 +828,9 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         measurement_support_source,
         manifest,
         config=SourceSupportStageConfig(
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
@@ -855,7 +880,9 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
         component_source,
         manifest,
         config=HierarchyOverlapStageConfig(
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_features_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_pairs_per_batch=_ENVELOPE_PAIRS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
@@ -947,7 +974,9 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         fit_parent_manifest,
         config=FitParentStageConfig(
             context_margin_pixels=context_margin,
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                fit_parent_manifest, executor
+            ),
             read_margin_pixels=fit_parent_margin_pixels(
                 fit_config, atrous_plan
             ),
@@ -988,7 +1017,9 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             minimum_support_fraction=(
                 review.matrix.support_fraction_bounds[0]
             ),
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         component_count=component_count,
@@ -1015,7 +1046,9 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
             minimum_support_fraction=(
                 review.matrix.support_fraction_bounds[0]
             ),
-            maximum_tiles_per_batch=_SUPPORT_TILES_PER_BATCH,
+            maximum_tiles_per_batch=_support_tiles_per_batch(
+                manifest, executor
+            ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         parents=result.parents,

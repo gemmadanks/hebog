@@ -13,6 +13,9 @@ another. It reaches this module only when a reviewed admission rule bounds
 its window independently of the image, and is then read alone; anything else
 is refused, because nothing would bound its read. A round measures such an
 object from the cores that hold it instead, or does not read it at all.
+
+Rounds over whole tiles batch by count instead (``tiles_per_batch``), as
+coarsely as their executor's task slots allow.
 """
 
 from __future__ import annotations
@@ -26,7 +29,44 @@ from hebog.data_models.partitioning import (
     PartitionManifest,
     TilePartition,
 )
-from hebog.executors.base import Executor, TaskRequirement
+from hebog.executors.base import (
+    Executor,
+    ExecutorCapacity,
+    TaskRequirement,
+)
+
+# A tile round holds at least this many batches for each task slot when its
+# tiles allow, so the slots share the round's last tiles instead of one slot
+# working through a long last batch while the others wait.
+_TILE_BATCHES_PER_SLOT = 2
+
+
+def tiles_per_batch(
+    tile_count: int, capacity: ExecutorCapacity, *, maximum: int
+) -> int:
+    """Return how many tiles each batch of one tile round holds.
+
+    Up to ``maximum`` tiles share a task, which spreads the reads a task
+    makes before its first tile. A round of a few large tiles batched that
+    coarsely leaves most task slots idle: the nine tiles of a 5,000-pixel
+    image make tasks of four, four and one tile, so four slots finish the
+    round no sooner than one slot working through four tiles. A batch
+    therefore shrinks, down to one tile, until the round holds two batches
+    for each of the executor's slots, its workers times their threads. One
+    slot runs every batch in turn, so the serial reference keeps the coarse
+    batches. Products do not depend on the batching.
+
+    >>> serial = ExecutorCapacity(1, 1, 1)
+    >>> four_threads = ExecutorCapacity(1, 4, 4)
+    >>> tiles_per_batch(9, serial, maximum=4)
+    4
+    >>> tiles_per_batch(9, four_threads, maximum=4)
+    1
+    """
+    slots = capacity.worker_count * capacity.threads_per_worker
+    if slots == 1:
+        return maximum
+    return max(1, min(maximum, tile_count // (_TILE_BATCHES_PER_SLOT * slots)))
 
 
 @dataclass(frozen=True, slots=True)
