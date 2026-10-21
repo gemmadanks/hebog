@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-20 |
+| Last updated | 2026-10-21 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -89,8 +89,12 @@ where both finders' serial work decides the ratio.
 In the matched screening of 16 October Hebog's finder part was 2.43 times
 `master`'s on the 3,000² sector (thread path) and 1.23 on the 10,000²
 anchor with four Dask workers, where `master` finds 9,276 sources; both
-kept about three of four cores busy. The ratio falls as the source count
-rises. No dense sector has been measured.
+kept about three of four cores busy. On the source-count ladder at 5,000²
+(21 October, four cores, Rapthor's thread path) every cell fails its limit:
+the ratio is 3.14 to 4.85 on sparse sectors and 3.16 and 2.28 on the two
+dense ones. Hebog keeps 1.3 of four cores busy and `master` about 2.1, and
+a linear fit gives Hebog about 690 s plus 61 ms a source against `master`'s
+34 s plus 37 ms, so on this path the ratio tends to about 1.7.
 
 Run `task74-stack` (15 October) took the 10,000² anchor from 1,357 s on
 one worker to 429 s on six. An Amdahl fit gives 250 s serial and 1,085 s
@@ -130,7 +134,7 @@ The code shows where the serial work comes from:
 
 | Assumption | Evidence or reason | Impact if false | Owner to verify |
 | --- | --- | --- | --- |
-| `master`'s time grows faster than Hebog's with the source count. | The maintainer's experience in production; the ratio falls from 2.43 to 1.23 between the two measured cells. | The dense gate needs Hebog's CPU to fall, not only its occupancy to rise; the checkpoint after step 4 reorders the work. | Agent, step 3 |
+| `master`'s time grows faster than Hebog's with the source count. | In proportion only: on the ladder `master`'s finder part grows 5.2 times from 3,847 to 24,780 sources and Hebog's 2.4 times, but Hebog's cost a source is 1.7 times `master`'s on Rapthor's threads. | The dense gate needs Hebog's CPU to fall, not only its occupancy to rise; the checkpoint after step 4 reorders the work. | Agent, step 3 |
 | The VM holds `master` on a dense ELAIS-N1 5,000² window. | On the window 3,600 pixels north of the field centre `master` finds 24,780 sources with a 5.8 GB peak, well inside the 16 GB VM; on the central window it stops with an `IndexError` in its moment-analysis fallback (a PyBDSF defect, also in 1.14.1, drafted for upstream), so the north window is the dense cell (decision of 20 October). | The dense cell moves to the cluster. | Agent, step 2 |
 | Per-task inflation with workers is mostly local contention. | Eight workers swapped 24 GB; the I/O-heavy rounds inflate most. | The cost model weights I/O, and the store work of task 25 moves earlier. | Agent, steps 3 and 5 |
 | Rosetta slows both finders alike. | Both run in the same container; only ratios are compared. | Local ratios mislead; the cluster decides. | Human, cluster run |
@@ -191,10 +195,10 @@ quick benchmark and profile before and after show the gain.
 | --- | --- | --- | --- | --- |
 | 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `done` | Red-green tests; a smoke run of each runner |
 | 2 | Build the source-count ladder: 5,000² sectors from fields of rising depth (`config/benchmarks/source-count-ladder.json`), with the gap between the LoTSS-DR3 and deep ELAIS-N1 windows filled by the dense cell with its noise raised 1.5, 2, 3 and 4 times (`scripts/benchmark/build_source_count_ladder.py`), and confirm the VM holds `master` on the dense cell | Agent | `done` | Sector identities and checksums; `master`'s source counts |
-| 3 | Measure: both finders on the ladder at four cores (one warm-up, five repetitions); both on the dense cell at 1, 2, 4 and 6 cores (screening repetitions); Hebog's stage profile on the dense cell and the anchor on 1, 2, 4 and 6 local workers | Agent | `not started` | Evidence records and reports under `benchmark-results/` |
+| 3 | Measure: both finders on the ladder at four cores (one warm-up, two repetitions) and the full protocol on the dense cell (one warm-up, five); both on the dense cell at 1, 2, 4 and 6 cores, Hebog on as many single-threaded Dask workers (screening repetitions); Hebog's stage profile on the dense cell (1 and 4 threads; 1, 2, 4 and 6 Dask workers) and the anchor (1, 2, 4 and 6 Dask workers) | Agent | `in progress` | Evidence records and reports under `benchmark-results/` |
 | 4 | Fit the model, project the ratios and set the targets | Agent | `not started` | Model, projections and targets on the progress page |
 | — | Checkpoint: threshold, targets, increment order and whether per-source costs join | Human | `not started` | Decisions recorded in the implementation plan |
-| 5 | Increment 1, core budget and cost model, with the batched candidate scan | Agent | `not started` | Tests; scaling profile before and after; quick check and quick benchmark; release |
+| 5 | Increment 1, core budget and cost model, with the batched candidate scan | Agent | `in progress` | Tests; scaling profile before and after; quick check and quick benchmark; release |
 | 6 | Increment 2, waiting and sharing, with completion order, the split completion record and task-reported checksums | Agent | `not started` | As step 5; concurrent-analysis and joining-worker tests |
 | 7 | Increment 3, Rapthor's distributed path | Agent, human on Rapthor | `not started` | Adapter and Rapthor-branch tests; integration container summary |
 | 8 | Increment 4, both branches together | Agent | `not started` | As step 5 |
@@ -205,7 +209,7 @@ quick benchmark and profile before and after show the gain.
 
 | Trigger | Human decision | Agent action while waiting |
 | --- | --- | --- |
-| Step 4's model and targets | Confirm the threshold, the targets and the increment order; decide whether per-source costs join | Start increment 1's tests, which every order needs |
+| Step 4's model and targets | Confirm the threshold, the targets and the increment order; decide whether per-source costs join | Continue increment 1, which every order needs |
 | The model shows the dense gate out of reach at deployable node counts even with the serial target met | Choose between CPU work, native code under its gates, or the gate | Report the gap and its causes; continue the increments |
 | Each increment's release | Merge and release | Start the next increment on a stacked branch |
 | Rapthor's layout change | Make it on the Rapthor branch, or ask the agent to prepare it | Use the standalone run as the scaling evidence |
@@ -238,3 +242,5 @@ quick benchmark and profile before and after show the gain.
 | 2026-10-18 | Decision | The window RMS keeps no truncation correction (task 68 closed), so step 1 measures the noise as it is now. | Agent: step 1 after the 22,500² tier |
 | 2026-10-20 | Decision | The dense cell is the deep ELAIS-N1 window 3,600 pixels north of the centre, where `master` completes; the central window stops `master` with a PyBDSF defect, drafted for an upstream report. No local field of rising depth fills the ladder between about 3,500 and 23,000 sources, so its middle rungs raise the dense cell's noise with beam-smoothed noise from a fixed seed; only the depth changes. | Agent: step 3 |
 | 2026-10-20 | Progress | The ladder's sectors hold 2,469 (LoTSS-DR3), 3,847, 5,686, 9,744 and 14,126 (the dense cell's noise raised 4, 3, 2 and 1.5 times) and 24,780 (the dense cell) sources in `master`'s catalogue, its finder part rising from about 210 s to 1,027 s on four cores; a LOFAR-HD window was dropped, since its mosaic has no reference frequency for Rapthor's inputs. | Agent: step 3 on quiet nights |
+| 2026-10-21 | Progress | The ladder at four cores on Rapthor's thread path, one warm-up and two measured runs a finder: every cell fails its limit, each bound within 1.5% of its ratio, every product repeated byte for byte. The LoTSS-DR3 cell's full protocol stopped at the disk watchdog after four measured `master` runs and three of Hebog's, because the container VM kept deleted files allocated; chains now drop the VM's file cache after deleting. | Agent: the dense cell's profile and full protocol |
+| 2026-10-21 | Decision | The ladder keeps its screening repetitions, which are far from every limit; only the dense cell runs the full protocol. The core sweep runs Hebog on single-threaded Dask workers, since the thread path's 1.3 busy cores are measured. Increment 1 starts before step 4's checkpoint: the dense cell's stage profile, with threads beside Dask, is its baseline and shows whether the thread path is held by the interpreter lock or by too few tasks a round; the core sweep and the model then set its targets. | Agent: profiles on the night of 21 October, the core sweep on a later quiet night; increment 1's tests |
