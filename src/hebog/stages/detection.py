@@ -147,6 +147,25 @@ def _scan_candidate_tile(
     ).compact_summary()
 
 
+def _scan_candidate_cells(
+    requests: tuple[BackgroundRmsTileRequest, ...],
+    *,
+    source: WindowReadable,
+    threshold_sigma: float,
+    image_shape_yx: tuple[int, int],
+) -> tuple[LocalIslandTileSummary, ...]:
+    """Scan one block of cells, each from its own read."""
+    return tuple(
+        _scan_candidate_tile(
+            request,
+            source=source,
+            threshold_sigma=threshold_sigma,
+            image_shape_yx=image_shape_yx,
+        )
+        for request in requests
+    )
+
+
 def discover_adaptive_candidates(
     source: WindowReadable,
     manifest: PartitionManifest,
@@ -165,21 +184,23 @@ def discover_adaptive_candidates(
         for tile in manifest.tiles
     )
     scan = partial(
-        _scan_candidate_tile,
+        _scan_candidate_cells,
         source=source,
         threshold_sigma=adaptive.candidate_threshold_sigma,
         image_shape_yx=manifest.image_shape_yx,
     )
     summaries = tuple(
-        executor.map_batches(
+        summary
+        for block in executor.map_batches(
             scan,
-            requests,
+            _cell_blocks(requests),
             requirement=read_requirement(
                 _CANDIDATE_SCAN_BYTES_PER_READ_PIXEL,
                 (request.partition.read_bounds for request in requests),
                 chunk_shape_yx=manifest.tile_core_shape_yx,
             ),
         )
+        for summary in block
     )
     candidates = reconcile_candidate_tiles(manifest, summaries)
     return tuple(

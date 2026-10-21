@@ -128,9 +128,6 @@ The code shows where the serial work comes from:
 - Zarr chunks equal the tile core (`io/zarr.py`), so every task's declared
   memory is floored by a 2,048² read; the core, chunk size, read
   amplification and declarations change together.
-- The adaptive candidate scan submits one task per 128-pixel cell, 6,241
-  at 10,000² and 14,641 at 15,402² (`stages/detection.py`), and each task
-  under Dask reopens and revalidates the FITS file (`io/fits.py`).
 - `DaskExecutor` waits for results in submission order, reads the cluster's
   capacity once and keeps two tasks in flight per thread
   (`executors/dask.py`), so one slow task stalls submission and workers
