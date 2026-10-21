@@ -291,6 +291,7 @@ on the Rapthor integration image, then:
 
 ```console
 uv run python scripts/benchmark/measure_filter_skymodel.py \
+  --container-image localhost/hebog-filter-benchmark:<tag> \
   --beam-ms <Measurement Set> --label <label>
 ```
 

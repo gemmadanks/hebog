@@ -58,7 +58,9 @@ def _worker_command(finder: str, *options: str) -> list[str]:
         Callable[..., list[str]], _FILTER_BENCHMARK["_container_command"]
     )
     return command(
-        parse(["--label", "screening", *options]),
+        parse(
+            ["--label", "screening", "--container-image", "image", *options]
+        ),
         Path("sector"),
         finder,
         beam_ms=False,
@@ -80,6 +82,17 @@ def test_lsmtool_check_runs_the_chosen_profile_and_background() -> None:
         "continuum",
         "estimated",
     )
+
+
+def test_filter_benchmark_names_the_image_it_measures() -> None:
+    """A default image once measured a stale build of Hebog and Rapthor."""
+    parse = cast(
+        Callable[[list[str]], argparse.Namespace],
+        _FILTER_BENCHMARK["_parse_args"],
+    )
+
+    with pytest.raises(SystemExit):
+        parse(["--label", "screening"])
 
 
 def test_filter_benchmark_runs_hebog_on_threads_by_default() -> None:

@@ -23,7 +23,7 @@ catalogue, RMS maps and mask repeated byte for byte, and the identities of
 the image, inputs and software::
 
     uv run python scripts/benchmark/measure_filter_skymodel.py \\
-        --beam-ms MEASUREMENT_SET --label LABEL
+        --container-image IMAGE --beam-ms MEASUREMENT_SET --label LABEL
 """
 
 from __future__ import annotations
@@ -112,7 +112,9 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="a Measurement Set: Rapthor's production two-pass mode",
     )
     parser.add_argument(
-        "--container-image", default="localhost/hebog-filter-benchmark:task23"
+        "--container-image",
+        required=True,
+        help="the benchmark image, which holds the Hebog and Rapthor measured",
     )
     parser.add_argument(
         "--output-root",
