@@ -120,15 +120,15 @@ times slower per task on eight workers, which swapped up to 24 GB.
 
 The code shows where the serial work comes from:
 
-- Tile cores are fixed at 2,048 pixels and batch sizes are constants
-  (`stages/composition.py`), so the later stages run 7 to 25 tasks a round
-  at 10,000², and no stage reads the executor's capacity.
+- Tile cores are fixed at 2,048 pixels (`stages/composition.py`), so the
+  later stages run 7 to 25 tasks a round at 10,000². Tile rounds now shrink
+  their batches of up to four tiles until each of the executor's task
+  slots has two, and the component-fit and extended-group rounds split
+  their objects the same way, but the cores ignore the executor's
+  capacity.
 - Zarr chunks equal the tile core (`io/zarr.py`), so every task's declared
   memory is floored by a 2,048² read; the core, chunk size, read
   amplification and declarations change together.
-- The adaptive candidate scan submits one task per 128-pixel cell, 6,241
-  at 10,000² and 14,641 at 15,402² (`stages/detection.py`), and each task
-  under Dask reopens and revalidates the FITS file (`io/fits.py`).
 - `DaskExecutor` waits for results in submission order, reads the cluster's
   capacity once and keeps two tasks in flight per thread
   (`executors/dask.py`), so one slow task stalls submission and workers
@@ -257,3 +257,4 @@ quick benchmark and profile before and after show the gain.
 | 2026-10-21 | Progress | The ladder at four cores on Rapthor's thread path, one warm-up and two measured runs a finder: every cell fails its limit, each bound within 1.5% of its ratio, every product repeated byte for byte. The LoTSS-DR3 cell's full protocol stopped at the disk watchdog after four measured `master` runs and three of Hebog's, because the container VM kept deleted files allocated; chains now drop the VM's file cache after deleting. | Agent: the dense cell's profile and full protocol |
 | 2026-10-21 | Decision | The ladder keeps its screening repetitions, which are far from every limit; only the dense cell runs the full protocol. The core sweep runs Hebog on single-threaded Dask workers, since the thread path's 1.3 busy cores are measured. Increment 1 starts before step 4's checkpoint: the dense cell's stage profile, with threads beside Dask, is its baseline and shows whether the thread path is held by the interpreter lock or by too few tasks a round; the core sweep and the model then set its targets. | Agent: profiles on the night of 21 October, the core sweep on a later quiet night; increment 1's tests |
 | 2026-10-22 | Progress | The dense cell's full protocol (one warm-up, five measured) gives 2.26, bounds 2.24 to 2.28, and 2.03 for the complete step, matching the screening. Hebog's stage profiles of the dense cell and the anchor show the thread path held by the interpreter lock, the two background passes as the largest single-worker cost and rounds of 3 to 12 tasks as the tail; the matched ratio on Dask workers waits for the core sweep. | Agent: the core sweep on a quiet night; increment 1 |
+| 2026-10-22 | Progress | Increment 1's first changes split tile rounds, and the component-fit and extended-group rounds, until each task slot has two batches, and scan for bright candidates 64 cells a task. On four Dask workers they take 8 to 13% off the dense and sparse 5,000² cells and a 3,000² sector, with products unchanged; the thread path is unchanged. | Agent: the tile core from the budget and the run-settings record |

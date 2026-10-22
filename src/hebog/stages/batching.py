@@ -13,6 +13,11 @@ another. It reaches this module only when a reviewed admission rule bounds
 its window independently of the image, and is then read alone; anything else
 is refused, because nothing would bound its read. A round measures such an
 object from the cores that hold it instead, or does not read it at all.
+
+Rounds over whole tiles batch by count instead (``tiles_per_batch``), as
+coarsely as their executor's task slots allow, and an object round's batches
+also close at the share of its objects those slots need
+(``objects_per_batch``).
 """
 
 from __future__ import annotations
@@ -26,7 +31,71 @@ from hebog.data_models.partitioning import (
     PartitionManifest,
     TilePartition,
 )
-from hebog.executors.base import Executor, TaskRequirement
+from hebog.executors.base import (
+    Executor,
+    ExecutorCapacity,
+    TaskRequirement,
+)
+
+# A round holds at least this many batches for each task slot when its work
+# allows, so the slots share the round's last batches instead of one slot
+# working through a long last batch while the others wait.
+_BATCHES_PER_SLOT = 2
+
+
+def tiles_per_batch(
+    tile_count: int, capacity: ExecutorCapacity, *, maximum: int
+) -> int:
+    """Return how many tiles each batch of one tile round holds.
+
+    Up to ``maximum`` tiles share a task, which spreads the reads a task
+    makes before its first tile. A round of a few large tiles batched that
+    coarsely leaves most task slots idle: the nine tiles of a 5,000-pixel
+    image make tasks of four, four and one tile, so four slots finish the
+    round no sooner than one slot working through four tiles. A batch
+    therefore shrinks, down to one tile, until the round holds two batches
+    for each of the executor's slots, its workers times their threads. One
+    slot runs every batch in turn, so the serial reference keeps the coarse
+    batches. Products do not depend on the batching.
+
+    >>> serial = ExecutorCapacity(1, 1, 1)
+    >>> four_threads = ExecutorCapacity(1, 4, 4)
+    >>> tiles_per_batch(9, serial, maximum=4)
+    4
+    >>> tiles_per_batch(9, four_threads, maximum=4)
+    1
+    """
+    slots = capacity.worker_count * capacity.threads_per_worker
+    if slots == 1:
+        return maximum
+    return max(1, min(maximum, tile_count // (_BATCHES_PER_SLOT * slots)))
+
+
+def objects_per_batch(
+    object_count: int, capacity: ExecutorCapacity
+) -> int | None:
+    """Return the most objects one batch of an object round may hold.
+
+    An object round's batches close at a read budget, so a small image's
+    objects share a few reads and a few tasks: the component fits of a
+    3,000-pixel LoTSS-DR3 sector make four batches, so four slots finish
+    the round only with its slowest. With several slots a batch therefore
+    also closes at a share of the round's objects, so the round holds at
+    least two batches for each slot when it has the objects. One slot runs
+    every batch in turn, so the serial reference closes batches at the read
+    budget alone (``None``). Products do not depend on the batching.
+
+    >>> objects_per_batch(100, ExecutorCapacity(1, 1, 1)) is None
+    True
+    >>> objects_per_batch(100, ExecutorCapacity(1, 4, 4))
+    12
+    >>> objects_per_batch(3, ExecutorCapacity(1, 4, 4))
+    1
+    """
+    slots = capacity.worker_count * capacity.threads_per_worker
+    if slots == 1:
+        return None
+    return max(1, object_count // (_BATCHES_PER_SLOT * slots))
 
 
 @dataclass(frozen=True, slots=True)

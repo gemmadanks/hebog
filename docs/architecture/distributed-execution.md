@@ -223,9 +223,16 @@ All executors obey the same rules, so a defect shows up on a laptop under
 - Tasks are idempotent, so a `retry_limit` above zero is safe.
 
 Tasks are **coarse batches** of tiles or objects: an object round puts up to
-256 objects in one task. Graph size therefore scales with the number of tiles
-and stages, and in an object round with the number of objects over that batch
-size, never with pixels. Objects are batched a storage core at a time, so
+256 objects in one task, and a tile round up to four tiles. A tile round's
+batch shrinks, down to one tile, until the round holds two batches for each
+of the executor's task slots, so the nine tiles of a 5,000² image make nine
+tasks on four threads rather than tasks of four, four and one tile; the
+serial executor keeps four. The component-fit and extended-group rounds,
+whose batches otherwise close only at a read budget of one tile core, also
+close a batch at a share of their objects that leaves each task slot two
+batches. Graph size therefore scales with the number of
+tiles and stages, and in an object round with the number of objects over
+that batch size, never with pixels. Objects are batched a storage core at a time, so
 at 100,000 pixels a side one object round of the 15,402² mosaic's density
 is about 4,700 tasks rather than the 156,000 raster order made.
 

@@ -174,16 +174,20 @@ def test_the_flat_noise_estimate_has_its_own_timer(tmp_path: Path) -> None:
 def test_every_executor_runs_and_records_the_same_tasks(
     tmp_path: Path,
 ) -> None:
-    """The same plan runs everywhere, so its tasks and chunks are the same.
+    """Executors with the same task slots run and record the same plan.
 
     A worker process that failed to count its own I/O, or a task the
-    recording missed, would make one executor's totals differ.
+    recording missed, would make the Dask totals differ from the threads'.
+    The serial reference batches some rounds more coarsely, so it runs the
+    same rounds and writes the same chunks in no more tasks.
     """
-    totals = []
-    for index, arguments in enumerate(
-        ((), ("--threads", "2"), ("--dask-workers", "2"))
+    totals: dict[str, tuple[int, list[tuple[str, int]], dict[str, int]]] = {}
+    for name, arguments in (
+        ("serial", ()),
+        ("threads", ("--threads", "2")),
+        ("dask", ("--dask-workers", "2")),
     ):
-        directory = tmp_path / str(index)
+        directory = tmp_path / name
         directory.mkdir()
         record = _profile(directory, *arguments)
         root = next(
@@ -195,9 +199,16 @@ def test_every_executor_runs_and_records_the_same_tasks(
             (item["round"], item["task_count"])
             for item in record["tasks"]["rounds"]
         )
-        totals.append((record["tasks"]["count"], rounds, root["zarr_io"]))
+        totals[name] = (record["tasks"]["count"], rounds, root["zarr_io"])
 
-    assert totals[0] == totals[1] == totals[2]
+    assert totals["threads"] == totals["dask"]
+    serial_count, serial_rounds, serial_io = totals["serial"]
+    threads_count, threads_rounds, threads_io = totals["threads"]
+    assert [round_name for round_name, _ in serial_rounds] == [
+        round_name for round_name, _ in threads_rounds
+    ]
+    assert serial_io["written_chunks"] == threads_io["written_chunks"]
+    assert serial_count <= threads_count
 
 
 def test_profile_workers_admit_by_their_limit_and_never_pause_or_restart() -> (

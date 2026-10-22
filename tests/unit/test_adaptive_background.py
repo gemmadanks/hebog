@@ -34,6 +34,7 @@ from hebog.config import (
 from hebog.data_models import ImageBounds, TilePartition
 from hebog.executors import SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
+from hebog.stages import detection as detection_stage
 from hebog.stages.background import (
     BackgroundRmsGrids,
     MultiscaleSourceProtection,
@@ -1764,3 +1765,64 @@ def test_clean_cell_coverage_counts_cells_with_a_clean_cell_within_reach() -> (
     assert clean_cell_coverage(np.ones((5, 9), dtype=np.bool_), (0, 0)) == 1
     assert clean_cell_coverage(np.zeros((5, 9), dtype=np.bool_), (3, 3)) == 0
     assert clean_cell_coverage(np.zeros((0, 4), dtype=np.bool_), (1, 1)) == 0
+
+
+class _CountingExecutor(SerialExecutor):
+    """The serial reference, counting the tasks of each round."""
+
+    def __init__(self) -> None:
+        """Start with no round submitted."""
+        super().__init__()
+        self.round_sizes: list[int] = []
+
+    def map_batches(
+        self,
+        function: Callable[[Input], Output],
+        batches: Iterable[Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Record the round's task count, then run it in order."""
+        inputs = list(batches)
+        self.round_sizes.append(len(inputs))
+        return super().map_batches(function, inputs, requirement=requirement)
+
+
+def test_candidate_scan_runs_blocks_of_cells_and_finds_the_same_peaks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One task scans 64 cells, as the other background rounds do.
+
+    A task a cell spent the executor's fixed cost of a task, and under Dask
+    a reopening of the input, on about 10 ms of work: 6,241 tasks at
+    10,000 pixels a side. The blocks change scheduling only.
+    """
+    image = np.random.default_rng(3).normal(0.0, 1.0, (130, 140))
+    for y, x in ((20, 30), (64, 70), (120, 133)):
+        image[y, x] = 80.0
+    source = _ArrayImageSource(image)
+    grids = estimate_background_rms_grids(
+        source,
+        image.shape,
+        _config(),
+        SerialExecutor(),
+        bright_candidate_positions_yx=(),
+        source_protection_island_threshold_sigma=3.0,
+    )
+    manifest = plan_image_partitions(
+        image_shape_yx=image.shape, tile_core_shape_yx=(8, 8), halo_yx=(0, 0)
+    )
+    blocked = _CountingExecutor()
+
+    candidates = detection_stage.discover_adaptive_candidates(
+        source, manifest, grids, _config(), blocked
+    )
+    monkeypatch.setattr(detection_stage, "_CELLS_PER_TASK", 1)
+    one_cell_a_task = detection_stage.discover_adaptive_candidates(
+        source, manifest, grids, _config(), SerialExecutor()
+    )
+
+    assert len(manifest.tiles) == 17 * 18
+    assert blocked.round_sizes == [5]
+    assert candidates == one_cell_a_task
+    assert sorted(candidates) == [(20.0, 30.0), (64.0, 70.0), (120.0, 133.0)]

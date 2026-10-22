@@ -51,6 +51,7 @@ from hebog.io.zarr import ZarrProductSink
 from hebog.stages.batching import (
     batch_object_windows,
     map_round,
+    objects_per_batch,
     read_pixels,
 )
 from hebog.stages.object_extents import (
@@ -276,8 +277,11 @@ def _fit_batches(
     core_shape_yx: tuple[int, int],
     maximum_batch_read_pixels: int,
     maximum_bounds_pixels: int,
+    maximum_parents_per_batch: int | None = None,
 ) -> tuple[_FitBatch, ...]:
     """Group fit parents so one read serves several, within the budget.
+
+    A batch also closes at ``maximum_parents_per_batch`` parents, when given.
 
     A joint fit needs a parent's whole window at once, and no core can stand
     in for it. The reviewed compact bound limits that window: a parent beyond
@@ -296,6 +300,7 @@ def _fit_batches(
             window=lambda parent: parent.read_bounds,
             core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
+            maximum_objects_per_batch=maximum_parents_per_batch,
             bounded_by_admission=lambda parent: compact_window_is_admitted(
                 parent.read_bounds,
                 maximum_bounds_pixels=maximum_bounds_pixels,
@@ -868,6 +873,9 @@ def run_component_fit_stage(  # noqa: PLR0913, PLR0917
         core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
         maximum_bounds_pixels=config.maximum_bounds_pixels,
+        maximum_parents_per_batch=objects_per_batch(
+            len(fitted), executor.capacity
+        ),
     )
     fit_results = map_round(
         executor,
