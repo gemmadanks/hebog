@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-21 |
+| Last updated | 2026-10-22 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -94,7 +94,19 @@ kept about three of four cores busy. On the source-count ladder at 5,000²
 the ratio is 3.14 to 4.85 on sparse sectors and 3.16 and 2.28 on the two
 dense ones. Hebog keeps 1.3 of four cores busy and `master` about 2.1, and
 a linear fit gives Hebog about 690 s plus 61 ms a source against `master`'s
-34 s plus 37 ms, so on this path the ratio tends to about 1.7.
+34 s plus 37 ms, so on this path the ratio tends to about 1.7. The dense
+cell's full protocol gives 2.26 (bounds 2.24 to 2.28).
+
+Hebog's own profile of the dense cell, with its flat-noise estimate
+(21 October, native), shows the thread path held by the interpreter lock:
+four threads finish 1.18 times faster than one, while summed task time
+grows 2.6 times, and the component fits gain nothing. Single-threaded Dask
+workers take 1,176, 681, 447 and 380 s on 1, 2, 4 and 6 workers. Of one
+worker's time the component fits take 353 s and the two background
+passes, true-sky and flat-noise, about 240 s each; the component fits run in 12
+batches and the support publication in 3 tasks. Each run decodes 110 GB
+from Zarr, 1,100 times the image. On the 10,000² anchor the two
+background passes take 1,212 s of one worker's 1,919 s.
 
 Run `task74-stack` (15 October) took the 10,000² anchor from 1,357 s on
 one worker to 429 s on six. An Amdahl fit gives 250 s serial and 1,085 s
@@ -244,3 +256,4 @@ quick benchmark and profile before and after show the gain.
 | 2026-10-20 | Progress | The ladder's sectors hold 2,469 (LoTSS-DR3), 3,847, 5,686, 9,744 and 14,126 (the dense cell's noise raised 4, 3, 2 and 1.5 times) and 24,780 (the dense cell) sources in `master`'s catalogue, its finder part rising from about 210 s to 1,027 s on four cores; a LOFAR-HD window was dropped, since its mosaic has no reference frequency for Rapthor's inputs. | Agent: step 3 on quiet nights |
 | 2026-10-21 | Progress | The ladder at four cores on Rapthor's thread path, one warm-up and two measured runs a finder: every cell fails its limit, each bound within 1.5% of its ratio, every product repeated byte for byte. The LoTSS-DR3 cell's full protocol stopped at the disk watchdog after four measured `master` runs and three of Hebog's, because the container VM kept deleted files allocated; chains now drop the VM's file cache after deleting. | Agent: the dense cell's profile and full protocol |
 | 2026-10-21 | Decision | The ladder keeps its screening repetitions, which are far from every limit; only the dense cell runs the full protocol. The core sweep runs Hebog on single-threaded Dask workers, since the thread path's 1.3 busy cores are measured. Increment 1 starts before step 4's checkpoint: the dense cell's stage profile, with threads beside Dask, is its baseline and shows whether the thread path is held by the interpreter lock or by too few tasks a round; the core sweep and the model then set its targets. | Agent: profiles on the night of 21 October, the core sweep on a later quiet night; increment 1's tests |
+| 2026-10-22 | Progress | The dense cell's full protocol (one warm-up, five measured) gives 2.26, bounds 2.24 to 2.28, and 2.03 for the complete step, matching the screening. Hebog's stage profiles of the dense cell and the anchor show the thread path held by the interpreter lock, the two background passes as the largest single-worker cost and rounds of 3 to 12 tasks as the tail; the matched ratio on Dask workers waits for the core sweep. | Agent: the core sweep on a quiet night; increment 1 |
