@@ -123,8 +123,9 @@ The code shows where the serial work comes from:
 - Tile cores are fixed at 2,048 pixels (`stages/composition.py`), so the
   later stages run 7 to 25 tasks a round at 10,000². Tile rounds now shrink
   their batches of up to four tiles until each of the executor's task
-  slots has two, but the cores and the object rounds' batches ignore the
-  executor's capacity.
+  slots has two, and the component-fit and extended-group rounds split
+  their objects the same way, but the cores ignore the executor's
+  capacity.
 - Zarr chunks equal the tile core (`io/zarr.py`), so every task's declared
   memory is floored by a 2,048² read; the core, chunk size, read
   amplification and declarations change together.

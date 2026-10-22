@@ -227,7 +227,10 @@ Tasks are **coarse batches** of tiles or objects: an object round puts up to
 batch shrinks, down to one tile, until the round holds two batches for each
 of the executor's task slots, so the nine tiles of a 5,000² image make nine
 tasks on four threads rather than tasks of four, four and one tile; the
-serial executor keeps four. Graph size therefore scales with the number of
+serial executor keeps four. The component-fit and extended-group rounds,
+whose batches otherwise close only at a read budget of one tile core, also
+close a batch at a share of their objects that leaves each task slot two
+batches. Graph size therefore scales with the number of
 tiles and stages, and in an object round with the number of objects over
 that batch size, never with pixels. Objects are batched a storage core at a time, so
 at 100,000 pixels a side one object round of the 15,402² mosaic's density

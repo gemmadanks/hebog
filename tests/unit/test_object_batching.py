@@ -15,6 +15,7 @@ from hebog.executors import ExecutorCapacity, SerialExecutor, TaskRequirement
 from hebog.stages.batching import (
     batch_object_windows,
     map_round,
+    objects_per_batch,
     read_pixels,
     tiles_per_batch,
 )
@@ -372,3 +373,48 @@ def test_a_tile_batch_shrinks_until_every_slot_has_two(
     assert 1 <= wider <= size <= maximum
     if workers * threads > 1 and size > 1:
         assert ceil(tile_count / size) >= 2 * workers * threads
+
+
+@pytest.mark.parametrize(
+    ("object_count", "workers", "threads", "expected"),
+    [
+        pytest.param(25_000, 1, 1, None, id="serial"),
+        pytest.param(25_000, 4, 1, 3_125, id="dense-5000-on-four-workers"),
+        pytest.param(100, 1, 4, 12, id="four-threads"),
+        pytest.param(3, 6, 1, 1, id="fewer-objects-than-slots"),
+        pytest.param(0, 4, 1, 1, id="no-objects"),
+    ],
+)
+def test_object_rounds_close_batches_at_a_share_of_their_slots(
+    object_count: int, workers: int, threads: int, expected: int | None
+) -> None:
+    """Serially the read budget alone closes a batch; wider, a share too."""
+    assert objects_per_batch(object_count, _slots(workers, threads)) == (
+        expected
+    )
+
+
+@given(
+    object_count=st.integers(1, 5_000),
+    workers=st.integers(1, 16),
+    threads=st.integers(1, 8),
+)
+def test_an_object_share_leaves_every_slot_two_batches(
+    object_count: int, workers: int, threads: int
+) -> None:
+    """Each slot gets two batches when the objects allow; more never coarsen.
+
+    The read budget can only close a batch sooner, so these counts are the
+    fewest batches the round holds.
+    """
+    slots = workers * threads
+    share = objects_per_batch(object_count, _slots(workers, threads))
+    wider = objects_per_batch(object_count, _slots(workers + 1, threads))
+
+    if slots == 1:
+        assert share is None
+        return
+    assert share is not None
+    assert wider is not None
+    assert 1 <= wider <= share
+    assert ceil(object_count / share) >= min(object_count, 2 * slots)

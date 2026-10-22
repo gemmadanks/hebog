@@ -46,6 +46,7 @@ from hebog.io.base import CompletedProductSource, WindowReadable
 from hebog.stages.batching import (
     WindowBatch,
     batch_object_windows,
+    objects_per_batch,
 )
 from hebog.stages.object_extents import (
     bounds_intersect,
@@ -340,8 +341,12 @@ def _group_batches(  # noqa: PLR0913
     fits: tuple[tuple[int, CompactGaussianFitResult], ...],
     protected_labels: frozenset[int],
     component_bounds: dict[int, ImageBounds],
+    maximum_features_per_batch: int | None = None,
 ) -> tuple[_GroupBatch, ...]:
     """Group features so one read serves several, within the budget.
+
+    A batch also closes at ``maximum_features_per_batch`` features, when
+    given.
 
     Grouping needs a feature's whole window at once, and no core can stand
     in for it. The reviewed compact bound already limits that window: a
@@ -366,6 +371,7 @@ def _group_batches(  # noqa: PLR0913
             window=lambda feature: feature.window,
             core_shape_yx=core_shape_yx,
             maximum_batch_read_pixels=maximum_batch_read_pixels,
+            maximum_objects_per_batch=maximum_features_per_batch,
             bounded_by_admission=lambda feature: compact_window_is_admitted(
                 feature.window, maximum_bounds_pixels=maximum_bounds_pixels
             ),
@@ -582,6 +588,9 @@ def run_extended_group_stage(  # noqa: PLR0913, PLR0917
         features,
         core_shape_yx=manifest.tile_core_shape_yx,
         maximum_batch_read_pixels=config.maximum_batch_read_pixels,
+        maximum_features_per_batch=objects_per_batch(
+            len(features), executor.capacity
+        ),
         maximum_bounds_pixels=config.maximum_bounds_pixels,
         fits=tuple(item for parent in parents for item in parent.fits),
         protected_labels=frozenset(

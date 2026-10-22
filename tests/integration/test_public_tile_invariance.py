@@ -286,6 +286,14 @@ def test_products_on_the_envelope_grid_equal_one_tile(
 # a four-thread executor three tasks, the last of them a single tile.
 _SPLIT_CORE_PIXELS = 440
 _SPLIT_TILES = 9
+_THREAD_SLOTS = 4
+
+
+def _round_name(function: Callable[..., object]) -> str:
+    """Name the task function a round runs, through its bound arguments."""
+    while isinstance(function, partial):
+        function = function.func
+    return function.__name__
 
 
 class _CountingSerial(SerialExecutor):
@@ -295,6 +303,7 @@ class _CountingSerial(SerialExecutor):
         """Start with no round submitted."""
         super().__init__()
         self.round_sizes: list[int] = []
+        self.rounds: list[tuple[str, int]] = []
 
     def map_batches[Input, Output](
         self,
@@ -306,6 +315,7 @@ class _CountingSerial(SerialExecutor):
         """Record the round's task count, then run it serially."""
         submitted = tuple(batches)
         self.round_sizes.append(len(submitted))
+        self.rounds.append((_round_name(function), len(submitted)))
         return super().map_batches(
             function, submitted, requirement=requirement
         )
@@ -316,8 +326,9 @@ class _CountingThreads(ThreadExecutor):
 
     def __init__(self) -> None:
         """Start with no round submitted."""
-        super().__init__(thread_count=4)
+        super().__init__(thread_count=_THREAD_SLOTS)
         self.round_sizes: list[int] = []
+        self.rounds: list[tuple[str, int]] = []
 
     def map_batches[Input, Output](
         self,
@@ -329,6 +340,7 @@ class _CountingThreads(ThreadExecutor):
         """Record the round's task count, then run it on the threads."""
         submitted = tuple(batches)
         self.round_sizes.append(len(submitted))
+        self.rounds.append((_round_name(function), len(submitted)))
         return super().map_batches(
             function, submitted, requirement=requirement
         )
@@ -376,6 +388,32 @@ def test_a_wider_executor_splits_tile_rounds_and_keeps_the_products(
     assert sum(threads.round_sizes) > sum(serial.round_sizes)
     assert product_hashes(wide) == product_hashes(narrow)
     assert product_hashes(wide) == product_hashes(one_tile)
+
+
+@pytest.mark.parametrize("round_name", ["_fit_batch", "_group_batch"])
+def test_a_wider_executor_splits_object_rounds_and_keeps_the_products(
+    tmp_path: Path,
+    one_tile: SourceFinderResult,
+    round_name: str,
+) -> None:
+    """Four threads share an object round that one task would hold serially.
+
+    The whole image fits one batch's read budget, so serially each object
+    round is one task, and on four threads the slots would wait on it.
+    """
+    serial, threads = _CountingSerial(), _CountingThreads()
+
+    narrow = _find_sources(
+        _shared_input(one_tile), tmp_path / "serial", serial
+    )
+    with threads:
+        wide = _find_sources(
+            _shared_input(one_tile), tmp_path / "threads", threads
+        )
+
+    assert dict(serial.rounds)[round_name] == 1
+    assert dict(threads.rounds)[round_name] >= _THREAD_SLOTS
+    assert product_hashes(wide) == product_hashes(narrow)
 
 
 def test_one_tile_publishes_support_on_every_seam_topology(
