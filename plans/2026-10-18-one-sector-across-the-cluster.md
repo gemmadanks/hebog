@@ -74,6 +74,13 @@ the rest, with products unchanged.
   six-core, 16 GB VM in which the matched container runs x86-64 under
   Rosetta; local curves beyond six workers measure swap and efficiency
   cores.
+- The cluster (maintainer, 22 October) has up to 12 nodes of three
+  kinds, NUMA or not: 96 cores with 747 GB, 192 cores with 747 GB and 192
+  cores with 1,494 GB. No node has a local scratch disk, so every run's
+  scratch store is on the shared Lustre filesystem. Hebog assumes no node
+  type, memory layout or core pinning: each worker's memory limit and each
+  task's declaration decide where work runs, and the products are the
+  same on every node.
 
 ## Context and evidence
 
@@ -155,7 +162,6 @@ The code shows where the serial work comes from:
 
 | Question | Owner | Needed by | Status or answer |
 | --- | --- | --- | --- |
-| The cluster's node hardware: cores, memory per core and shared filesystem. | Human | Step 4's projections and task 27 | `open` |
 | Whether Rapthor's layout gives Hebog's Dask client several task slots a node, which is Rapthor's change. | Human | Step 7 | `open` |
 | The dense threshold. | Human | Checkpoint after step 4 | Provisionally 10,000 sources |
 | Whether per-source costs (association, fits and catalogue rows) join task 72 if the model shows they decide the dense gate. | Human | Checkpoint after step 4 | `open` |
@@ -166,11 +172,11 @@ Measure first, then cut what the measurements name. The matched
 container compares the finders; the local Dask cluster profiles Hebog's
 stages, which the container's Rosetta emulation would distort. A model of
 each finder's serial and parallel work, fitted per cell and against the
-source count, projects the ratio to nodes of 32 to 192 cores and to 1 to
-10 nodes, and its targets order the increments. The default order is the
-implementation plan's; each increment also cuts the serial work it
-touches where a measured gain is clear (decision of 18 October), and the
-quick benchmark and profile before and after show the gain.
+source count, projects the ratio to the cluster's three node types
+and to 1 to 12 nodes, and its targets order the increments. The default
+order is the implementation plan's; each increment also cuts the serial
+work it touches where a measured gain is clear (decision of 18 October),
+and the quick benchmark and profile before and after show the gain.
 
 ### Expected files or components
 
@@ -231,6 +237,9 @@ quick benchmark and profile before and after show the gain.
 | `master` does not slow with sources on the cells the VM holds. | Medium/High | The cluster's dense sector decides; report the local curve as it is. | Agent |
 | Smaller tiles multiply halo overhead and Zarr chunk count, so occupancy rises but CPU rises more. | Medium/Medium | The cost model weighs halo and read amplification; keep the larger core where the profile shows no gain. | Agent |
 | Out-of-order completion or task-reported checksums weaken the store's integrity checks. | Low/High | Every reader still verifies chunk checksums; contract tests with injected corruption and reordered completion. | Agent |
+| A larger tile core raises a task's declaration above the memory a core of the leanest node (3.9 GB on 192 cores with 747 GB). | Low/Medium | The cost model bounds the core by the memory each worker holds; the dense cell's largest declaration is 1.6 GiB. | Agent |
+| Thousands of small chunk files load Lustre's metadata servers, since no node has local scratch. | Medium/High | Task 25 evaluates Zarr's sharding codec before the cluster benchmark, which measures shared-storage throughput. | Agent |
+| Memory traffic between NUMA domains slows workers. | Medium/Low | Single-threaded worker processes allocate their own memory; the guide shows how a launcher keeps each worker in one domain, which Hebog does not require. | Agent |
 | Local contention hides real-node scaling. | High/Medium | Fit on one to six workers; the cluster dry run (task 27) checks the model. | Agent |
 | Benchmark time on the shared machine. | Medium/Medium | Screening repetitions for the model's points; full protocol only at the gate's cells; runs detached and unattended. | Agent |
 
@@ -258,3 +267,4 @@ quick benchmark and profile before and after show the gain.
 | 2026-10-21 | Decision | The ladder keeps its screening repetitions, which are far from every limit; only the dense cell runs the full protocol. The core sweep runs Hebog on single-threaded Dask workers, since the thread path's 1.3 busy cores are measured. Increment 1 starts before step 4's checkpoint: the dense cell's stage profile, with threads beside Dask, is its baseline and shows whether the thread path is held by the interpreter lock or by too few tasks a round; the core sweep and the model then set its targets. | Agent: profiles on the night of 21 October, the core sweep on a later quiet night; increment 1's tests |
 | 2026-10-22 | Progress | The dense cell's full protocol (one warm-up, five measured) gives 2.26, bounds 2.24 to 2.28, and 2.03 for the complete step, matching the screening. Hebog's stage profiles of the dense cell and the anchor show the thread path held by the interpreter lock, the two background passes as the largest single-worker cost and rounds of 3 to 12 tasks as the tail; the matched ratio on Dask workers waits for the core sweep. | Agent: the core sweep on a quiet night; increment 1 |
 | 2026-10-22 | Progress | Increment 1's first changes split tile rounds, and the component-fit and extended-group rounds, until each task slot has two batches, and scan for bright candidates 64 cells a task. On four Dask workers they take 8 to 13% off the dense and sparse 5,000² cells and a 3,000² sector, with products unchanged; the thread path is unchanged. | Agent: the tile core from the budget and the run-settings record |
+| 2026-10-22 | Decision | The cluster has up to 12 nodes, NUMA or not, of 96 cores with 747 GB, 192 cores with 747 GB and 192 cores with 1,494 GB, with no local scratch, on Lustre (maintainer); Hebog must run on every node type without per-node settings. | Agent: the model projects every node type |
