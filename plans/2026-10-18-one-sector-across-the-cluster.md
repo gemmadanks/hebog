@@ -122,6 +122,21 @@ Hebog's products are identical at every worker count. Past four cores
 both finders gain little: Hebog runs 2.36 and 2.55 times faster than on
 one core on four and six, `master` 2.46 and 2.47.
 
+The model (`hebog.validation.scaling_model`, figures on the progress page)
+suggests why `master` gains nothing past four cores here: one bin of
+islands appears to bound its main Gaussian fitting, 593 and 586 s on four
+and six cores against 1,368 s on one (medians of two runs). On a node
+Hebog nears its floor, the driver's time with no task running plus each
+round's longest task: 190 s natively on the dense cell, 83 s of it driver
+and 84 s the component-fit, extended-group and publication rounds'
+longest tasks. If `master` uses no more of a node than its sweep shows
+and emulation slows both finders alike, 0.24.0 on one node meets 0.50 on
+the dense cell (0.42) and parity on every sparse sector and misses 0.50
+at 14,126 sources (0.53); lines fitted to both finders' times cross the
+dense limit at about 11,000 to 12,000 sources, with single sectors
+scattered about them. If `master` used every core, the dense cell
+projects to 0.75 and the sparse sectors to up to 1.46.
+
 Run `task74-stack` (15 October) took the 10,000² anchor from 1,357 s on
 one worker to 429 s on six. An Amdahl fit gives 250 s serial and 1,085 s
 parallel. About 70 s of the serial term is time with no task running; most
@@ -163,15 +178,16 @@ The code shows where the serial work comes from:
 | `master`'s time grows faster than Hebog's with the source count. | In proportion only: on the ladder `master`'s finder part grows 5.2 times from 3,847 to 24,780 sources and Hebog's 2.4 times, but Hebog's cost a source is 1.7 times `master`'s on Rapthor's threads. | The dense gate needs Hebog's CPU to fall, not only its occupancy to rise; the checkpoint after step 4 reorders the work. | Agent, step 3 |
 | The VM holds `master` on a dense ELAIS-N1 5,000² window. | On the window 3,600 pixels north of the field centre `master` finds 24,780 sources with a 5.8 GB peak, well inside the 16 GB VM; on the central window it stops with an `IndexError` in its moment-analysis fallback (a PyBDSF defect, also in 1.14.1, drafted for upstream), so the north window is the dense cell (decision of 20 October). | The dense cell moves to the cluster. | Agent, step 2 |
 | Per-task inflation with workers is mostly local contention. | Eight workers swapped 24 GB; the I/O-heavy rounds inflate most. | The cost model weights I/O, and the store work of task 25 moves earlier. | Agent, steps 3 and 5 |
-| Rosetta slows both finders alike. | Both run in the same container; only ratios are compared. | Local ratios mislead; the cluster decides. | Human, cluster run |
+| Rosetta slows both finders alike. | Both run in the same container; only ratios are compared. Hebog's container time is 2.08 times its native time on one worker; `master` has no native measurement. | Every projected ratio scales with Hebog's factor over `master`'s; the cluster decides. | Human, cluster run |
+| `master` uses no more of a node than the four cores its sweep shows. | Its Gaussian fitting takes the same time on four and six cores, bound by one bin of islands; only the dense cell has a sweep, and the VM contends beyond four workers. | `master` is faster on a node, and the targets in brackets on the progress page apply. | Agent, a sparse sweep; human, cluster run |
 
 ## Open questions
 
 | Question | Owner | Needed by | Status or answer |
 | --- | --- | --- | --- |
 | Whether Rapthor's layout gives Hebog's Dask client several task slots a node, which is Rapthor's change. | Human | Step 7 | `open` |
-| The dense threshold. | Human | Checkpoint after step 4 | Provisionally 10,000 sources |
-| Whether per-source costs (association, fits and catalogue rows) join task 72 if the model shows they decide the dense gate. | Human | Checkpoint after step 4 | `open` |
+| The dense threshold. | Human | Checkpoint after step 4 | Provisionally 10,000 sources; the model's lines cross 0.50 at about 11,000 to 12,000 |
+| Whether per-source costs (association, fits and catalogue rows) join task 72 if the model shows they decide the dense gate. | Human | Checkpoint after step 4 | `open`; on a node the task work per source spreads across the cores, while the driver's per-source work, the catalogue write, reconciliation and catalogue records, is a third of the dense cell's driver time |
 
 ## Proposed approach
 
@@ -221,7 +237,7 @@ and the quick benchmark and profile before and after show the gain.
 | 1 | Instrument: sector classes and per-finder core counts in the matched benchmark; driver timers in the scaling profile | Agent | `done` | Red-green tests; a smoke run of each runner |
 | 2 | Build the source-count ladder: 5,000² sectors from fields of rising depth (`config/benchmarks/source-count-ladder.json`), with the gap between the LoTSS-DR3 and deep ELAIS-N1 windows filled by the dense cell with its noise raised 1.5, 2, 3 and 4 times (`scripts/benchmark/build_source_count_ladder.py`), and confirm the VM holds `master` on the dense cell | Agent | `done` | Sector identities and checksums; `master`'s source counts |
 | 3 | Measure: both finders on the ladder at four cores (one warm-up, two repetitions) and the full protocol on the dense cell (one warm-up, five); both on the dense cell at 1, 2, 4 and 6 cores, Hebog on as many single-threaded Dask workers (screening repetitions); Hebog's stage profile on the dense cell (1 and 4 threads; 1, 2, 4 and 6 Dask workers) and the anchor (1, 2, 4 and 6 Dask workers) | Agent | `in progress` | Evidence records and reports under `benchmark-results/` |
-| 4 | Fit the model, project the ratios and set the targets | Agent | `not started` | Model, projections and targets on the progress page |
+| 4 | Fit the model, project the ratios and set the targets | Agent | `done` | Model, projections and targets on the progress page (run `step4`) |
 | — | Checkpoint: threshold, targets, increment order and whether per-source costs join | Human | `not started` | Decisions recorded in the implementation plan |
 | 5 | Increment 1, core budget and cost model, with the batched candidate scan | Agent | `in progress` | Tests; scaling profile before and after; quick check and quick benchmark; release |
 | 6 | Increment 2, waiting and sharing, with completion order, the split completion record and task-reported checksums | Agent | `not started` | As step 5; concurrent-analysis and joining-worker tests |
@@ -276,3 +292,4 @@ and the quick benchmark and profile before and after show the gain.
 | 2026-10-22 | Progress | Increment 1's first changes split tile rounds, and the component-fit and extended-group rounds, until each task slot has two batches, and scan for bright candidates 64 cells a task. On four Dask workers they take 8 to 13% off the dense and sparse 5,000² cells and a 3,000² sector, with products unchanged; the thread path is unchanged. | Agent: the tile core from the budget and the run-settings record |
 | 2026-10-22 | Decision | The cluster has up to 12 nodes, NUMA or not, of 96 cores with 747 GB, 192 cores with 747 GB and 192 cores with 1,494 GB, with no local scratch, on Lustre (maintainer); Hebog must run on every node type without per-node settings. | Agent: the model projects every node type |
 | 2026-10-23 | Progress | The core sweep on the dense cell, Hebog on single-threaded Dask workers in the matched container, gives finder ratios of 1.03, 1.07 and 1.00 on one, four and six cores (screening repetitions), half the thread path's, with products identical at every worker count. The two-core point was skipped for lack of disk. 0.24.0 carries increment 1's first part. | Agent: the two-core point on a quiet night; step 4 |
+| 2026-10-23 | Progress | The model projects 0.24.0 on one cluster node, against `master` on all its cores, to 0.42 on the dense cell, 0.53 at 14,126 sources and 0.50 to 0.78 on the sparse sectors, if `master` uses no more of a node than the four cores its sweep shows and emulation slows both finders alike; 0.75, 1.02 and up to 1.46 if `master` used every core. On a node Hebog's time nears its floor, driver time plus each round's longest task, so at 5,000² extra nodes take only 0.01 to 0.04 off a ratio and the targets are floors: 113 s natively at 14,126 sources and 217 s on the dense cell (55 s and 116 s if `master` used every core), against 128 s and 190 s now. Every limit is within reach of one node. | Human: the checkpoint; agent: increment 1, a sparse sector's core sweep and native profiles of the ladder on a quiet night |
