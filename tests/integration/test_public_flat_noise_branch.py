@@ -252,7 +252,7 @@ def test_a_failed_flat_noise_branch_fails_the_run_and_publishes_nothing(
     estimate = composition.estimate_background_rms
 
     def fail_on_the_flat_noise_image(*args: Any, **kwargs: Any) -> Any:
-        if "flat-noise" in Path(args[4]).as_posix():
+        if "flat-noise" in args[3].work_directory.as_posix():
             raise RuntimeError("flat-noise estimate failed")
         return estimate(*args, **kwargs)
 

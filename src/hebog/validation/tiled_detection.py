@@ -45,6 +45,7 @@ from hebog.science.models import (
 from hebog.science.profile import ContinuumScienceProfile
 from hebog.stages.batching import LARGEST_TILE_CORE_PIXELS
 from hebog.stages.composition import (
+    StageRun,
     restoring_beam_from_header,
     run_stages_from_background,
 )
@@ -173,7 +174,6 @@ def publish_continuum_inputs(  # noqa: PLR0913
     generation_id: str = "published-continuum-inputs",
     config: SourceFinderConfig,
     tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
-    support_tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> PublishedContinuumInputs:
     """Publish and read every pass the composition consumes.
 
@@ -192,17 +192,18 @@ def publish_continuum_inputs(  # noqa: PLR0913
     published = run_stages_from_background(
         image_source,
         background_rms_source,
-        SerialExecutor() if executor is None else executor,
-        work_directory,
+        StageRun(
+            SerialExecutor() if executor is None else executor,
+            work_directory,
+            generation_id,
+            tile_core_pixels,
+        ),
         image_shape_yx=image_jy_per_beam.shape,
         config=config,
         wcs_header_text=header.tostring(),
         restoring_beam=restoring_beam_from_header(header),
         beam=beam,
         review=review,
-        generation_id=generation_id,
-        multiscale_tile_core_pixels=tile_core_pixels,
-        support_tile_core_pixels=support_tile_core_pixels,
     )
     records = published.records
     return PublishedContinuumInputs(

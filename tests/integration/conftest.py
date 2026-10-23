@@ -36,7 +36,7 @@ from hebog.executors import (
 from hebog.io.base import ImageWindow, WindowReadable
 from hebog.io.zarr import ZarrProductSink
 from hebog.science.configuration import source_finder_configs
-from hebog.stages.composition import BackgroundEstimate
+from hebog.stages.composition import BackgroundEstimate, StageRun
 
 _BACKGROUND_TILE_SHAPE_YX = (128, 128)
 _Input = TypeVar("_Input")
@@ -173,21 +173,18 @@ def _substituted_background_rms(
 
     The stage publishes its estimate and answers the one question the
     composition asks of it: whether any pixel has a usable local noise
-    estimate. The substitute has to do both. Keeping the work-directory
-    argument's position here means one place knows it.
+    estimate. The substitute has to do both. Keeping the run settings'
+    argument position here means one place knows it.
     """
 
-    def estimate(
-        *args: object,
-        generation_id: str,
-        **_kwargs: object,
-    ) -> EstimatedNoise:
+    def estimate(*args: object, **_kwargs: object) -> EstimatedNoise:
         """Publish the analytic planes and answer for their usable domain."""
+        run = cast(StageRun, args[3])
         sink = _publish_background_rms(
-            cast(Path, args[4]),
+            run.work_directory,
             background_jy_per_beam,
             rms_jy_per_beam,
-            generation_id,
+            run.generation_id,
         )
         usable = bool(
             np.any(np.isfinite(image_jy_per_beam) & (rms_jy_per_beam > 0.0))
@@ -195,6 +192,20 @@ def _substituted_background_rms(
         return BackgroundEstimate(sink, usable, BrightRegionCounts())
 
     return estimate
+
+
+def fixed_tile_core(core_pixels: int) -> Callable[..., int]:
+    """Return a stand-in for the budget's core choice that states one core.
+
+    Patched over ``hebog.stages.composition.tile_core_from_budget``, it puts
+    every pass after the background and RMS on cores of ``core_pixels``
+    under any executor.
+    """
+
+    def tile_core(*_args: object, **_kwargs: object) -> int:
+        return core_pixels
+
+    return tile_core
 
 
 @pytest.fixture(scope="session")

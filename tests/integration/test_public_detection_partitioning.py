@@ -127,7 +127,6 @@ def _detect(
         header=_header(image.shape),
         config=config,
         tile_core_pixels=tile_core_pixels,
-        support_tile_core_pixels=tile_core_pixels,
     )
 
 

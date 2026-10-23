@@ -29,6 +29,7 @@ import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from conftest import (
+    fixed_tile_core,
     product_hashes,
     radio_header,
 )
@@ -172,13 +173,7 @@ def _put_passes_on_grid(monkeypatch: pytest.MonkeyPatch) -> None:
     that each of them, including any pass added later, was planned on it.
     """
     monkeypatch.setattr(
-        composition,
-        "run_stages_from_background",
-        partial(
-            composition.run_stages_from_background,
-            multiscale_tile_core_pixels=_CORE_PIXELS,
-            support_tile_core_pixels=_CORE_PIXELS,
-        ),
+        composition, "tile_core_from_budget", fixed_tile_core(_CORE_PIXELS)
     )
 
 
@@ -379,12 +374,8 @@ def test_a_wider_executor_splits_tile_rounds_and_keeps_the_products(
     """
     monkeypatch.setattr(
         composition,
-        "run_stages_from_background",
-        partial(
-            composition.run_stages_from_background,
-            multiscale_tile_core_pixels=_SPLIT_CORE_PIXELS,
-            support_tile_core_pixels=_SPLIT_CORE_PIXELS,
-        ),
+        "tile_core_from_budget",
+        fixed_tile_core(_SPLIT_CORE_PIXELS),
     )
     recorder = _PlanRecorder(monkeypatch)
     serial, threads = _CountingSerial(), _CountingThreads()
