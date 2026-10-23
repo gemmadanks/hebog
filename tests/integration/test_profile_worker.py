@@ -132,6 +132,32 @@ def test_every_task_is_recorded_and_attributed_to_the_run(
         assert item["executor_idle_seconds"] >= 0.0
 
 
+@_EXECUTORS
+def test_the_record_states_the_budget_and_every_planned_tiling(
+    tmp_path: Path, arguments: tuple[str, ...], executor: dict[str, Any]
+) -> None:
+    """A profile says what budget the run had and which tiles it chose.
+
+    The stages choose their tiling from the executor's budget, so a curve
+    across worker counts is read with the budget and the grid each pass
+    planned beside its times.
+    """
+    record = _profile(tmp_path, *arguments)
+
+    budget = record["budget"]
+    slots = budget["worker_count"] * budget["threads_per_worker"]
+    assert slots == executor["workers"]
+    assert budget["maximum_tasks_in_flight"] >= slots
+    tiling = record["tiling"]
+    assert {item["stage"] for item in tiling} >= {
+        "tiled multiscale detection pass",
+        "tiled support pass",
+    }
+    for item in tiling:
+        assert item["tile_count"] >= 1
+        assert len(item["tile_core_shape_yx"]) == len(item["halo_yx"]) == 2
+
+
 _DRIVER_STEPS = (
     "Zarr plane creation",
     "Zarr generation publication",
