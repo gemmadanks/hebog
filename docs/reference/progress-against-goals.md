@@ -3,8 +3,9 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **23 October 2026**, when 0.24.0 was released and the
-dense cell's sweep over cores was measured.
+and was last updated on **23 October 2026**, when 0.24.0 was released, the
+dense cell's sweep over cores was measured and a model projected the
+speed gate to the cluster's nodes.
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -18,7 +19,7 @@ history; none is scientific qualification. User-facing limits are in
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid for 1.0.0 and on SKA-Low precursor data at the later release whose envelope admits it | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run; MeerKAT MIGHTEE images fit the envelope; the only SKA-Low precursor mosaic (GLEAM-X) needs the 45,000-pixel tier and a position-dependent PSF, whose effect is to be measured and documented. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `continuum` profile and a zero background, the profile that passes the truth-based gate, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
 | Science | A truth-based Rapthor retained/rejected gate, with limits set from the agreement check's truth measures, and a powered, held-out parity study against pinned PyBDSF `master` on LOFAR, SDC1 and MIGHTEE images inside the envelope | Isolated-source position, flux and axis limits are met against both PyBDSF references on the frozen input, for sources and components under both profiles; the `Total_flux` limits hold on independent realizations. Two bounded known differences and one open defect remain. Rapthor keeps or rejects alike with Hebog's mask and pinned `master`'s 91.4% of sky-model components under the `continuum` profile with a zero background, which Rapthor runs; released PyBDSF reaches 99.3%, so the former 99.5% target was retired on 16 October for a truth-based gate, whose limits were set on 17 October. `continuum` passes it under either background since the repair of its local noise in crowded fields: it loses almost none of the real components `master` keeps, keeps injected sources as often as `master` or more and covers more of the true emission. `compact` fails it: it loses 5.4% of `master`'s real extended components and 3.5% at image edges, and finds 1.03% false islands on negated images against `master`'s 0.64%. | Development evidence only |
-| Performance | The source-finding part of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's `filter_sources` call, ≤0.50 of pinned PyBDSF `master`'s on dense sectors, where PyBDSF is slow (provisionally at least 10,000 sources in `master`'s catalogue), and no slower than `master` on the rest (an upper bound of 1.05), like for like on one node and, on dense sectors, across the nodes Rapthor deploys, for sectors up to the 1.0.0 envelope; each finder's growth with the source count and cores and the complete step reported beside it | Every cell of the 5,000² source-count ladder fails its limit (21 October; Hebog 0.23.0 on Rapthor's thread path, four cores, emulated x86-64): Hebog's finder part is 3.14 to 4.85 times `master`'s on the four sparse sectors and 3.16 and 2.26 on the two dense ones (14,126 and 24,780 sources in `master`'s catalogue; the second from the full protocol, bounds 2.24 to 2.28). Hebog keeps 1.3 of four cores busy against `master`'s 2.1, and takes about 690 s plus 61 ms a source against `master`'s 34 s plus 37 ms, so on this path the ratio tends to about 1.7 however many sources a sector holds; even with all four cores busy, Hebog's CPU would leave the dense cell at about 0.75 against the 0.50 gate. Hebog's own profile of the dense cell (21 October, native) shows why the thread path holds it: four threads finish 1.18 times faster than one, as the interpreter lock serialises the tasks, while four single-threaded Dask workers finish 2.63 times faster and six 3.09. In the matched container with Hebog on single-threaded Dask workers, one a core (22 and 23 October, two measured runs a finder), the dense cell's finder part is 1.03, 1.07 and 1.00 times `master`'s on one, four and six cores (upper bounds 1.11, 1.08 and 1.02), half its ratio on threads, with identical products at every worker count; past four cores both finders gain little (Hebog runs 2.36 and 2.55 times faster than on one core on four and six, `master` 2.46 and 2.47). On a 3,000² LoTSS-DR3 window with four cores (emulated x86-64), Hebog's finder part is 2.43 times `master`'s on Rapthor's thread path (162 s against 67 s; complete step 2.03) and 1.99 on four Dask workers in one repetition (171 s against 86 s); both burn about the same CPU, so parity needs Hebog to keep as many of the four cores busy as `master`. On the 10,000² anchor, where `master` finds 9,276 sources, just under the dense threshold, with four Dask workers (16 October, one repetition) the finder part is 1.23 (1,249 s against 1,019 s; complete step 1.19), both finders keeping about three of four cores busy and Hebog using 11% more CPU; PyBDSF could not run the 15,402² mosaic in the 16 GB container VM. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association; with the same settings it takes 2.0 h at 0.22.0, and 1.3 h under the `compact` default. On a local Dask cluster one sector takes 0.36 of one worker's time at four workers and 0.32 at six, with a 20% serial share; twelve threads are barely faster than one, and four Dask workers gain nothing on a 3,000² sector of four tiles. No regression is supported on the Hebog curve. | Dense gate and parity failing |
+| Performance | The source-finding part of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's `filter_sources` call, ≤0.50 of pinned PyBDSF `master`'s on dense sectors, where PyBDSF is slow (provisionally at least 10,000 sources in `master`'s catalogue), and no slower than `master` on the rest (an upper bound of 1.05), like for like on one node and, on dense sectors, across the nodes Rapthor deploys, for sectors up to the 1.0.0 envelope; each finder's growth with the source count and cores and the complete step reported beside it | Every cell of the 5,000² source-count ladder fails its limit (21 October; Hebog 0.23.0 on Rapthor's thread path, four cores, emulated x86-64): Hebog's finder part is 3.14 to 4.85 times `master`'s on the four sparse sectors and 3.16 and 2.26 on the two dense ones (14,126 and 24,780 sources in `master`'s catalogue; the second from the full protocol, bounds 2.24 to 2.28). Hebog keeps 1.3 of four cores busy against `master`'s 2.1, and takes about 690 s plus 61 ms a source against `master`'s 34 s plus 37 ms, so on this path the ratio tends to about 1.7 however many sources a sector holds; even with all four cores busy, Hebog's CPU would leave the dense cell at about 0.75 against the 0.50 gate. Hebog's own profile of the dense cell (21 October, native) shows why the thread path holds it: four threads finish 1.18 times faster than one, as the interpreter lock serialises the tasks, while four single-threaded Dask workers finish 2.63 times faster and six 3.09. In the matched container with Hebog on single-threaded Dask workers, one a core (22 and 23 October, two measured runs a finder), the dense cell's finder part is 1.03, 1.07 and 1.00 times `master`'s on one, four and six cores (upper bounds 1.11, 1.08 and 1.02), half its ratio on threads, with identical products at every worker count; past four cores both finders gain little (Hebog runs 2.36 and 2.55 times faster than on one core on four and six, `master` 2.46 and 2.47). On a 3,000² LoTSS-DR3 window with four cores (emulated x86-64), Hebog's finder part is 2.43 times `master`'s on Rapthor's thread path (162 s against 67 s; complete step 2.03) and 1.99 on four Dask workers in one repetition (171 s against 86 s); both burn about the same CPU, so parity needs Hebog to keep as many of the four cores busy as `master`. On the 10,000² anchor, where `master` finds 9,276 sources, just under the dense threshold, with four Dask workers (16 October, one repetition) the finder part is 1.23 (1,249 s against 1,019 s; complete step 1.19), both finders keeping about three of four cores busy and Hebog using 11% more CPU; PyBDSF could not run the 15,402² mosaic in the 16 GB container VM. The dense 14,175² ELAIS-N1 sector took 8.5 h serially on 11 October, mostly in association; with the same settings it takes 2.0 h at 0.22.0, and 1.3 h under the `compact` default. On a local Dask cluster one sector takes 0.36 of one worker's time at four workers and 0.32 at six, with a 20% serial share; twelve threads are barely faster than one, and four Dask workers gain nothing on a 3,000² sector of four tiles. No regression is supported on the Hebog curve. A model fitted to these measurements projects 0.24.0 on single-threaded Dask workers to one cluster node, against `master` on all its cores: 0.42 on the dense cell and 0.53 at 14,126 sources, 0.50 to 0.78 on the sparse sectors, if `master` uses no more of a node than the four cores its sweep shows and emulation slows both finders alike; 0.75, 1.02 and 0.75 to 1.46 if `master` used every core. | Dense gate and parity failing |
 | Scalability | The 22,500² tier for 1.0.0, covering Rapthor's default sectors, with one sector scaling across 1, 2, 5 and 10 nodes with invariant products; 45,000² on the 18 GiB development machine and 90,000² on the cluster as later minor releases; planner bounds for 100,000² on 100 to 200+ nodes | Public envelope 22,500², admitted on 19 October. Every stage runs tiled through the executor and products are byte-identical across tilings and executors. The traced peak is 1.8 GiB on the whole 22,500² LOFAR-HD mosaic, below the 2.1 GiB forecast, and still grows with the image; the run holds about 50 GiB of scratch, which must shrink before 45,000². Every task declares its memory, and the analysis itself holds about 42 KB a source and a few bytes a pixel, which `hebog.analysis_memory_bytes` states. Bright regions are refined in bounded blocks, so the ELAIS-N1 deep field's central 5,000², where 951 bright candidates chain across the image, completes under four 4.5 GiB Dask workers. Nothing beyond one machine has run. | 22,500 of 22,500 pixels; one-sector scaling not run |
 | Release | PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.24.0 (23 October 2026), which keeps every Dask worker busy on sectors up to 5,000 pixels and holds less memory for the local noise of large images, is on PyPI with attestations and installs from it on Python 3.12 and 3.14; it passed its release check on 22 October with products unchanged, without the whole-mosaic traced peak. v0.23.0 (20 October) carried `continuum` by default for Rapthor, the crowded-field repairs, the analysis memory statement and the 22,500² tier; v0.22.0 (17 October) was the first release on PyPI. Earlier releases are on GitHub and TestPyPI. CI runs on Linux, macOS and Windows for Python 3.12 to 3.14, and `main` requires the lowest-dependency and container checks. | Experimental `0.x` |
 
@@ -295,6 +296,75 @@ growth beyond image area is source association, whose hierarchy decision
 is now linear and whose objects are read a core at a time. The [performance profile](performance-profile.md) has the stage
 shares and the memory figures.
 
+### Projection to the cluster's nodes
+
+A model fitted to the measurements above (`hebog.validation.scaling_model`;
+23 October, `scripts/benchmark/fit_scaling_model.py` run `step4`, sha256
+`46340f7a…`, from the ladder, the dense cell's sweep and native profiles
+of the code 0.24.0 released, `c92c79b7`) projects the finder part on one
+node of 96 or 192 cores, `master` on all of them as Rapthor runs it, and
+Hebog on one to twelve such nodes.
+
+- **Hebog** takes its driver time, with no task running, plus, for each
+  round of tasks, the larger of its task time shared over the cores and
+  its longest task; this reads 3 to 9% under the walls of every profiled
+  run on two or more Dask workers. On a node it nears its floor, driver
+  time plus longest tasks: natively 190 s on the dense cell (83 s driver,
+  of which the catalogue FITS write takes 15 s and reconciliation 10 s;
+  107 s longest tasks, 84 s of it in component fits, extended groups and
+  the publication of scale labels and support, a tile or batch a task)
+  and 59 s on the sparse LoTSS-DR3 cell. The profile merges a round's
+  repeated invocations, such as the two background passes, so the floor
+  may be low by their longest tasks; more task slots split object rounds
+  further, so it may be high. At 5,000² extra nodes add little: twelve
+  96-core nodes take 0.01 to 0.04 off one node's ratio, most of it on the
+  second node, as the time nears the floor. Of six workers' 380 s on the dense cell (0.23.0), the 199 s beyond one worker's
+  task time shared is 84 s driver, 36 s contention and 78 s round tails.
+- **`master`** takes serial and parallel seconds from each ladder run's
+  wall and CPU time on four cores, its parallel work using at most the
+  four cores its sweep shows: its main Gaussian fitting takes 1,368 s on
+  one core (1,272 and 1,463 s) and 593 and 586 s on four and six (medians
+  of two runs, within 2 s), so one bin of islands appears to bound it,
+  though the VM also contends beyond four workers. Hebog's
+  container time is 2.08 times its native time on one worker, and the
+  model assumes emulation slows `master` alike. The profiles run Hebog's
+  estimated background and the container Rapthor's zero background, so
+  the projections take their level from the container and only the
+  curve's shape and the floor's share from the profiles.
+
+| Sector (`master`'s sources) | Limit | `master` on a node, container seconds | Hebog / `master`, one node | Hebog's floor, native seconds: now, target |
+| --- | --- | --- | --- | --- |
+| LoTSS-DR3 (2,469) | 1.05 | 248 s (119 s) | 0.51 (1.07) | 59 s, 120 s (55 s) |
+| Deep ELAIS-N1, noise ×4 (3,847) | 1.05 | 184 s (99 s) | 0.78 (1.46) | 67 s, 87 s (45 s) |
+| Noise ×3 (5,686) | 1.05 | 226 s (132 s) | 0.74 (1.27) | 78 s, 108 s (60 s) |
+| Noise ×2 (9,744) | 1.05 | 432 s (288 s) | 0.50 (0.75) | 102 s, 211 s (138 s) |
+| Noise ×1.5 (14,126) | 0.50 | 508 s (266 s) | 0.53 (1.02) | 128 s, 113 s (55 s) |
+| The dense cell (24,780) | 0.50 | 956 s (536 s) | 0.42 (0.75) | 190 s, 217 s (116 s) |
+
+On 96-core nodes; 192 cores move no ratio by more than about 0.015. In
+brackets, if `master` used every core of the node. `master`'s times are
+container seconds, Hebog's floors native ones; the ratios convert Hebog's
+by the factor of 2.08. The noise-raised sectors' Hebog
+figures are interpolated in the source count between the two profiled
+cells. A floor target is the most Hebog's driver time and longest tasks
+may take for the ratio to meet its limit with all of its task time shared
+over one node added to them, conservative by 3 to 9 s on 96 cores; Hebog
+then keeps 3 to 7 cores busy on average (5 to 14 if `master` used every
+core), far fewer than a node has, so every limit is within reach of one
+node. With floors of 100 s on the dense cell and 40 s on the sparse one,
+interpolated linearly in the source count between them, each sector's
+driver time and longest tasks scaled together to its floor and its task
+time unchanged, every ratio meets its limit (0.23 to 0.52), and if
+`master` used every core all but the 14,126-source cell's (0.58). Hebog's time on a node grows
+by 5.9 ms a source natively against a target of 8.2 ms (4.6 ms if
+`master` used every core). Lines fitted to both finders' times on a node
+cross the dense limit at about 11,000 to 12,000 sources; single sectors
+scatter about them, and the 14,126-source cell projects to 0.53. The local data cannot decide
+whether `master` uses more than four cores on a node, measured only on
+the dense cell, whether emulation slows both finders alike, or how both
+scale to Rapthor's 17,000 to 20,000-pixel sectors, where driver time and
+`master`'s serial work grow with the area.
+
 ## Scalability
 
 | Measurement | Latest | Target |
@@ -338,12 +408,14 @@ The next actions, as the plan orders them on 23 October:
 
 1. Agent: one sector across the cluster. The source-count ladder, the
    dense cell's full protocol, the stage profiles and the sweep over cores
-   are measured, apart from the sweep's two-core point; the model that
-   projects the ratio to the cluster's nodes and sets the targets is next.
+   are measured, apart from the sweep's two-core point, and the model
+   projects them to the cluster's nodes with targets for Hebog's floor.
    Sizing tiles and task counts from the core budget, the first of four
    increments that each release, continues; 0.24.0 carries its first part.
 2. Human: decide the executor Rapthor gives Hebog, which the sweep has
-   measured; push Rapthor's Hebog branch, which testing and trials use
+   measured, and take the model's checkpoint: the dense threshold, the
+   targets, the increments' order and whether per-source costs join; push
+   Rapthor's Hebog branch, which testing and trials use
    without waiting for a merge; file the Astropy report drafted on
    5 October and the PyBDSF report drafted on 20 October; take the other
    pending decisions.
