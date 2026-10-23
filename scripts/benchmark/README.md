@@ -322,3 +322,17 @@ describes the cases and outputs:
 just profile-execution --label <label> --cprofile
 just profile-scaling --label <label> --memory-budget-bytes 16000000000
 ```
+
+## One-sector scaling model
+
+`fit_scaling_model.py` reads the matched benchmark's source-count ladder and
+core sweep, PyBDSF's logs of the sweep and Hebog's native scaling profiles,
+and projects both finders' finder parts to the cluster's node sizes, with
+the targets the gate sets for Hebog and the ratios a target floor would
+give. It times nothing; the model lives in
+`hebog.validation.scaling_model`, and the summary, with each input's
+checksum, goes to `benchmark-results/one-sector-scaling/model/<label>.json`:
+
+```console
+uv run python scripts/benchmark/fit_scaling_model.py --label <label>
+```
