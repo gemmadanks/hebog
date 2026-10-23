@@ -43,8 +43,8 @@ from hebog.science.models import (
     TiledMultiscaleDetection,
 )
 from hebog.science.profile import ContinuumScienceProfile
+from hebog.stages.batching import LARGEST_TILE_CORE_PIXELS
 from hebog.stages.composition import (
-    ADMITTED_TILE_CORE_PIXELS,
     restoring_beam_from_header,
     run_stages_from_background,
 )
@@ -172,8 +172,8 @@ def publish_continuum_inputs(  # noqa: PLR0913
     executor: Executor | None = None,
     generation_id: str = "published-continuum-inputs",
     config: SourceFinderConfig,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-    support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
+    support_tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> PublishedContinuumInputs:
     """Publish and read every pass the composition consumes.
 

@@ -60,6 +60,12 @@ executor = DaskExecutor(
 )
 ```
 
+The budget is also how many cores Hebog may use. Its task slots, workers
+times their threads, set the tiling: when an image's 2,048-pixel tiles
+would leave a slot waiting, Hebog tiles it on 1,024-pixel cores instead.
+The products do not change. State a budget smaller than the client's when
+other work holds some of its threads.
+
 `maximum_tasks_in_flight` bounds how many tasks are submitted at once.
 Every Hebog task also declares the memory it holds, so Hebog narrows that
 bound until the tasks in flight fit `memory_bytes_per_worker` on

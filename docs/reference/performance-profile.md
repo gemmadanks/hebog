@@ -113,9 +113,10 @@ the crowded SDC1 field carries 14 times the components of the dense generated
 field for 2.3 MiB more.
 
 **The peak crosses the tile boundary almost flat, then grows slowly with the
-image.** With 2,048-pixel cores, 2,048² is the last single-tile size for
-every stage outside background and RMS; from 2,048² to 3,000² the peak adds
-1.7% although the area more than doubles. Above one tile the peak is one
+image.** With 2,048-pixel cores, which the serial executor always uses,
+2,048² is the last single-tile size for every stage outside background and
+RMS; from 2,048² to 3,000² the peak adds 1.7% although the area more than
+doubles. Above one tile the peak is one
 multiscale tile task, a flat 1,247 MiB, plus what the pass keeps across
 tiles, which grows about 1.7 bytes a pixel: the tile summaries' per-label
 records (every candidate island, with no size cut), the per-tile island

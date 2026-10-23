@@ -42,7 +42,11 @@ from hebog.executors import Executor
 from hebog.io import ZarrProductSink
 from hebog.io.base import WindowReadable
 from hebog.science.continuum import retained_scale_detections
-from hebog.stages.batching import tiles_per_batch
+from hebog.stages.batching import (
+    LARGEST_TILE_CORE_PIXELS,
+    tile_core_from_budget,
+    tiles_per_batch,
+)
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
@@ -66,8 +70,6 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.profile import ContinuumScienceProfile
 
 _TILE_SHAPE_YX = (128, 128)
-ADMITTED_TILE_CORE_PIXELS = 2048
-"""Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 # One storage chunk holds a whole tile core, so a batch that reads a window
@@ -386,7 +388,7 @@ def detect_multiscale_products(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, TiledMultiscaleDetection]:
     """Run the tiled detection pass and read its published planes.
 
@@ -396,8 +398,8 @@ def detect_multiscale_products(  # noqa: PLR0913
     island records come back.
 
     ``tile_core_pixels`` is the non-overlapping output core each task owns.
-    It defaults to the smallest core the scalability contract admits, and is
-    widened when the widest filter halo would exceed a quarter of it. Tile
+    It defaults to the largest core a budget gets, and is widened when the
+    widest filter halo would exceed a quarter of it. Tile
     geometry changes which task computes a value, never the value. One tile
     per batch is already a coarse task at that core, so batching adds nothing
     here.
@@ -455,7 +457,7 @@ def reduce_support_topology(  # noqa: PLR0913
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> ZarrProductSink:
     """Reconcile adjacent-scale persistence and return its plane's store.
 
@@ -506,7 +508,7 @@ def publish_support_labels(  # noqa: PLR0913
     config: SourceFinderConfig,
     review: ContinuumScienceProfile,
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[int, int, ZarrProductSink]:
     """Decide owner connectivity and publish the support pass's labels.
 
@@ -565,7 +567,7 @@ def publish_component_topology(  # noqa: PLR0913
     image_shape_yx: tuple[int, int],
     config: SourceFinderConfig,
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, TiledComponentTopology]:
     """Deblend every parent in its own window and read the components.
 
@@ -634,7 +636,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     with_position_diagnostics: bool,
     generation_id: str,
     sink_name: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[tuple[Any, ...], Mapping[int, float], Mapping[int, Any], int]:
     """Measure one catalogue row per segment, each in its own window.
 
@@ -719,7 +721,7 @@ def publish_detection_islands(  # noqa: PLR0913
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]], int]:
     """Measure one catalogue row per island of the published retained mask.
 
@@ -775,7 +777,7 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
     image_shape_yx: tuple[int, int],
     association: SourceAssociationResult,
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, ZarrProductSink, int]:
     """Publish the source labels and the persistent support they own.
 
@@ -850,7 +852,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
     records: tuple[DetectionComponentRecord, ...],
     scale_detections: Sequence[ScaleDetections],
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[HierarchyOverlaps, ZarrProductSink]:
     """Reduce every pixel fact the source hierarchy decision needs.
 
@@ -911,7 +913,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     review: ContinuumScienceProfile,
     component_count: int,
     generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS,
 ) -> tuple[TiledComponentFits, ZarrProductSink]:
     """Fit every measurement parent in its own context window.
 
@@ -1170,8 +1172,8 @@ def run_stages_from_background(  # noqa: PLR0913
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
     generation_id: str,
-    multiscale_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-    support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
+    multiscale_tile_core_pixels: int | None = None,
+    support_tile_core_pixels: int | None = None,
 ) -> PublishedStages:
     """Run every stage after the background and RMS, in order.
 
@@ -1179,10 +1181,25 @@ def run_stages_from_background(  # noqa: PLR0913
     which every stage reads by window rather than estimating again.
     ``multiscale_tile_core_pixels`` is the multiscale pass's core and
     ``support_tile_core_pixels`` the core of every pass from the support
-    reduction on; both default to the smallest
-    core the scalability contract admits, as ``find_sources`` runs them, and
-    no core changes a product.
+    reduction on. Unstated, as ``find_sources`` runs them, both are the core
+    the executor's budget gets for the widest filter halo
+    (``hebog.stages.batching.tile_core_from_budget``): one grid for every
+    pass keeps each read of another pass's planes aligned with the chunks
+    it decodes. No core changes a product.
     """
+    from hebog.algorithms.multiscale_tiles import (  # noqa: PLC0415
+        scale_filter_halo_pixels,
+    )
+
+    budget_core = tile_core_from_budget(
+        image_shape_yx,
+        halo_pixels=scale_filter_halo_pixels(beam),
+        capacity=executor.capacity,
+    )
+    if multiscale_tile_core_pixels is None:
+        multiscale_tile_core_pixels = budget_core
+    if support_tile_core_pixels is None:
+        support_tile_core_pixels = budget_core
     detection_source, multiscale = detect_multiscale_products(
         source,
         background_rms_source,

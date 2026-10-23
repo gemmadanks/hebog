@@ -87,11 +87,14 @@ worker-local NVMe, and normal-run spill stays below 5% of logical input
 bytes. Qualification records the actual facility topology and never scales
 worker limits past admitted RAM to make a run pass.
 
-Candidate square tile cores are 2,048, 4,096 and 8,192 pixels. A stage halo
-stays below a quarter of its core, or the stage selects a larger core or
-records a contract change. Batch sizing chooses the largest stage-valid batch
-below the pessimistic memory limit, then reduces batch size before the tile
-core. Resource choices never alter core ownership or scientific results.
+Candidate square tile cores are 2,048, 4,096 and 8,192 pixels; an image
+of at most eleven 1,024-pixel cores a side, whose 2,048-pixel tiles would
+leave an executor's task slots waiting, tiles on 1,024-pixel cores. A
+stage halo stays below a quarter of its core, or the stage selects a larger
+core or records a contract change. Batch sizing chooses the largest
+stage-valid batch below the pessimistic memory limit, then reduces batch
+size before the tile core. Resource choices never alter core ownership or
+scientific results.
 
 ## Controlled node gates
 

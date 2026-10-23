@@ -132,7 +132,7 @@ matters most.
 | Worker | A process or thread that runs tasks: a Dask worker, a thread of the pool, or the calling thread itself under the serial executor. |
 | Task | One call of a function on one batch, submitted to the executor. Its arguments and result are small serializable records, never arrays the size of the image. |
 | Batch | The unit of work one task receives: several tiles, or up to 256 objects whose reads fit a budget. Batching keeps the number of tasks proportional to tiles and objects, not pixels. |
-| Tile | One rectangle of the image's grid, the unit of tiled work. Background and RMS use 128-pixel tile cores; every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels is one tile there. |
+| Tile | One rectangle of the image's grid, the unit of tiled work. Background and RMS use 128-pixel tile cores; every other stage uses 2,048-pixel cores, or 1,024-pixel cores when the executor has more task slots than those tiles can keep busy, so an image up to 1,024 pixels is always one tile there. |
 | Core | The pixels one tile owns and writes. Cores do not overlap and cover the image exactly once. |
 | Filter block | A fixed square, placed from the image origin, on which the matched filter is evaluated with its own padding. Its responses hold the same bits whichever tile evaluates it, because an FFT's rounding depends on its shape. |
 | Halo | The read-only margin around a core that a stage needs to compute the core's edge exactly, such as a filter's width. Each stage declares the smallest halo that makes its output exact. |

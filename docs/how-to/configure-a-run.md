@@ -83,8 +83,10 @@ Hebog never starts a cluster for you. On a multi-node cluster, the image and
 the parent of the output directory must be on storage that every worker sees
 at the same absolute path. Today's limit is 22,500 pixels per side. Background
 and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
-cores, so an image up to 2,048 pixels gives those stages a single tile and
-little to parallelise; above that they tile too. On the development
+cores, or 1,024-pixel cores when the executor has more workers or threads
+than those tiles can keep busy, so an image up to 1,024 pixels gives those
+stages a single tile and little to parallelise; above that they tile too.
+On the development
 machine a four-worker local Dask cluster finished the 10,000² LoTSS-DR3
 anchor in about 0.4 of the serial executor's time, with identical products,
 but twelve threads of a `ThreadExecutor` took 0.84 of one thread's time,

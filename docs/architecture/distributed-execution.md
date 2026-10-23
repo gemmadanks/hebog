@@ -13,10 +13,11 @@ astronomy background. The decisions behind it are recorded in
     Every scientific step runs as tiled tasks through an executor and
     exchanges image planes through Zarr, and the driver holds no image-sized
     plane. Background and RMS estimation tiles on 128-pixel cores; every other
-    stage uses 2,048-pixel cores, so 3,000 pixels is the first size that
-    reconciles those stages across tiles and 22,500 is an eleven-by-eleven
-    grid. The public API admits 22,500 pixels per side, and each larger tier
-    is admitted once its traced memory peak and tiled invariance are measured.
+    stage uses 2,048-pixel cores, halved to 1,024 when the executor's task
+    slots would otherwise wait on too few tiles, so 22,500 pixels is at most
+    an eleven-by-eleven grid. The public API admits 22,500 pixels per side,
+    and each larger tier is admitted once its traced memory peak and tiled
+    invariance are measured.
     Every task declares the memory it holds, bounded by its tile, halo, batch
     and storage chunk. Two terms of the analysis itself are not yet bounded by
     the tile: an object wider than a task's read budget is reduced on the
@@ -138,6 +139,40 @@ Three rules make the result independent of how the image was tiled:
 A small image is simply one tile with an empty halo. There is no separate
 "small image" code path.
 
+### Tile cores from the core budget
+
+The executor states the budget: its task slots, workers times their
+threads, and the memory a worker admits. `DaskExecutor` reads them from the
+cluster unless the caller states them, either as an `ExecutorCapacity` or
+as named worker resources, which also leave out the threads other work
+holds. Every pass after the background and RMS then tiles on one core,
+chosen from that budget and the widest filter halo by a stated cost model
+(`hebog.stages.batching.tile_core_from_budget`):
+
+- A tile task's time grows with the pixels it reads, its core and halo,
+  plus a fixed cost for each task and storage chunk. A round takes its
+  tiles' time shared among the slots, but never less than its longest
+  task, its largest tile's.
+- Large cores keep the halo, the task count and the chunk count small;
+  small cores shorten the longest task. The core is therefore 2,048 pixels
+  unless its largest tile holds more than half of one slot's share of the
+  image, and then halves while that holds, as long as the halved core adds
+  tiles, is at least 1,024 pixels and ten halos wide, so the halo adds at
+  most about half the pixels each task reads, and gives at most eleven
+  tiles a side, so a plane holds at most 121 chunks.
+- One slot runs every tile in turn, so the serial executor keeps 2,048
+  pixels, and an image no wider than 1,024 pixels stays one tile on any
+  executor.
+
+A 5,000² image is nine tiles on two slots and 25 on three or more; a
+10,000² image stays 25 tiles up to eleven slots. Each task declares the memory of the
+core it reads, which is never larger than the 2,048-pixel core its
+measured cost was traced on, so a task's declaration stays within what a
+core of the leanest cluster node holds. One grid for every pass keeps each
+read of another pass's planes aligned with the chunks it decodes. The
+stage profile records the budget and every grid a run planned. Products do
+not depend on the core.
+
 ## Passes: where the global steps go
 
 The pipeline runs as four **passes**. Within a pass all tile tasks are
@@ -230,9 +265,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
 Tasks are **coarse batches** of tiles or objects: an object round puts up to
 256 objects in one task, and a tile round up to four tiles. A tile round's
 batch shrinks, down to one tile, until the round holds two batches for each
-of the executor's task slots, so the nine tiles of a 5,000² image make nine
-tasks on four threads rather than tasks of four, four and one tile; the
-serial executor keeps four. The component-fit and extended-group rounds,
+of the executor's task slots, so the 25 tiles of a 10,000² image make 13
+tasks on six threads rather than tasks of four; the serial executor keeps
+four. The component-fit and extended-group rounds,
 whose batches otherwise close only at a read budget of one tile core, also
 close a batch at a share of their objects that leaves each task slot two
 batches. Graph size therefore scales with the number of
@@ -314,9 +349,10 @@ that estimate from the image's bright local maxima, in bounded blocks.
 
 Hebog does not choose worker counts, memory limits, spill policy or task
 placement; those belong to the cluster's owner. It names no Dask resource:
-the caller chooses the resource names and each worker's amounts. Tile cores
-are fixed per stage today; choosing them from the core budget is planned.
-Declarations may change batching and placement, never results.
+the caller chooses the resource names and each worker's amounts. The tile
+core follows the core budget the caller's executor states, as
+[above](#tile-cores-from-the-core-budget). Declarations may change batching
+and placement, never results.
 
 See [Integrate Hebog into a pipeline](../how-to/integrate-into-a-pipeline.md)
 for the practical steps.

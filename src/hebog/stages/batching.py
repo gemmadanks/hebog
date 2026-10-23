@@ -17,7 +17,8 @@ object from the cores that hold it instead, or does not read it at all.
 Rounds over whole tiles batch by count instead (``tiles_per_batch``), as
 coarsely as their executor's task slots allow, and an object round's batches
 also close at the share of its objects those slots need
-(``objects_per_batch``).
+(``objects_per_batch``). The tiles themselves are as large as those slots
+allow too (``tile_core_from_budget``).
 """
 
 from __future__ import annotations
@@ -41,6 +42,21 @@ from hebog.executors.base import (
 # allows, so the slots share the round's last batches instead of one slot
 # working through a long last batch while the others wait.
 _BATCHES_PER_SLOT = 2
+
+LARGEST_TILE_CORE_PIXELS = 2048
+"""The tile core one task slot runs, and the coarsest any budget gets."""
+SMALLEST_TILE_CORE_PIXELS = 1024
+"""The finest tile core any budget gets, and the widest single-tile image."""
+MOST_TILES_PER_SIDE = 11
+"""The most tiles a side a smaller core may give an image.
+
+It is the 22,500-pixel public envelope's grid at the largest core, the
+widest grid the tile-invariance tests check, and it bounds each plane's
+storage chunks at 121.
+"""
+_CORE_HALOS = 10
+# A smaller core is at least this many halos wide, so the halo adds at most
+# about half the core's pixels to what each tile task reads.
 
 
 def tiles_per_batch(
@@ -275,3 +291,76 @@ def map_round[Batch, Result](
             f"{len(batches)} batches"
         )
     return results
+
+
+def _tiles_a_side(
+    image_shape_yx: tuple[int, int], core: int
+) -> tuple[int, int]:
+    """Return how many tiles of ``core`` pixels cover each axis."""
+    return (-(-image_shape_yx[0] // core), -(-image_shape_yx[1] // core))
+
+
+def tile_core_from_budget(
+    image_shape_yx: tuple[int, int],
+    *,
+    halo_pixels: int,
+    capacity: ExecutorCapacity,
+) -> int:
+    """Return the tile core the passes after the background run on.
+
+    The cost model: a tile task's time grows with the pixels it reads, its
+    core and the ``halo_pixels`` on each side, plus a fixed cost for each
+    task and storage chunk. A round on the executor's task slots, its
+    workers times their threads, takes its tiles' time shared among the
+    slots, but never less than its longest task, its largest tile's. Large
+    cores keep the halo, the task count and the chunk count small; small
+    cores shorten the longest task. A core of ``LARGEST_TILE_CORE_PIXELS``
+    therefore stays unless its largest tile holds more than half of one
+    slot's share of the image, as ``tiles_per_batch`` leaves each slot two
+    batches, and the core then halves while that holds and the halved core
+
+    - adds tiles, so an image no wider than ``SMALLEST_TILE_CORE_PIXELS``
+      stays one tile, as it always has;
+    - is at least ``SMALLEST_TILE_CORE_PIXELS`` wide, which bounds the task
+      and chunk counts, and ten halos wide, so the halo adds at most about
+      half the core's pixels to each read; and
+    - gives at most ``MOST_TILES_PER_SIDE`` tiles a side.
+
+    One slot runs every tile in turn, so the serial reference keeps the
+    largest core. A task's declared memory follows the core it reads, and
+    no core is larger than the one its declarations were measured on.
+    Products do not depend on the core.
+
+    >>> serial = ExecutorCapacity(1, 1, 1)
+    >>> four_workers = ExecutorCapacity(4, 1, 8)
+    >>> tile_core_from_budget((5000, 5000), halo_pixels=28, capacity=serial)
+    2048
+    >>> tile_core_from_budget(
+    ...     (5000, 5000), halo_pixels=28, capacity=four_workers
+    ... )
+    1024
+    >>> tile_core_from_budget(
+    ...     (1000, 1000), halo_pixels=28, capacity=four_workers
+    ... )
+    2048
+    """
+    slots = capacity.worker_count * capacity.threads_per_worker
+    core = LARGEST_TILE_CORE_PIXELS
+    if slots == 1:
+        return core
+    height, width = image_shape_yx
+    smallest = max(SMALLEST_TILE_CORE_PIXELS, _CORE_HALOS * halo_pixels)
+    while (
+        _BATCHES_PER_SLOT * slots * min(core, height) * min(core, width)
+        > height * width
+    ):
+        smaller = core // 2
+        tiles = _tiles_a_side(image_shape_yx, smaller)
+        if (
+            smaller < smallest
+            or max(tiles) > MOST_TILES_PER_SIDE
+            or tiles == _tiles_a_side(image_shape_yx, core)
+        ):
+            break
+        core = smaller
+    return core
