@@ -76,7 +76,7 @@ notes mark which changes break callers.
 <!-- x-release-please-start-version -->
 
 ```console
-pip install hebog==0.24.0
+pip install hebog==0.25.0
 hebog --version
 ```
 
