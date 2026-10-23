@@ -137,7 +137,7 @@ after 1.0.0.
    runs the analysis on single-threaded Dask worker processes for the
    cores Rapthor gives the step, a cluster Rapthor's task owns, keeping
    the thread executor for small sectors and tests.
-3. **The dense-sector threshold.** Provisionally 10,000 sources in pinned
+4. **The dense-sector threshold.** Provisionally 10,000 sources in pinned
    `master`'s catalogue. *Recommendation:* task 72's first step measures
    both finders against the source count, and the maintainer confirms or
    moves the threshold from that curve before the cluster benchmark is
@@ -169,9 +169,11 @@ after 1.0.0.
 - **Compute.** Development, checks and benchmarks run on the maintainer's
   machine (Apple M3 Pro, 12 logical CPUs, six performance cores, 18 GiB
   RAM; a 16 GB, six-core Podman VM for the containers, which cannot hold
-  pinned `master` on a 15,402² sector). A cluster of up to 10 nodes runs
-  one benchmark for 1.0.0 and never blocks development; record its
-  hardware when that benchmark is scheduled.
+  pinned `master` on a 15,402² sector). A cluster of up to 12 nodes runs
+  one benchmark for 1.0.0 and never blocks development: nodes of 96 cores
+  with 747 GB and of 192 cores with 747 or 1,494 GB, NUMA or not, with no
+  local scratch disk, sharing a Lustre filesystem (maintainer, 22 October
+  2026). Hebog runs on every node type without per-node settings.
 - **Disk.** A 22,500² run holds up to 49 GiB beside its 1.9 GiB input,
   about 100 bytes a pixel, almost all of it uncompressed Zarr intermediates;
   at that rate a 45,000² run needs about 200 GiB, so the intermediates shrink
@@ -461,7 +463,7 @@ invariants, as in ADR-005.
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies, including the kept records that grow with the image and the sources found. |
-| 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Zarr v3's sharding codec is evaluated against one file per chunk, since a run writes 19,373 chunk files at 10,000² and thousands of tasks on a cluster's shared filesystem mean many small files; the completion record's split by tile (task 72) is reviewed with it. Shared-storage throughput is measured by the cluster benchmark. |
+| 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Zarr v3's sharding codec is evaluated against one file per chunk, since a run writes 19,373 chunk files at 10,000² and thousands of tasks on the cluster's Lustre filesystem, its only scratch, mean many small files; the completion record's split by tile (task 72) is reviewed with it. Shared-storage throughput is measured by the cluster benchmark. |
 | 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one dense Rapthor sector at its default size at 1, 2, 5 and 10 nodes, and a sparse one on one node: through Rapthor's native task on the layout its Hebog branch documents, and standalone on the same cluster, which is the scaling evidence if Rapthor has not yet given each node several task slots. They record evidence, the hardware, a scaling-model fit, the finder-part ratio against PyBDSF on one node and the strong-scaling efficiency against the floor decision 2 fixes. `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and that benchmark, keeping the 50, 100 and 200-node gates as design targets (task 26, folded in). A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
 
 ### Science before the freeze
