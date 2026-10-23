@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-22 |
+| Last updated | 2026-10-23 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -114,6 +114,13 @@ passes, true-sky and flat-noise, about 240 s each; the component fits run in 12
 batches and the support publication in 3 tasks. Each run decodes 110 GB
 from Zarr, 1,100 times the image. On the 10,000² anchor the two
 background passes take 1,212 s of one worker's 1,919 s.
+
+In the matched container, with Hebog on single-threaded Dask workers,
+one a core, the dense cell's finder part is 1.03, 1.07 and 1.00 times
+`master`'s on one, four and six cores, half its ratio on threads, and
+Hebog's products are identical at every worker count. Past four cores
+both finders gain little: Hebog runs 2.36 and 2.55 times faster than on
+one core on four and six, `master` 2.46 and 2.47.
 
 Run `task74-stack` (15 October) took the 10,000² anchor from 1,357 s on
 one worker to 429 s on six. An Amdahl fit gives 250 s serial and 1,085 s
@@ -268,3 +275,4 @@ and the quick benchmark and profile before and after show the gain.
 | 2026-10-22 | Progress | The dense cell's full protocol (one warm-up, five measured) gives 2.26, bounds 2.24 to 2.28, and 2.03 for the complete step, matching the screening. Hebog's stage profiles of the dense cell and the anchor show the thread path held by the interpreter lock, the two background passes as the largest single-worker cost and rounds of 3 to 12 tasks as the tail; the matched ratio on Dask workers waits for the core sweep. | Agent: the core sweep on a quiet night; increment 1 |
 | 2026-10-22 | Progress | Increment 1's first changes split tile rounds, and the component-fit and extended-group rounds, until each task slot has two batches, and scan for bright candidates 64 cells a task. On four Dask workers they take 8 to 13% off the dense and sparse 5,000² cells and a 3,000² sector, with products unchanged; the thread path is unchanged. | Agent: the tile core from the budget and the run-settings record |
 | 2026-10-22 | Decision | The cluster has up to 12 nodes, NUMA or not, of 96 cores with 747 GB, 192 cores with 747 GB and 192 cores with 1,494 GB, with no local scratch, on Lustre (maintainer); Hebog must run on every node type without per-node settings. | Agent: the model projects every node type |
+| 2026-10-23 | Progress | The core sweep on the dense cell, Hebog on single-threaded Dask workers in the matched container, gives finder ratios of 1.03, 1.07 and 1.00 on one, four and six cores (screening repetitions), half the thread path's, with products identical at every worker count. The two-core point was skipped for lack of disk. 0.24.0 carries increment 1's first part. | Agent: the two-core point on a quiet night; step 4 |
