@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.24.0](https://github.com/gemmadanks/hebog/compare/v0.23.0...v0.24.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* Custom performance contracts must use schema 3. Replace maximum_ratio with dense_minimum_sources, dense_maximum_ratio and sparse_maximum_ratio.
+
+### 🚀 Features
+
+* measure source-finder scaling across sparse and dense sectors ([#196](https://github.com/gemmadanks/hebog/issues/196)) ([bee8d4d](https://github.com/gemmadanks/hebog/commit/bee8d4d75821685f7ed5ababd970642d78f81374))
+
+
+### ⚡ Performance
+
+* hold less memory for the local noise of large images ([#193](https://github.com/gemmadanks/hebog/issues/193)) ([4e82ce0](https://github.com/gemmadanks/hebog/commit/4e82ce01bbb57a487d943888b30aa9a9ea9a1bd2))
+* keep every Dask worker busy on sectors up to 5,000 pixels ([#200](https://github.com/gemmadanks/hebog/issues/200)) ([71f6234](https://github.com/gemmadanks/hebog/commit/71f623405ea412af58a0611c05574f87b6c726a5))
+
+
+### 📚 Documentation
+
+* record the 0.23.0 release ([#195](https://github.com/gemmadanks/hebog/issues/195)) ([fe1e782](https://github.com/gemmadanks/hebog/commit/fe1e782c1d35e7243c964c4cd9ac64eb08c38a0f))
+* record the cluster's nodes for the scaling model ([#201](https://github.com/gemmadanks/hebog/issues/201)) ([4fbe855](https://github.com/gemmadanks/hebog/commit/4fbe855fb9bbd180700944828b2e5849e0f52513))
+* record the dense sector's full protocol and stage profiles ([#199](https://github.com/gemmadanks/hebog/issues/199)) ([a735049](https://github.com/gemmadanks/hebog/commit/a73504965986e432a45d907c09aed498dfb2f687))
+* record the source-count ladder's matched ratios ([#198](https://github.com/gemmadanks/hebog/issues/198)) ([dcc10bb](https://github.com/gemmadanks/hebog/commit/dcc10bbf66092bbceb821704f312bf056ca439de))
+
 ## [0.23.0](https://github.com/gemmadanks/hebog/compare/v0.22.0...v0.23.0) (2026-10-20)
 
 

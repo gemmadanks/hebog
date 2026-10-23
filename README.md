@@ -53,7 +53,7 @@ environment (releases before 0.22.0 are on GitHub only):
 <!-- x-release-please-start-version -->
 
 ```shell
-pip install hebog==0.23.0
+pip install hebog==0.24.0
 ```
 
 <!-- x-release-please-end -->
