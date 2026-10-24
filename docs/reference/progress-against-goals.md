@@ -3,11 +3,9 @@
 This page answers one question: how far is Hebog from the goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
 defines for 1.0.0? It is updated whenever the plan's current state changes,
-and was last updated on **24 October 2026**, when a sparse sector's sweep
-over cores, the dense cell's two-core point, native profiles of the
-source-count ladder and 0.24.0's whole-mosaic traced peak were measured
-and the model of the speed gate on the cluster's nodes was refitted to
-them.
+and was last updated on **4 November 2026**, when five runs a side measured
+tile cores chosen from the core budget against the image-anchored filter
+blocks.
 The scientific and performance measurements retain their original dates.
 Every figure is development evidence from the
 maintainer's machine, dated and traceable to versioned evidence and Git
@@ -16,7 +14,7 @@ history; none is scientific qualification. User-facing limits are in
 
 ## At a glance
 
-| 1.0.0 goal | Target | Position on 24 October 2026 | Status |
+| 1.0.0 goal | Target | Position on 4 November 2026 | Status |
 | --- | --- | --- | --- |
 | Telescopes | Standard FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid for 1.0.0 and on SKA-Low precursor data at the later release whose envelope admits it | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR3 and LoTSS-DR2) and SKA-Mid (SDC1 simulation) images run; MeerKAT MIGHTEE images fit the envelope; the only SKA-Low precursor mosaic (GLEAM-X) needs the 45,000-pixel tier and a position-dependent PSF, whose effect is to be measured and documented. A beam wider than 10 pixels is refused; every real Rapthor image in the archived cluster runs is at most about 7 pixels, and only Rapthor's synthetic demonstration sector (30 pixels) exceeds the limit. | In progress |
 | Functionality | A feature-flagged backend for Rapthor's `filter_skymodel` at pinned Rapthor and LSMTool revisions | A complete standalone finder under Serial, Thread and caller-owned Dask executors, and the in-process Rapthor adapter: `hebog.adapters.find_sector_sources` runs a sector's true-sky and flat-noise images on the caller's executor and writes the files Rapthor's `filter_skymodel` step reads, by default with the `continuum` profile and a zero background, the profile that passes the truth-based gate, and pinned LSMTool's `filter_sources` filters by its mask as the mask decides, on the LoTSS-Deep DR2 ELAIS-N1 pair: its central 5,000² under all three executors with byte-identical products, and the full 14,175² sector's serial products. All 12 frozen public behaviours are implemented. Rapthor's Hebog branch calls the adapter in-process with a ThreadExecutor, memory admission, typed PyBDSF fallback and dual runs, tested through its real Prefect task on a single-threaded Dask worker. | On a Rapthor branch; not merged |
@@ -305,7 +303,7 @@ class; everything else below is diagnostic.
 | Linear hierarchy decision and reconciliation | One worker, with the coarser background batches beneath: the driver work outside the profiled stages, which holds the hierarchy decision, takes 16 s instead of 70 s on the 10,000² anchor and 50 s instead of 320 s on the whole mosaic. The mosaic takes 3,783 s instead of 5,032 s, in 22,057 tasks instead of 184,900, and no task runs for 6% of either run (83 s and 223 s). The mosaic's other stages ran up to 22% slower than the first sweep's overnight run on a busier machine; on the anchor, measured right after the coarser-batches run, they are unchanged | 15 October, `just profile-scaling` run `task55`, `benchmark-results/profiles/runs/task55/scaling.json` (sha256 `48a37e2b…`), Hebog `149ed8da` |
 | One sector with coarser background batches and the linear hierarchy decision | The 10,000² anchor takes 1,357, 749, 490, 429 and 438 s on 1, 2, 4, 6 and 8 workers (speed-ups 1.81, 2.77, 3.16 and 3.10), 43% less than the first sweep at the best point. No task runs for 77 s at one worker and 67 to 70 s at more, against 349 s and 158 to 209 s in the first sweep; over 1, 4 and 8 workers the serial term is 263 s, a share of 20% against 24%. Eight workers swapped up to 24 GB; the Podman VM stayed idle | 15 October, `just profile-scaling` run `task74-stack`, `benchmark-results/profiles/runs/task74-stack/scaling.json` (sha256 `4c06424a…`), Hebog `17dbaeb8` |
 | Object rounds a core at a time | One worker, with the two changes above beneath: the 10,000² anchor takes 1,305 s instead of 1,356 s and the whole mosaic 3,452 s instead of 3,790 s, decoding 154 GB from Zarr instead of 213 GB and 393 GB instead of 703 GB. On the mosaic the hierarchy overlap stage takes 73 s instead of 163 s and source labels 38 s instead of 65 s; the island round runs 32 more tasks for 12 s more. Products byte-identical | 15 October, `just profile-scaling` run `task54`, `benchmark-results/profiles/runs/task54/scaling.json` (sha256 `49525d36…`), Hebog `222ff3b1` |
-| Rounds split across the task slots | Tile rounds, and the component-fit and extended-group rounds, split until each task slot has two batches, and the bright-candidate scan runs 64 cells a task. Four single-threaded Dask workers with the flat-noise estimate, `main` and the change alternating twice: the dense 5,000² cell 447 and 447 s against 405 and 405 s; the sparse 5,000² LoTSS-DR3 window 177 and 175 s against 163 and 159 s; the 3,000² LoTSS-DR3 sector 70 and 70 s against 60 and 62 s. Source, island and component counts are unchanged, and the quick check's catalogues, RMS maps and masks are byte-identical on all 21 cases. On four threads the dense cell takes 920 s against 917 s, held by the interpreter lock | 22 October, `just profile-scaling` runs `increment1-ab-*` at `c92c79b7` against `dcc10bbf`, and runs `step3-elais-n1-deep-north-3600-5000` against `-increment1-rerun` for threads; quick check `increment1-tip` against `increment1-base` |
+| Rounds and tile cores sized to the task slots | Tile rounds, and the component-fit and extended-group rounds, split until each task slot has two batches, and the bright-candidate scan runs 64 cells a task: on four single-threaded Dask workers that took 8 to 13% off the dense and sparse 5,000² cells and a 3,000² sector (two runs each). The passes after the background then tile on 1,024-pixel cores when a 2,048-pixel tile would hold more than half of a slot's share of the image. Single-threaded Dask workers with the flat-noise estimate, five runs a side in rotation against the image-anchored filter blocks, with 95% bootstrap bounds on the ratio: the dense cell 329.1 against 299.5 s on six workers, 0.910 [0.890, 0.962], and 407.9 against 373.9 s on four, 0.916 [0.910, 0.930]; the sparse LoTSS-DR3 cell 133.8 against 127.2 s on six, 0.951 [0.923, 0.965], and 162.1 against 157.8 s on four, 0.974 [0.901, 0.990]. The largest worker's peak falls from 1.54 to 1.18 and 2.33 to 1.17 GiB on the dense cell and from 1.68 to 1.08 and 2.40 to 1.17 GiB on the sparse one, on six and four workers. On the dense cell on six workers the longest scale-label task falls from 18.3 to 1.3 s and the longest support publication from 12.1 to 6.6 s. Catalogue, RMS maps and mask match the filter blocks' byte for byte on six real images of 2,048 to 5,000 pixels under Dask on four and six workers and under Serial up to 3,000 pixels, and the quick check's on all 22 cases. The serial quick benchmark shows no supported change against the filter blocks, every bound including 1, though its runs spread from 13 to 24 s on this machine | 22 October, `just profile-scaling` runs `increment1-ab-*`; 4 November, runs `stack-*` (`benchmark-results/one-sector-scaling/filter-blocks/stack/five-runs.txt`, sha256 `7c7865f8…`, from `five_runs.py` beside it); quick check `stack-tiles-2` against `filter-blocks-with-2048`; quick benchmark `stack-matched-*` (`matched-quick.json`) |
 | Profile shape | The largest stage is about a fifth of a run and the largest kernel 5 to 8%, so no kernel reaches the native-code assessment's 10% gate | 21 September |
 
 About half of a large run is background and RMS estimation, and most of the
@@ -437,16 +435,16 @@ The plan's
 [decisions pending](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#decisions-pending)
 list what the maintainer has still to decide, each with a recommendation.
 
-The next actions, as the plan orders them on 24 October:
+The next actions, as the plan orders them on 4 November:
 
 1. Agent: one sector across the cluster. The source-count ladder, the
    dense cell's full protocol, the stage profiles and the sweeps over
    cores of the dense cell and a sparse one are measured, and the model
    projects them to the cluster's nodes with targets for Hebog's floor.
    Sizing tiles and task counts from the core budget, the first of four
-   increments that each release, is held until the matched filter's
-   image-anchored blocks land, since a core chosen from the executor's budget
-   could otherwise change products; 0.24.0 carries its first part.
+   increments that each release, now builds on the matched filter's
+   image-anchored blocks, so a core chosen from the executor's budget cannot
+   change products; 0.24.0 carries its first part.
 2. Human: decide the executor Rapthor gives Hebog, which the sweeps have
    measured, and take the model's checkpoint: the dense threshold, the
    targets, the increments' order and whether per-source costs join; push
