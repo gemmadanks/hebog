@@ -59,6 +59,24 @@ _CORE_HALOS = 10
 # about half the core's pixels to what each tile task reads.
 
 
+def _task_slots(capacity: ExecutorCapacity) -> int:
+    """Return how many of a round's tasks can run at once.
+
+    Each of the executor's workers runs a task on each of its threads, but
+    the caller may admit fewer tasks in flight than that, and a round sized
+    for slots that never run together pays for smaller tasks for nothing.
+
+    >>> _task_slots(ExecutorCapacity(4, 2, 16))
+    8
+    >>> _task_slots(ExecutorCapacity(4, 2, 2))
+    2
+    """
+    return min(
+        capacity.worker_count * capacity.threads_per_worker,
+        capacity.maximum_tasks_in_flight,
+    )
+
+
 def tiles_per_batch(
     tile_count: int, capacity: ExecutorCapacity, *, maximum: int
 ) -> int:
@@ -70,7 +88,7 @@ def tiles_per_batch(
     image make tasks of four, four and one tile, so four slots finish the
     round no sooner than one slot working through four tiles. A batch
     therefore shrinks, down to one tile, until the round holds two batches
-    for each of the executor's slots, its workers times their threads. One
+    for each of the executor's task slots (``_task_slots``). One
     slot runs every batch in turn, so the serial reference keeps the coarse
     batches. Products do not depend on the batching.
 
@@ -81,7 +99,7 @@ def tiles_per_batch(
     >>> tiles_per_batch(9, four_threads, maximum=4)
     1
     """
-    slots = capacity.worker_count * capacity.threads_per_worker
+    slots = _task_slots(capacity)
     if slots == 1:
         return maximum
     return max(1, min(maximum, tile_count // (_BATCHES_PER_SLOT * slots)))
@@ -108,7 +126,7 @@ def objects_per_batch(
     >>> objects_per_batch(3, ExecutorCapacity(1, 4, 4))
     1
     """
-    slots = capacity.worker_count * capacity.threads_per_worker
+    slots = _task_slots(capacity)
     if slots == 1:
         return None
     return max(1, object_count // (_BATCHES_PER_SLOT * slots))
@@ -310,8 +328,8 @@ def tile_core_from_budget(
 
     The cost model: a tile task's time grows with the pixels it reads, its
     core and the ``halo_pixels`` on each side, plus a fixed cost for each
-    task and storage chunk. A round on the executor's task slots, its
-    workers times their threads, takes its tiles' time shared among the
+    task and storage chunk. A round on the executor's task slots
+    (``_task_slots``) takes its tiles' time shared among the
     slots, but never less than its longest task, its largest tile's. Large
     cores keep the halo, the task count and the chunk count small; small
     cores shorten the longest task. A core of ``LARGEST_TILE_CORE_PIXELS``
@@ -344,7 +362,7 @@ def tile_core_from_budget(
     ... )
     2048
     """
-    slots = capacity.worker_count * capacity.threads_per_worker
+    slots = _task_slots(capacity)
     core = LARGEST_TILE_CORE_PIXELS
     if slots == 1:
         return core

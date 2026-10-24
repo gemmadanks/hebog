@@ -494,3 +494,32 @@ def test_a_wider_budget_never_gets_a_coarser_core(
         assert max(ceil(side / core) for side in shape) <= 11
         larger = min(2 * core, height) * min(2 * core, width)
         assert 2 * workers * larger > height * width
+
+
+@pytest.mark.parametrize(
+    ("in_flight", "tiles", "objects", "core"),
+    [
+        pytest.param(1, 4, None, 2048, id="one-in-flight"),
+        pytest.param(2, 2, 25, 2048, id="two-in-flight"),
+        pytest.param(8, 1, 6, 1024, id="every-thread-in-flight"),
+    ],
+)
+def test_the_tasks_in_flight_bound_the_slots_a_round_is_sized_for(
+    in_flight: int, tiles: int, objects: int | None, core: int
+) -> None:
+    """Admitting fewer tasks at once than threads gets coarser rounds.
+
+    Four workers of two threads that admit only ``in_flight`` tasks at once
+    run no more tasks together than that, so their rounds are sized as for
+    that many slots.
+    """
+    capacity = ExecutorCapacity(4, 2, in_flight)
+
+    assert tiles_per_batch(9, capacity, maximum=4) == tiles
+    assert objects_per_batch(100, capacity) == objects
+    assert (
+        tile_core_from_budget(
+            (5000, 5000), halo_pixels=_HALO, capacity=capacity
+        )
+        == core
+    )

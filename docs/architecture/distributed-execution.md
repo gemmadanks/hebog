@@ -142,7 +142,8 @@ A small image is simply one tile with an empty halo. There is no separate
 ### Tile cores from the core budget
 
 The executor states the budget: its task slots, workers times their
-threads, and the memory a worker admits. `DaskExecutor` reads them from the
+threads but no more than the tasks it admits in flight, and the memory a
+worker admits. `DaskExecutor` reads them from the
 cluster unless the caller states them, either as an `ExecutorCapacity` or
 as named worker resources, which also leave out the threads other work
 holds. Every pass after the background and RMS then tiles on one core,
