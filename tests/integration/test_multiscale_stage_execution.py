@@ -33,6 +33,7 @@ from hebog.algorithms.multiscale_association import (
 )
 from hebog.algorithms.multiscale_tiles import (
     evaluate_multiscale_filter_tile,
+    multiscale_filter_read_bounds,
     scale_filter_halo_pixels,
 )
 from hebog.algorithms.partitioning import plan_image_partitions
@@ -43,22 +44,24 @@ from hebog.executors import DaskExecutor, SerialExecutor, TaskRequirement
 from hebog.io.base import ImageWindow
 from hebog.io.zarr import ZarrProductSink
 from hebog.stages.multiscale import (
+    _FILTER_BYTES_PER_READ_PIXEL,
     MultiscaleStageConfig,
     MultiscaleStageResult,
     _evaluate_tile,
     _publication_products,
+    _read_image_batch,
     _ScaleLabelBatch,
     _TileInputs,
     multiscale_product_names,
     run_multiscale_stage,
 )
+from hebog.stages.task_memory import read_requirement
 
 pytestmark = pytest.mark.integration
 
 _Input = TypeVar("_Input")
 _Output = TypeVar("_Output")
 _SUPPORT_FRACTION = 0.5
-_CONTINUOUS_TOLERANCE = 2e-13
 
 
 class _ArrayImageSource:
@@ -400,13 +403,9 @@ def _assert_science_identity_equal(
         candidate.reconstruction_mask,
         expected.reconstruction_mask,
     )
-    # The matched-filter FFT's rounding depends on transform shape, so the
-    # reviewed tolerance applies to continuous responses, not to decisions.
-    np.testing.assert_allclose(
+    np.testing.assert_array_equal(
         candidate.combined_snr,
         expected.combined_snr,
-        rtol=_CONTINUOUS_TOLERANCE,
-        atol=_CONTINUOUS_TOLERANCE,
     )
     for candidate_mask, expected_mask in zip(
         candidate.scale_masks,
@@ -568,17 +567,230 @@ def test_multiscale_science_and_topology_ids_are_partition_invariant(
         if one.dtype == np.dtype(np.bool_):
             np.testing.assert_array_equal(many, one)
         else:
-            np.testing.assert_allclose(
+            np.testing.assert_array_equal(
                 np.asarray(many, dtype=np.float64),
                 np.asarray(one, dtype=np.float64),
-                rtol=2e-13,
-                atol=2e-13,
-                equal_nan=True,
             )
     _assert_science_identity_equal(
         _science_identity(many_result, many_source),
         _science_identity(one_result, one_source),
     )
+
+
+_BLOCK_CROSSING_SHAPE_YX = (1300, 1150)
+_BLOCK_CROSSING_BEAM = BeamShapePixels(4.0, 4.0, 0.0)
+
+
+def _block_crossing_planes() -> tuple[
+    npt.NDArray[np.float64], npt.NDArray[np.bool_]
+]:
+    """Return emission and invalid pixels across block and image edges.
+
+    The filter's blocks are 1,024 pixels at this beam, so a source and an
+    invalid patch straddle the corner of four blocks, others straddle one
+    block edge, and a source sits on an image corner.
+    """
+    yy, xx = np.mgrid[
+        : _BLOCK_CROSSING_SHAPE_YX[0], : _BLOCK_CROSSING_SHAPE_YX[1]
+    ].astype(np.float64)
+    image = np.random.default_rng(1024).normal(0.0, 1.0, yy.shape)
+    for centre_yx, sigma, amplitude in (
+        ((1023.5, 1023.5), 2.0, 40.0),
+        ((1024.0, 300.0), 6.0, 25.0),
+        ((200.0, 1023.0), 2.0, 30.0),
+        ((1299.0, 1149.0), 2.0, 30.0),
+        ((0.0, 0.0), 2.0, 30.0),
+    ):
+        image += amplitude * np.exp(
+            -((yy - centre_yx[0]) ** 2 + (xx - centre_yx[1]) ** 2)
+            / (2.0 * sigma**2)
+        )
+    valid = np.ones(yy.shape, dtype=np.bool_)
+    valid[1015:1033, 1040:1060] = False
+    valid[1290:1300, 500:520] = False
+    image[~valid] = np.nan
+    return image, valid
+
+
+@dataclass(frozen=True, slots=True)
+class _FileImageSource:
+    """Read windows from arrays on disk, so a task carries only their paths."""
+
+    values_path: Path
+    valid_path: Path
+
+    def read_window(self, bounds: ImageBounds) -> ImageWindow:
+        """Return one owned aligned window."""
+        selection = _selection(bounds)
+        return ImageWindow(
+            bounds=bounds,
+            values=np.array(
+                np.load(self.values_path, mmap_mode="r")[selection]
+            ),
+            valid_pixels=np.array(
+                np.load(self.valid_path, mmap_mode="r")[selection]
+            ),
+        )
+
+
+def _run_block_crossing(
+    root: Path,
+    *,
+    source: _FileImageSource,
+    background_source: ZarrProductSink,
+    core_yx: tuple[int, int],
+    executor: object,
+) -> ZarrProductSink:
+    """Run the stage on one tile grid of the block-crossing image."""
+    halo = scale_filter_halo_pixels(_BLOCK_CROSSING_BEAM)
+    manifest = plan_image_partitions(
+        image_shape_yx=_BLOCK_CROSSING_SHAPE_YX,
+        tile_core_shape_yx=core_yx,
+        halo_yx=(halo, halo),
+    )
+    sink = ZarrProductSink(
+        root, manifest, generation_id="multiscale-invariance"
+    )
+    run_multiscale_stage(
+        source,
+        background_source,
+        manifest,
+        config=MultiscaleStageConfig(
+            beam=_BLOCK_CROSSING_BEAM,
+            detection=_detection_config(),
+            maximum_tiles_per_batch=1,
+        ),
+        executor=executor,  # type: ignore[arg-type]
+        sink=sink,
+    )
+    return sink
+
+
+@pytest.mark.parametrize(
+    "core_yx",
+    [
+        pytest.param((1024, 1024), id="on-the-block-grid"),
+        pytest.param((613, 1031), id="off-the-block-grid"),
+        pytest.param((1025, 1023), id="seams-beside-block-edges"),
+    ],
+)
+def test_published_planes_do_not_depend_on_tile_grid_or_executor(
+    tmp_path: Path,
+    each_executor: object,
+    core_yx: tuple[int, int],
+) -> None:
+    """Every published plane holds the same bits on any grid and executor."""
+    image, valid = _block_crossing_planes()
+    np.save(tmp_path / "image.npy", image)
+    np.save(tmp_path / "valid.npy", valid)
+    source = _FileImageSource(tmp_path / "image.npy", tmp_path / "valid.npy")
+    background = _background_source(
+        tmp_path / "background", image_shape_yx=_BLOCK_CROSSING_SHAPE_YX
+    )
+    one_tile = _run_block_crossing(
+        tmp_path / "one",
+        source=source,
+        background_source=background,
+        core_yx=(2048, 2048),
+        executor=SerialExecutor(),
+    )
+
+    grid = _run_block_crossing(
+        tmp_path / "grid",
+        source=source,
+        background_source=background,
+        core_yx=core_yx,
+        executor=each_executor,
+    )
+
+    height, width = _BLOCK_CROSSING_SHAPE_YX
+    bounds = ImageBounds(0, height, 0, width)
+    for product_name in multiscale_product_names():
+        np.testing.assert_array_equal(
+            grid.read_completed_window(product_name, bounds),
+            one_tile.read_completed_window(product_name, bounds),
+            err_msg=product_name,
+        )
+
+
+class _ShortBatchSource(_ArrayImageSource):
+    """Answer a batch read with one window too few."""
+
+    def read_windows(
+        self, reads: tuple[ImageBounds, ...]
+    ) -> tuple[ImageWindow, ...]:
+        """Drop the last window of the batch."""
+        return tuple(self.read_window(bounds) for bounds in reads[:-1])
+
+
+def test_a_batch_read_with_a_window_missing_is_refused() -> None:
+    """A source cannot silently pair windows with the wrong tiles."""
+    image, valid, _, _ = _planes()
+    bounds = ImageBounds(0, 10, 0, 10)
+
+    with pytest.raises(ValueError, match="different window count"):
+        _read_image_batch(_ShortBatchSource(image, valid), (bounds, bounds))
+
+
+class _RequirementRecorder(SerialExecutor):
+    """Keep the memory every round declared."""
+
+    def __init__(self) -> None:
+        """Start with no round recorded."""
+        super().__init__()
+        self.declared_bytes: list[int] = []
+
+    def map_batches(
+        self,
+        function: Callable[[_Input], _Output],
+        batches: Iterable[_Input],
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[_Output]:
+        """Record the round's declaration and run it."""
+        assert requirement is not None
+        self.declared_bytes.append(requirement.memory_bytes)
+        return super().map_batches(function, batches, requirement=requirement)
+
+
+def test_filter_rounds_declare_the_blocks_a_core_off_their_grid_reads(
+    tmp_path: Path,
+) -> None:
+    """A tile that reads a whole block's window declares that window."""
+    image, valid = _block_crossing_planes()
+    np.save(tmp_path / "image.npy", image)
+    np.save(tmp_path / "valid.npy", valid)
+    core_yx = (613, 1031)
+    recorder = _RequirementRecorder()
+
+    sink = _run_block_crossing(
+        tmp_path / "grid",
+        source=_FileImageSource(
+            tmp_path / "image.npy", tmp_path / "valid.npy"
+        ),
+        background_source=_background_source(
+            tmp_path / "background", image_shape_yx=_BLOCK_CROSSING_SHAPE_YX
+        ),
+        core_yx=core_yx,
+        executor=recorder,
+    )
+
+    reads = tuple(
+        multiscale_filter_read_bounds(
+            tile.core_bounds, _BLOCK_CROSSING_SHAPE_YX, _BLOCK_CROSSING_BEAM
+        )
+        for tile in sink.manifest.tiles
+    )
+    declared = read_requirement(
+        _FILTER_BYTES_PER_READ_PIXEL, reads, chunk_shape_yx=core_yx
+    ).memory_bytes
+    halo_reads_only = read_requirement(
+        _FILTER_BYTES_PER_READ_PIXEL,
+        tuple(tile.read_bounds for tile in sink.manifest.tiles),
+        chunk_shape_yx=core_yx,
+    ).memory_bytes
+    assert declared > halo_reads_only
+    assert recorder.declared_bytes[:2] == [declared, declared]
 
 
 def test_multiscale_stage_matches_promoted_one_tile_science(
@@ -619,25 +831,21 @@ def test_multiscale_stage_matches_promoted_one_tile_science(
         _bool_window(source, "reconstruction-mask", bounds),
         oracle.reconstruction.support_mask,
     )
-    np.testing.assert_allclose(
+    np.testing.assert_array_equal(
         _float_window(source, "combined-snr", bounds),
         oracle.combined_snr,
-        rtol=2e-13,
-        atol=2e-13,
     )
     denoised = reconstruct_denoised_atrous(
         filtered.atrous_result,
         significance_sigma=_detection_config().island_threshold_sigma,
     )
-    np.testing.assert_allclose(
+    np.testing.assert_array_equal(
         _float_window(source, "position-signal", bounds),
         np.where(
             np.isfinite(denoised),
             denoised,
             filtered.prepared_inputs.residual_jy_per_beam,
         ),
-        rtol=2e-13,
-        atol=2e-13,
     )
     np.testing.assert_array_equal(
         _int_window(source, "detection-labels", bounds) > 0,

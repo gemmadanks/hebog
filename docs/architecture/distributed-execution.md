@@ -115,7 +115,9 @@ flowchart LR
 
 Each stage declares the smallest halo that makes its output exact. A
 smoothing filter needs a halo as wide as its kernel; labelling connected
-pixels needs none, because it reports what touches the edge instead. The
+pixels needs none, because it reports what touches the edge instead. Tile cores
+are whole numbers of filter blocks, so the matched filter reads no more than
+the core and its halo. The
 [per-stage contract](adr/008-make-the-continuum-composition-tile-native.md#per-stage-contract)
 lists every halo.
 
@@ -128,7 +130,10 @@ Three rules make the result independent of how the image was tiled:
    hash of that global pixel position, so it does not depend on tile layout,
    worker count or completion order.
 3. **Derived grids are anchored to the image, not to the tiles.** Moving the
-   tile grid changes which task computes a value, never the value.
+   tile grid changes which task computes a value, never the value. That holds
+   to the bit: an FFT's rounding depends on its shape, so the matched filter
+   runs on fixed blocks placed from the image origin, and a task keeps the part
+   of each block that its core owns.
 
 A small image is simply one tile with an empty halo. There is no separate
 "small image" code path.
@@ -258,7 +263,7 @@ path.
 | Guarantee | Level | Evidence |
 | --- | --- | --- |
 | Labels, masks, identifiers, catalogue membership and ordering do not depend on tile shape, partition origin, worker count, task order or retries | exact | contract and partition-invariance tests, including sources placed on tile edges and corners, and the complete public product set of an analytic image from one tile against an eleven-by-eleven grid, the most a 22,500-pixel image runs on, on an image whose last row of tiles is narrower than a filter halo and whose last column ends on a core edge |
-| Continuous filter responses agree across tilings | within 2 × 10⁻¹³ | multiscale partition-equivalence tests, with knife-edge threshold cases |
+| Filter responses do not depend on tile shape or partition origin | bitwise, on one platform and build | multiscale partition-equivalence tests, with blocks crossing tile edges and corners, image edges and invalid pixels, a filtered peak on the detection threshold on two tile cores, and every published detection plane under each executor |
 | Serial, thread and Dask execution publish the same products | byte-identical scientific products | the shared executor contract suite; the public product set under each executor, on small tiles, for fitted fields with injected fit failures, high-threshold controls and the eleven-by-eleven grid image above; and one run on Dask workers in separate processes, so that every task's arguments and result are serialized |
 | A failed run leaves no partial output, and nothing beside it | — | write-then-rename publication, so the run can be retried with the same request; the contract suite's failure tests, and a public run failing under each executor while another task writes |
 | A killed run's staging directory is reclaimed once its owner has provably stopped, and reported otherwise | — | owner-record and lock tests, and a `slow` test in the weekly slow lane that kills the owning process |
@@ -268,8 +273,8 @@ path.
 Every round declares the memory each of its tasks holds, as a
 `TaskRequirement`. A task holds what it reads and what it derives per pixel
 read, so a round declares its own measured cost per pixel for the largest
-window any of its tasks reads: a tile with its halo, or an object batch's
-read. Zarr decodes whole chunks, and a store's chunks are its stage's tile
+window any of its tasks reads: a tile with its halo, including any more of a
+filter block that its core touches, or an object batch's read. Zarr decodes whole chunks, and a store's chunks are its stage's tile
 cores, so a read of an intermediate plane counts as at least one chunk. The
 costs are the largest traced task peaks on the reference anchors, with a
 fixed allowance and a quarter of headroom added. A

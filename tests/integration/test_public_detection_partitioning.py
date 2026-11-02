@@ -37,7 +37,6 @@ pytestmark = pytest.mark.integration
 
 _ROOT = Path(__file__).parents[2]
 _BEAM = BeamShapePixels(2.0, 1.6, 0.0)
-_TOLERANCE = 2e-13
 _MINIMUM_ISLAND_PIXELS = 7
 _SHAPE_YX = (200, 240)
 _SCALE_ORDERS = (1, 2, 3)
@@ -71,7 +70,9 @@ def _image() -> npt.NDArray[np.float64]:
     )
 
 
-def _header(shape: tuple[int, int]) -> fits.Header:
+def _header(
+    shape: tuple[int, int], beam: BeamShapePixels = _BEAM
+) -> fits.Header:
     """Return one valid one-arcsecond celestial fixture header."""
     header = fits.Header()
     header["NAXIS"] = 2
@@ -85,8 +86,8 @@ def _header(shape: tuple[int, int]) -> fits.Header:
     header["CRVAL2"] = -30.0
     header["CDELT1"] = -1.0 / 3600.0
     header["CDELT2"] = 1.0 / 3600.0
-    header["BMAJ"] = _BEAM.major_fwhm_pixels / 3600.0
-    header["BMIN"] = _BEAM.minor_fwhm_pixels / 3600.0
+    header["BMAJ"] = beam.major_fwhm_pixels / 3600.0
+    header["BMIN"] = beam.minor_fwhm_pixels / 3600.0
     header["BPA"] = 0.0
     return header
 
@@ -166,11 +167,9 @@ def test_published_passes_are_one_tile_many_tile_equal(
         many.multiscale.scale_nominal_beam_fwhms
         == one.multiscale.scale_nominal_beam_fwhms
     )
-    np.testing.assert_allclose(
+    np.testing.assert_array_equal(
         published_plane(many.detection_source, "position-signal"),
         published_plane(one.detection_source, "position-signal"),
-        rtol=_TOLERANCE,
-        atol=_TOLERANCE,
     )
     np.testing.assert_array_equal(
         published_plane(many.support_source, "persistent-support"),
@@ -195,6 +194,69 @@ def test_published_passes_are_one_tile_many_tile_equal(
         ),
     ):
         np.testing.assert_array_equal(many_labels, one_labels)
+
+
+# A filtered peak on this image lands within rounding of the 5-sigma threshold,
+# so a tile's transform shape could keep or drop its only island. The amplitude
+# was found on arm64 macOS; elsewhere it sits at the threshold's rounding scale
+# without necessarily splitting a shape-dependent filter.
+_KNIFE_EDGE_AMPLITUDE = 3.8039925924423788
+_KNIFE_EDGE_SHAPE_YX = (1200, 64)
+_KNIFE_EDGE_BEAM = BeamShapePixels(4.0, 4.0, 0.0)
+
+
+def _detect_knife_edge(
+    work_directory: Path, *, tile_core_pixels: int
+) -> PublishedContinuumInputs:
+    """Run the stage sequence on the knife edge with supplied noise."""
+    yy, xx = np.mgrid[
+        : _KNIFE_EDGE_SHAPE_YX[0], : _KNIFE_EDGE_SHAPE_YX[1]
+    ].astype(np.float64)
+    image = _KNIFE_EDGE_AMPLITUDE * np.exp(
+        -((yy - 800.0) ** 2 + (xx - 32.0) ** 2) / 18.0
+    )
+    shape = _KNIFE_EDGE_SHAPE_YX
+    config = SourceFinderConfig(5.0, 2.0, _MINIMUM_ISLAND_PIXELS)
+    review = load_continuum_science_profile(
+        (
+            _ROOT / "src/hebog/resources/reviewed_continuum_profile.json"
+        ).read_bytes()
+    )
+    return publish_continuum_inputs(
+        image,
+        np.ones(shape, dtype=np.bool_),
+        np.zeros(shape, dtype=np.float64),
+        np.ones(shape, dtype=np.float64),
+        beam=_KNIFE_EDGE_BEAM,
+        review=configured_science_profile(review, config),
+        work_directory=work_directory,
+        header=_header(shape, _KNIFE_EDGE_BEAM),
+        config=config,
+        tile_core_pixels=tile_core_pixels,
+        support_tile_core_pixels=tile_core_pixels,
+    )
+
+
+def test_a_threshold_knife_edge_resolves_alike_on_every_tile_core(
+    tmp_path: Path,
+) -> None:
+    """A filtered peak at the threshold cannot follow the tile's transform."""
+    large = _detect_knife_edge(tmp_path / "large", tile_core_pixels=2048)
+    small = _detect_knife_edge(tmp_path / "small", tile_core_pixels=1024)
+
+    peak = float(
+        np.max(published_plane(large.detection_source, "combined-snr"))
+    )
+    assert peak == pytest.approx(5.0, abs=1e-12)
+    assert small.accepted_island_count == large.accepted_island_count
+    assert small.multiscale.detection_islands == (
+        large.multiscale.detection_islands
+    )
+    np.testing.assert_array_equal(
+        published_plane(small.detection_source, "combined-snr"),
+        published_plane(large.detection_source, "combined-snr"),
+    )
+    assert small.component_rows == large.component_rows
 
 
 def test_published_passes_cover_labelled_edge_and_corner_sources(

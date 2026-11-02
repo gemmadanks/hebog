@@ -26,6 +26,7 @@ from hebog.algorithms.multiscale_tiles import (
     MultiscaleFilterTileResult,
     derive_multiscale_detection_tile_evidence,
     evaluate_multiscale_filter_tile,
+    multiscale_filter_read_bounds,
     scale_filter_halo_pixels,
 )
 from hebog.algorithms.reconciliation import (
@@ -37,6 +38,7 @@ from hebog.algorithms.reconciliation import (
 from hebog.config import ResidualMultiscaleDetectionConfig
 from hebog.data_models.generations import ProductGenerationManifest
 from hebog.data_models.partitioning import (
+    ImageBounds,
     PartitionManifest,
     TilePartition,
 )
@@ -52,7 +54,7 @@ _SCALE_ORDERS = (1, 2, 3)
 # on the 3,000-, 10,000- and 15,402-pixel LoTSS-DR3 anchors and the dense
 # ELAIS-N1 central 5,000 pixels, rounded up to eight bytes (plan task 17).
 # Both filter rounds recompute every scale's wavelet planes over one tile and
-# its halo.
+# its halo, and the matched filter over each block the tile's core touches.
 _FILTER_BYTES_PER_READ_PIXEL = 296
 _SCALE_LABEL_BYTES_PER_READ_PIXEL = 32
 _MULTISCALE_PRODUCT_NAMES = tuple(
@@ -202,12 +204,21 @@ def multiscale_product_names() -> tuple[str, ...]:
     return _MULTISCALE_PRODUCT_NAMES
 
 
+def _filter_read(
+    partition: TilePartition,
+    inputs: _TileInputs,
+) -> ImageBounds:
+    """Return the window one tile's filters read."""
+    return multiscale_filter_read_bounds(
+        partition.core_bounds, inputs.image_shape_yx, inputs.beam
+    )
+
+
 def _require_image_window(
     window: ImageWindow,
-    partition: TilePartition,
+    bounds: ImageBounds,
 ) -> ImageWindow:
-    """Validate one exact halo window before filter preparation."""
-    bounds = partition.read_bounds
+    """Validate one exact filter window before filter preparation."""
     if window.bounds != bounds:
         raise ValueError("image source returned different filter-read bounds")
     if (
@@ -218,33 +229,23 @@ def _require_image_window(
     return window
 
 
-def _read_image_window(
-    source: WindowReadable,
-    partition: TilePartition,
-) -> ImageWindow:
-    """Read and validate one exact halo window."""
-    return _require_image_window(
-        source.read_window(partition.read_bounds),
-        partition,
-    )
-
-
 def _read_image_batch(
     source: WindowReadable,
-    partitions: tuple[TilePartition, ...],
+    reads: tuple[ImageBounds, ...],
 ) -> tuple[ImageWindow, ...]:
     """Use one optional bounded batch read or the scalar source contract."""
     read_windows = getattr(source, "read_windows", None)
     if read_windows is None:
-        return tuple(_read_image_window(source, item) for item in partitions)
-    windows = tuple(
-        read_windows(tuple(item.read_bounds for item in partitions))
-    )
-    if len(windows) != len(partitions):
+        return tuple(
+            _require_image_window(source.read_window(bounds), bounds)
+            for bounds in reads
+        )
+    windows = tuple(read_windows(reads))
+    if len(windows) != len(reads):
         raise ValueError("image source returned a different window count")
     return tuple(
-        _require_image_window(window, partition)
-        for window, partition in zip(windows, partitions, strict=True)
+        _require_image_window(window, bounds)
+        for window, bounds in zip(windows, reads, strict=True)
     )
 
 
@@ -262,18 +263,20 @@ def _evaluate_tile(
     image_window: ImageWindow | None = None,
 ) -> tuple[MultiscaleFilterTileResult, MultiscaleDetectionTileEvidence]:
     """Recompute one bounded filter read without persistent response banks."""
-    window = (
-        _read_image_window(inputs.source, partition)
+    bounds = _filter_read(partition, inputs)
+    window = _require_image_window(
+        inputs.source.read_window(bounds)
         if image_window is None
-        else _require_image_window(image_window, partition)
+        else image_window,
+        bounds,
     )
     background = inputs.background_rms_source.read_completed_window(
         "background",
-        partition.read_bounds,
+        bounds,
     )
     rms = inputs.background_rms_source.read_completed_window(
         "rms",
-        partition.read_bounds,
+        bounds,
     )
     prepared = prepare_scale_filter_inputs(
         window.values,
@@ -380,7 +383,12 @@ def _scan_topology_batch_in_session(
     maximum_retained_array_bytes = 0
     maximum_worker_bytes = 0
     summary_array_bytes = 0
-    image_windows = _read_image_batch(inputs.source, batch.partitions)
+    image_windows = _read_image_batch(
+        inputs.source,
+        tuple(
+            _filter_read(partition, inputs) for partition in batch.partitions
+        ),
+    )
     image_batch_bytes = _image_batch_bytes(image_windows)
     for partition, image_window in zip(
         batch.partitions,
@@ -644,8 +652,10 @@ def _publish_batch_in_session(
     maximum_retained_array_bytes = 0
     maximum_worker_bytes = 0
     summary_array_bytes = 0
-    partitions = tuple(request.partition for request in batch.requests)
-    image_windows = _read_image_batch(inputs.source, partitions)
+    image_windows = _read_image_batch(
+        inputs.source,
+        tuple(_filter_read(item.partition, inputs) for item in batch.requests),
+    )
     image_batch_bytes = _image_batch_bytes(image_windows)
     for request, image_window in zip(
         batch.requests,
@@ -876,14 +886,16 @@ def run_multiscale_stage(  # noqa: PLR0913
         detection=config.detection,
     )
     scan = partial(_scan_topology_batch, inputs=inputs)
-    tile_reads = tuple(partition.read_bounds for partition in manifest.tiles)
+    filter_reads = tuple(
+        _filter_read(partition, inputs) for partition in manifest.tiles
+    )
     topology_results = tuple(
         executor.map_batches(
             scan,
             partition_batches,
             requirement=read_requirement(
                 _FILTER_BYTES_PER_READ_PIXEL,
-                tile_reads,
+                filter_reads,
                 chunk_shape_yx=manifest.tile_core_shape_yx,
             ),
         )
@@ -949,7 +961,7 @@ def run_multiscale_stage(  # noqa: PLR0913
             publication_batches,
             requirement=read_requirement(
                 _FILTER_BYTES_PER_READ_PIXEL,
-                tile_reads,
+                filter_reads,
                 chunk_shape_yx=manifest.tile_core_shape_yx,
             ),
         )
@@ -1015,7 +1027,7 @@ def run_multiscale_stage(  # noqa: PLR0913
             scale_label_batches,
             requirement=read_requirement(
                 _SCALE_LABEL_BYTES_PER_READ_PIXEL,
-                tile_reads,
+                tuple(partition.read_bounds for partition in manifest.tiles),
                 chunk_shape_yx=manifest.tile_core_shape_yx,
             ),
         )

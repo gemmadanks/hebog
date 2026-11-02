@@ -29,6 +29,7 @@ from hebog.data_models import (
     SourceCatalogue,
     SpectralModel,
 )
+from hebog.validation.quick_check import load_quick_check_configuration
 from hebog.validation.rapthor_agreement import (
     ALL_COMPONENTS,
     RAPTHOR_MAXIMUM_POSITION_ERROR_DEGREES,
@@ -40,6 +41,7 @@ from hebog.validation.rapthor_agreement import (
     DecisionCounts,
     StratumRules,
     WeightedAgreement,
+    agreement_cases,
     compare_catalogue_cuts,
     compare_decisions,
     component_strata,
@@ -728,3 +730,19 @@ def test_injection_levels_must_be_distinct_and_positive(
 
     with pytest.raises(ValidationError):
         load_agreement_configuration(path)
+
+
+def test_a_case_both_checks_name_runs_once_with_its_image_kind() -> None:
+    """A shared case runs once, as the kind Rapthor gives it."""
+    configuration = load_agreement_configuration(_CONFIGURATION)
+    quick_check = load_quick_check_configuration(
+        _ROOT / configuration.quick_check
+    )
+
+    cases = agreement_cases(quick_check.cases, configuration.cases)
+
+    identifiers = [case.case_id for case, _ in cases]
+    assert len(identifiers) == len(set(identifiers))
+    kinds = {case.case_id: kind for case, kind in cases}
+    assert kinds["elais-n1-true-sky-2048"] == "true-sky"
+    assert kinds["compact-snr-ladder"] is None

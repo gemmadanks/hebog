@@ -124,11 +124,14 @@ ten minutes once its references are cached:
 just quick-science-check --baseline benchmark-results/quick-check/runs/<earlier-run>/report.json
 ```
 
-The 21 cases in `config/checks/quick-science-check.json` are fifteen
+The 22 cases in `config/checks/quick-science-check.json` are fifteen
 generated images with injected truth
 (`config/datasets/quick-science-check.json`), four SDC1 cut-outs, two of
-them centred on bright extended sources in crowded fields, and two
-LoTSS-DR3 cut-outs with their published PyBDSF RMS and mask maps. For each
+them centred on bright extended sources in crowded fields, two LoTSS-DR3
+cut-outs with their published PyBDSF RMS and mask maps, and the central
+2,048² of the LoTSS-Deep DR2 ELAIS-N1 true-sky image, the one case larger
+than a matched-filter block, read from
+`benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. For each
 case it reports completeness, reliability, position and flux errors and
 position-uncertainty coverage against truth, the median and 95th-percentile
 RMS error and the mask recall over the injected emission at least three
@@ -172,10 +175,11 @@ just rapthor-agreement --jobs 4
 ```
 
 `config/checks/rapthor-agreement.json` adds a 3,000² window of the
-LoTSS-DR3 mosaic and the LoTSS-Deep DR2 ELAIS-N1 true-sky and apparent
-images, 2,048² at their centre, to the quick check's cases, and reuses the
-quick check's inputs and cached `master` references. The ELAIS-N1 pair is
-read from `benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. Each of the
+LoTSS-DR3 mosaic and the LoTSS-Deep DR2 ELAIS-N1 apparent image, 2,048² at its
+centre, to the quick check's cases, gives the quick check's ELAIS-N1 case its
+true-sky kind, and reuses the quick check's inputs and cached `master`
+references. The ELAIS-N1 pair is read from
+`benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. Each of the
 four lanes, `continuum` or `compact` with an `estimated` or `zero`
 background, runs `find_sources` with the configuration the Rapthor adapter
 builds; released PyBDSF 1.14.1 runs as a control, from the notebook's

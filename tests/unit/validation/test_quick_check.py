@@ -25,6 +25,8 @@ from astropy.io import fits
 from astropy.table import Table
 from pydantic import ValidationError
 
+from hebog.algorithms.multiscale import BeamShapePixels
+from hebog.algorithms.multiscale_tiles import filter_block_pixels
 from hebog.data_models import (
     FluxMeasurement,
     GaussianComponent,
@@ -115,6 +117,23 @@ def _report(
             }
         ]
     }
+
+
+def test_a_checked_in_case_is_larger_than_a_filter_block() -> None:
+    """The check sees the matched filter's blocks stitched into a tile.
+
+    A case that fits one block runs the transform a single tile runs, so a
+    defect in the stitching could not move any case's products.
+    """
+    configuration = load_quick_check_configuration(_CONFIGURATION)
+    block = filter_block_pixels(BeamShapePixels(4.0, 4.0, 0.0))
+
+    assert any(
+        isinstance(case, ImageCase)
+        and case.window is not None
+        and case.window.size > block
+        for case in configuration.cases
+    )
 
 
 def test_checked_in_configuration_loads_every_case() -> None:
