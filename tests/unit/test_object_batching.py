@@ -15,8 +15,8 @@ from hebog.executors import ExecutorCapacity, SerialExecutor, TaskRequirement
 from hebog.stages.batching import (
     LARGEST_TILE_CORE_PIXELS,
     batch_object_windows,
+    cost_per_batch,
     map_round,
-    objects_per_batch,
     read_pixels,
     tile_core_from_budget,
     tiles_per_batch,
@@ -80,6 +80,61 @@ def test_a_batch_holds_no_more_objects_than_admitted() -> None:
     )
 
     assert [len(batch.objects) for batch in batches] == [2, 2, 1]
+
+
+def test_a_batch_closes_at_its_share_of_the_estimated_cost() -> None:
+    """The cost limit closes a batch before its objects would pass it."""
+    windows = tuple(_square(0, index, 1) for index in range(6))
+    costs = dict(zip(windows, (1, 1, 1, 1, 2, 1), strict=True))
+
+    batches = batch_object_windows(
+        windows,
+        window=_identity,
+        core_shape_yx=_CORE,
+        maximum_batch_read_pixels=100,
+        cost=costs.__getitem__,
+        maximum_batch_cost=2,
+    )
+
+    assert [batch.objects for batch in batches] == [
+        windows[0:2],
+        windows[2:4],
+        windows[4:5],
+        windows[5:6],
+    ]
+
+
+def test_an_object_costlier_than_the_share_is_a_batch_of_its_own() -> None:
+    """No share splits an object, so the costliest one bounds the batch."""
+    windows = tuple(_square(0, index, 1) for index in range(3))
+    costs = dict(zip(windows, (1, 9, 1), strict=True))
+
+    batches = batch_object_windows(
+        windows,
+        window=_identity,
+        core_shape_yx=_CORE,
+        maximum_batch_read_pixels=100,
+        cost=costs.__getitem__,
+        maximum_batch_cost=4,
+    )
+
+    assert [batch.objects for batch in batches] == [
+        windows[0:1],
+        windows[1:2],
+        windows[2:3],
+    ]
+
+
+def test_a_cost_limit_needs_a_cost() -> None:
+    """A limit without an estimate to hold it to would bound nothing."""
+    with pytest.raises(ValueError, match="cost"):
+        batch_object_windows(
+            (_square(0, 0, 1),),
+            window=_identity,
+            core_shape_yx=_CORE,
+            maximum_batch_read_pixels=100,
+            maximum_batch_cost=4,
+        )
 
 
 def test_no_object_means_no_batch() -> None:
@@ -191,16 +246,20 @@ def test_the_admission_must_name_every_wide_object() -> None:
     ),
     st.integers(1, 64),
     st.integers(1, 5),
+    st.integers(1, 80),
 )
 def test_every_object_is_batched_once_and_no_shared_read_passes_the_budget(
     squares: list[tuple[int, int, int]],
     budget: int,
     maximum_objects_per_batch: int,
+    maximum_batch_cost: int,
 ) -> None:
     """Batching changes which task reads an object, never whether it is read.
 
     Wide objects are admitted here, so the property covers both the shared
-    reads, which stay within the budget, and the reads taken alone.
+    reads, which stay within the budget, and the reads taken alone. A batch
+    of several objects also holds no more than its share of their cost,
+    here each window's pixels.
     """
     windows = tuple(_square(y, x, side) for y, x, side in squares)
 
@@ -211,6 +270,8 @@ def test_every_object_is_batched_once_and_no_shared_read_passes_the_budget(
         maximum_batch_read_pixels=budget,
         maximum_objects_per_batch=maximum_objects_per_batch,
         bounded_by_admission=lambda _: True,
+        cost=read_pixels,
+        maximum_batch_cost=maximum_batch_cost,
     )
 
     assert tuple(item for batch in batches for item in batch.objects) == (
@@ -233,6 +294,10 @@ def test_every_object_is_batched_once_and_no_shared_read_passes_the_budget(
         )
         if len(batch.objects) > 1:
             assert read_pixels(batch.read_bounds) <= budget
+            assert (
+                sum(read_pixels(window) for window in batch.objects)
+                <= maximum_batch_cost
+            )
 
 
 class _SilentExecutor(SerialExecutor):
@@ -378,40 +443,40 @@ def test_a_tile_batch_shrinks_until_every_slot_has_two(
 
 
 @pytest.mark.parametrize(
-    ("object_count", "workers", "threads", "expected"),
+    ("costs", "workers", "threads", "expected"),
     [
-        pytest.param(25_000, 1, 1, None, id="serial"),
-        pytest.param(25_000, 4, 1, 3_125, id="dense-5000-on-four-workers"),
-        pytest.param(100, 1, 4, 12, id="four-threads"),
-        pytest.param(3, 6, 1, 1, id="fewer-objects-than-slots"),
-        pytest.param(0, 4, 1, 1, id="no-objects"),
+        pytest.param((5,) * 100, 1, 1, None, id="serial"),
+        pytest.param((5,) * 100, 1, 4, 31, id="four-threads"),
+        pytest.param((400, 100, 300), 2, 1, 100, id="two-workers"),
+        pytest.param((1, 1, 1), 6, 1, 1, id="less-cost-than-slots"),
+        pytest.param((), 4, 1, 1, id="no-objects"),
     ],
 )
-def test_object_rounds_close_batches_at_a_share_of_their_slots(
-    object_count: int, workers: int, threads: int, expected: int | None
+def test_object_rounds_close_batches_at_a_share_of_their_cost(
+    costs: tuple[int, ...], workers: int, threads: int, expected: int | None
 ) -> None:
-    """Serially the read budget alone closes a batch; wider, a share too."""
-    assert objects_per_batch(object_count, _slots(workers, threads)) == (
-        expected
-    )
+    """Serially the read budget alone closes a batch; wider, a cost share."""
+    assert cost_per_batch(costs, _slots(workers, threads)) == expected
 
 
 @given(
-    object_count=st.integers(1, 5_000),
+    costs=st.lists(st.integers(1, 10_000), min_size=1, max_size=200),
     workers=st.integers(1, 16),
     threads=st.integers(1, 8),
 )
-def test_an_object_share_leaves_every_slot_two_batches(
-    object_count: int, workers: int, threads: int
+def test_a_cost_share_leaves_every_slot_four_batches(
+    costs: list[int], workers: int, threads: int
 ) -> None:
-    """Each slot gets two batches when the objects allow; more never coarsen.
+    """Each slot gets four batches when no object outweighs a share.
 
-    The read budget can only close a batch sooner, so these counts are the
-    fewest batches the round holds.
+    More slots never coarsen the share. A batch of several objects holds
+    no more than a share, so the batches number at least the round's cost
+    over the share, or over its costliest object when that is larger. The
+    read budget can only close a batch sooner.
     """
     slots = workers * threads
-    share = objects_per_batch(object_count, _slots(workers, threads))
-    wider = objects_per_batch(object_count, _slots(workers + 1, threads))
+    share = cost_per_batch(costs, _slots(workers, threads))
+    wider = cost_per_batch(costs, _slots(workers + 1, threads))
 
     if slots == 1:
         assert share is None
@@ -419,7 +484,24 @@ def test_an_object_share_leaves_every_slot_two_batches(
     assert share is not None
     assert wider is not None
     assert 1 <= wider <= share
-    assert ceil(object_count / share) >= min(object_count, 2 * slots)
+    windows = tuple(_square(0, index, 1) for index in range(len(costs)))
+    estimate = dict(zip(windows, costs, strict=True))
+    batches = batch_object_windows(
+        windows,
+        window=_identity,
+        core_shape_yx=(1, len(costs)),
+        maximum_batch_read_pixels=len(costs),
+        cost=estimate.__getitem__,
+        maximum_batch_cost=share,
+    )
+    assert len(batches) >= ceil(sum(costs) / max(share, *costs))
+    if max(costs) <= share and sum(costs) >= 4 * slots:
+        assert len(batches) >= 4 * slots
+    assert all(
+        sum(estimate[window] for window in batch.objects) <= share
+        or len(batch.objects) == 1
+        for batch in batches
+    )
 
 
 # A 4-pixel beam's widest multiscale filter halo, the passes' widest.
@@ -497,15 +579,15 @@ def test_a_wider_budget_never_gets_a_coarser_core(
 
 
 @pytest.mark.parametrize(
-    ("in_flight", "tiles", "objects", "core"),
+    ("in_flight", "tiles", "cost", "core"),
     [
         pytest.param(1, 4, None, 2048, id="one-in-flight"),
-        pytest.param(2, 2, 25, 2048, id="two-in-flight"),
-        pytest.param(8, 1, 6, 1024, id="every-thread-in-flight"),
+        pytest.param(2, 2, 12, 2048, id="two-in-flight"),
+        pytest.param(8, 1, 3, 1024, id="every-thread-in-flight"),
     ],
 )
 def test_the_tasks_in_flight_bound_the_slots_a_round_is_sized_for(
-    in_flight: int, tiles: int, objects: int | None, core: int
+    in_flight: int, tiles: int, cost: int | None, core: int
 ) -> None:
     """Admitting fewer tasks at once than threads gets coarser rounds.
 
@@ -516,7 +598,7 @@ def test_the_tasks_in_flight_bound_the_slots_a_round_is_sized_for(
     capacity = ExecutorCapacity(4, 2, in_flight)
 
     assert tiles_per_batch(9, capacity, maximum=4) == tiles
-    assert objects_per_batch(100, capacity) == objects
+    assert cost_per_batch((1,) * 100, capacity) == cost
     assert (
         tile_core_from_budget(
             (5000, 5000), halo_pixels=_HALO, capacity=capacity

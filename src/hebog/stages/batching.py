@@ -16,14 +16,14 @@ object from the cores that hold it instead, or does not read it at all.
 
 Rounds over whole tiles batch by count instead (``tiles_per_batch``), as
 coarsely as their executor's task slots allow, and an object round's batches
-also close at the share of its objects those slots need
-(``objects_per_batch``). The tiles themselves are as large as those slots
+also close at the share of its objects' estimated cost those slots need
+(``cost_per_batch``). The tiles themselves are as large as those slots
 allow too (``tile_core_from_budget``).
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 
 from hebog.algorithms.reconciliation import TileLabelMapping
@@ -42,6 +42,11 @@ from hebog.executors.base import (
 # allows, so the slots share the round's last batches instead of one slot
 # working through a long last batch while the others wait.
 _BATCHES_PER_SLOT = 2
+# An object round's batches spend nearly all their time measuring objects,
+# not reading (98% and 99% of the component-fit and extended-group batch
+# time on the dense 5,000-pixel cell), so it holds twice as many, shorter
+# batches a slot for the same reads.
+_OBJECT_BATCHES_PER_SLOT = 4
 
 LARGEST_TILE_CORE_PIXELS = 2048
 """The tile core one task slot runs, and the coarsest any budget gets."""
@@ -105,31 +110,34 @@ def tiles_per_batch(
     return max(1, min(maximum, tile_count // (_BATCHES_PER_SLOT * slots)))
 
 
-def objects_per_batch(
-    object_count: int, capacity: ExecutorCapacity
+def cost_per_batch(
+    costs: Iterable[int], capacity: ExecutorCapacity
 ) -> int | None:
-    """Return the most objects one batch of an object round may hold.
+    """Return the most estimated cost one batch of an object round may hold.
 
     An object round's batches close at a read budget, so a small image's
-    objects share a few reads and a few tasks: the component fits of a
-    3,000-pixel LoTSS-DR3 sector make four batches, so four slots finish
-    the round only with its slowest. With several slots a batch therefore
-    also closes at a share of the round's objects, so the round holds at
-    least two batches for each slot when it has the objects. One slot runs
-    every batch in turn, so the serial reference closes batches at the read
-    budget alone (``None``). Products do not depend on the batching.
+    objects share a few reads and a few tasks, and a round takes no less
+    than its longest task. With several task slots a batch therefore also
+    closes before it would hold more than a share of the round's estimated
+    cost, ``costs`` holding each object's, that leaves each slot four
+    batches. Shared by cost rather than by count, a batch of a few costly
+    objects is no longer than one of many cheap ones; an object costlier
+    than the share is a batch of its own, so the longest batch is the
+    share or the costliest object. One slot runs every batch in turn, so
+    the serial reference closes batches at the read budget alone
+    (``None``). Products do not depend on the batching.
 
-    >>> objects_per_batch(100, ExecutorCapacity(1, 1, 1)) is None
+    >>> cost_per_batch((5,) * 100, ExecutorCapacity(1, 1, 1)) is None
     True
-    >>> objects_per_batch(100, ExecutorCapacity(1, 4, 4))
-    12
-    >>> objects_per_batch(3, ExecutorCapacity(1, 4, 4))
+    >>> cost_per_batch((5,) * 100, ExecutorCapacity(1, 4, 4))
+    31
+    >>> cost_per_batch((1, 1, 1), ExecutorCapacity(1, 4, 4))
     1
     """
     slots = _task_slots(capacity)
     if slots == 1:
         return None
-    return max(1, object_count // (_BATCHES_PER_SLOT * slots))
+    return max(1, sum(costs) // (_OBJECT_BATCHES_PER_SLOT * slots))
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,6 +228,8 @@ def batch_object_windows[T](  # noqa: PLR0913
     maximum_batch_read_pixels: int,
     maximum_objects_per_batch: int | None = None,
     bounded_by_admission: Callable[[T], bool] | None = None,
+    cost: Callable[[T], int] | None = None,
+    maximum_batch_cost: int | None = None,
 ) -> tuple[WindowBatch[T], ...]:
     """Group objects a core at a time so one read serves several.
 
@@ -231,12 +241,16 @@ def batch_object_windows[T](  # noqa: PLR0913
     batch order.
     ``bounded_by_admission`` names the objects whose own window a reviewed
     admission rule limits; such an object may be wider than the budget and
-    is then read alone.
+    is then read alone. A batch also closes before it would hold more than
+    ``maximum_objects_per_batch`` objects, or more than
+    ``maximum_batch_cost`` of their estimated ``cost``.
 
     Raises:
         ValueError: If an object's own window exceeds the budget and no
-            admission rule bounds it.
+            admission rule bounds it, or a cost limit comes without a cost.
     """
+    if maximum_batch_cost is not None and cost is None:
+        raise ValueError("a batch cost limit needs an estimated cost")
     core_height, core_width = core_shape_yx
 
     def core_raster_order(item: T) -> tuple[int, int, int, int]:
@@ -251,6 +265,7 @@ def batch_object_windows[T](  # noqa: PLR0913
     batches: list[WindowBatch[T]] = []
     grouped: list[T] = []
     read: ImageBounds | None = None
+    grouped_cost = 0
     for item in sorted(objects, key=core_raster_order):
         own = window(item)
         if read_pixels(own) > maximum_batch_read_pixels:
@@ -262,17 +277,23 @@ def batch_object_windows[T](  # noqa: PLR0913
             if read is not None:
                 batches.append(WindowBatch(tuple(grouped), read))
             batches.append(WindowBatch((item,), own))
-            grouped, read = [], None
+            grouped, read, grouped_cost = [], None, 0
             continue
+        own_cost = 0 if cost is None else cost(item)
         merged = own if read is None else union_bounds(read, own)
         if read is not None and (
             len(grouped) == maximum_objects_per_batch
             or read_pixels(merged) > maximum_batch_read_pixels
+            or (
+                maximum_batch_cost is not None
+                and grouped_cost + own_cost > maximum_batch_cost
+            )
         ):
             batches.append(WindowBatch(tuple(grouped), read))
-            grouped, merged = [], own
+            grouped, merged, grouped_cost = [], own, 0
         grouped.append(item)
         read = merged
+        grouped_cost += own_cost
     if read is not None:
         batches.append(WindowBatch(tuple(grouped), read))
     return tuple(batches)

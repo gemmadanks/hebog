@@ -268,14 +268,21 @@ Tasks are **coarse batches** of tiles or objects: an object round puts up to
 batch shrinks, down to one tile, until the round holds two batches for each
 of the executor's task slots, so the 25 tiles of a 10,000² image make 13
 tasks on six threads rather than tasks of four; the serial executor keeps
-four. The component-fit and extended-group rounds,
-whose batches otherwise close only at a read budget of one tile core, also
-close a batch at a share of their objects that leaves each task slot two
-batches. Graph size therefore scales with the number of
-tiles and stages, and in an object round with the number of objects over
-that batch size, never with pixels. Objects are batched a storage core at a time, so
-at 100,000 pixels a side one object round of the 15,402² mosaic's density
-is about 4,700 tasks rather than the 156,000 raster order made.
+four. The component-fit and extended-group rounds, whose batches
+otherwise close only at a read budget of one tile core, also close a batch
+before it would hold more than a share of the round's estimated cost that
+leaves each task slot four batches. An object's estimated cost is the
+pixels of the window it is measured in: one costly object can take as long
+as hundreds of others, so a share of the objects let one batch run twice
+as long as the round's average, and a round takes no less than its longest
+task. A batch spends nearly all its time measuring rather than reading, so
+four batches a slot cost little more than two. An object costlier than the
+share is a batch of its own. Graph size therefore scales
+with the number of tiles and stages, and in an object round with its task
+slots and the reads its objects need, never with pixels. Objects are
+batched a storage core at a time, so at 100,000 pixels a side one object
+round of the 15,402² mosaic's density is about 4,700 tasks rather than the
+156,000 raster order made.
 
 ## Storage
 
