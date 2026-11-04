@@ -84,8 +84,8 @@ reports the process peak (traced from before Hebog is imported), the peak of
 the `find_sources` call alone and the import floor, 90.3 to 91.4 MiB, that a
 tracer started after the imports cannot see. Measured 26 to 30 September
 2026, two agreeing repetitions each, the whole LoTSS mosaic once more in the
-0.19.0 and 0.22.0 release checks of 8 and 15 October (`traced-peak` runs
-`release-0.19.0` and `release-0.22.0`), and the whole LOFAR-HD ELAIS-N1
+0.19.0, 0.22.0, 0.23.0 and 0.24.0 release checks of 8, 15, 20 and 24
+October (`traced-peak` runs `release-<version>`), and the whole LOFAR-HD ELAIS-N1
 mosaic in two agreeing repetitions on 19 October (`tier-22500-anchor`):
 
 | case | pixels per side | traced peak | components |
@@ -102,6 +102,8 @@ mosaic in two agreeing repetitions on 19 October (`tier-22500-anchor`):
 | LoTSS-DR3 whole mosaic | 15,402 | 1,698.2 MiB | 20,661 |
 | LoTSS-DR3 whole mosaic, 0.19.0 release check (one repetition) | 15,402 | 1,692.5 MiB | 20,792 |
 | LoTSS-DR3 whole mosaic, 0.22.0 release check (one repetition) | 15,402 | 1,692.6 MiB | 20,794 |
+| LoTSS-DR3 whole mosaic, 0.23.0 release check (one repetition) | 15,402 | 1,693.5 MiB | 20,794 |
+| LoTSS-DR3 whole mosaic, 0.24.0 release check (one repetition) | 15,402 | 1,693.1 MiB | 20,794 |
 | LOFAR-HD ELAIS-N1 whole mosaic | 22,500 | 1,872.7 MiB | 14,472 |
 
 Three things matter more than the exact figures.
