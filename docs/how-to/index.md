@@ -130,8 +130,7 @@ generated images with injected truth
 them centred on bright extended sources in crowded fields, two LoTSS-DR3
 cut-outs with their published PyBDSF RMS and mask maps, and the central
 2,048² of the LoTSS-Deep DR2 ELAIS-N1 true-sky image, the one case larger
-than a matched-filter block, read from
-`benchmark-results/datasets/lotss-deep-dr2-elais-n1/`. For each
+than a matched-filter block. For each
 case it reports completeness, reliability, position and flux errors and
 position-uncertainty coverage against truth, the median and 95th-percentile
 RMS error and the mask recall over the injected emission at least three

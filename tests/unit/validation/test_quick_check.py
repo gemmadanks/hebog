@@ -130,10 +130,21 @@ def test_a_checked_in_case_is_larger_than_a_filter_block() -> None:
 
     assert any(
         isinstance(case, ImageCase)
-        and case.window is not None
-        and case.window.size > block
+        and case.remote_source is not None
+        and case.remote_source.window.size > block
         for case in configuration.cases
     )
+
+
+def test_every_checked_in_image_case_can_be_downloaded() -> None:
+    """A fresh checkout completes the check with downloads allowed."""
+    configuration = load_quick_check_configuration(_CONFIGURATION)
+
+    assert [
+        case.case_id
+        for case in configuration.cases
+        if isinstance(case, ImageCase) and case.remote_source is None
+    ] == []
 
 
 def test_checked_in_configuration_loads_every_case() -> None:
