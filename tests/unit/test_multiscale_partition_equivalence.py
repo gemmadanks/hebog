@@ -4,6 +4,9 @@
 
 from __future__ import annotations
 
+import gc
+import weakref
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from itertools import pairwise
 
@@ -12,6 +15,7 @@ import numpy.typing as npt
 import pytest
 from scipy.ndimage import binary_dilation
 
+from hebog.algorithms import multiscale_tiles
 from hebog.algorithms.detection import DetectionThresholdMasks
 from hebog.algorithms.extended_measurement import (
     refine_multiscale_segment_labels,
@@ -22,6 +26,7 @@ from hebog.algorithms.multiscale import (
     BeamShapePixels,
     PreparedScaleInputs,
     ResidualAtrousResult,
+    ScaleFilterBank,
     ScaleFilterBankResult,
     ScaleFilterResponse,
     detect_residual_multiscale_islands,
@@ -32,6 +37,8 @@ from hebog.algorithms.multiscale_tiles import (
     MultiscaleFilterTileResult,
     derive_multiscale_detection_tile_evidence,
     evaluate_multiscale_filter_tile,
+    filter_block_pixels,
+    multiscale_filter_read_bounds,
     scale_filter_halo_pixels,
     segment_association_halo_pixels,
 )
@@ -270,6 +277,24 @@ def _filter_evidence(manifest: PartitionManifest) -> _AssembledFilterEvidence:
     return _assemble_filter_evidence(results, manifest)
 
 
+def _prepared_filter_read(  # noqa: PLR0913, PLR0917
+    image: np.ndarray,
+    valid: np.ndarray,
+    background: np.ndarray,
+    rms: np.ndarray,
+    tile: TilePartition,
+    beam: BeamShapePixels,
+) -> PreparedScaleInputs:
+    """Prepare the window one tile's filters read from whole planes."""
+    bounds = multiscale_filter_read_bounds(tile.core_bounds, image.shape, beam)
+    return prepare_scale_filter_inputs(
+        _read_plane(image, bounds),
+        _read_plane(valid, bounds),
+        _read_plane(background, bounds),
+        _read_plane(rms, bounds),
+    )
+
+
 def _evaluate_filter_tile(
     tile: TilePartition,
     manifest: PartitionManifest,
@@ -277,12 +302,7 @@ def _evaluate_filter_tile(
     """Prepare and evaluate one bounded analytic read."""
     image, valid, background, rms = _analytic_planes()
     return evaluate_multiscale_filter_tile(
-        prepare_scale_filter_inputs(
-            _read_plane(image, tile.read_bounds),
-            _read_plane(valid, tile.read_bounds),
-            _read_plane(background, tile.read_bounds),
-            _read_plane(rms, tile.read_bounds),
-        ),
+        _prepared_filter_read(image, valid, background, rms, tile, _beam()),
         partition=tile,
         image_shape_yx=manifest.image_shape_yx,
         beam=_beam(),
@@ -542,7 +562,7 @@ def _assert_islands_equal(
     candidate: tuple[DetectedIsland, ...],
     reference: tuple[DetectedIsland, ...],
 ) -> None:
-    """Compare exact topology while allowing round-off in peak values."""
+    """Compare exact topology and peak values."""
     assert len(candidate) == len(reference)
     for candidate_island, reference_island in zip(
         candidate,
@@ -564,11 +584,9 @@ def _assert_islands_equal(
             candidate_island.touches_image_edge
             == reference_island.touches_image_edge
         )
-        np.testing.assert_allclose(
+        np.testing.assert_array_equal(
             candidate_island.peak_signal_to_noise,
             reference_island.peak_signal_to_noise,
-            rtol=2e-13,
-            atol=2e-13,
         )
 
 
@@ -601,12 +619,9 @@ def _assert_responses_equal(
                 reference_response.valid_support_fraction,
             ),
         ):
-            np.testing.assert_allclose(
+            np.testing.assert_array_equal(
                 candidate_values,
                 reference_values,
-                rtol=2e-13,
-                atol=2e-13,
-                equal_nan=True,
             )
         np.testing.assert_array_equal(
             candidate_response.scientifically_valid,
@@ -621,7 +636,11 @@ def test_filter_tile_returns_owned_immutable_core_evidence() -> None:
 
     result = _evaluate_filter_tile(tile, manifest)
 
-    assert result.read_pixel_count == np.prod(tile.read_bounds.shape_yx)
+    assert result.read_pixel_count == np.prod(
+        multiscale_filter_read_bounds(
+            tile.core_bounds, manifest.image_shape_yx, _beam()
+        ).shape_yx
+    )
     arrays = (
         result.prepared_inputs.residual_jy_per_beam,
         result.prepared_inputs.rms_jy_per_beam,
@@ -666,12 +685,12 @@ def test_filter_tile_returns_owned_immutable_core_evidence() -> None:
     )
 
 
-def test_reviewed_256_core_records_exact_filter_memory_evidence() -> None:
+def test_reviewed_1024_core_records_exact_filter_memory_evidence() -> None:
     """The five-pixel beam profile stays below one bounded worker budget."""
     beam = BeamShapePixels(5.0, 4.0, 13.0)
     manifest = plan_image_partitions(
-        image_shape_yx=(768, 768),
-        tile_core_shape_yx=(256, 256),
+        image_shape_yx=(3072, 3072),
+        tile_core_shape_yx=(1024, 1024),
         halo_yx=(34, 34),
     )
     tile = manifest.tiles[4]
@@ -693,13 +712,13 @@ def test_reviewed_256_core_records_exact_filter_memory_evidence() -> None:
     )
     evidence = derive_multiscale_detection_tile_evidence(result, _config())
 
-    assert tile.read_bounds.shape_yx == (324, 324)
-    assert result.read_pixel_count == 104_976
-    assert result.retained_array_bytes == 12_058_624
-    assert evidence.retained_array_bytes == 3_604_480
-    assert result.matched_filter.maximum_workspace_bytes == 16_057_904
-    assert result.atrous_result.maximum_workspace_bytes == 18_484_096
-    assert result.maximum_filter_evaluation_bytes == 26_298_000
+    assert tile.read_bounds.shape_yx == (1092, 1092)
+    assert result.read_pixel_count == 1_192_464
+    assert result.retained_array_bytes == 192_937_984
+    assert evidence.retained_array_bytes == 57_671_680
+    assert result.matched_filter.maximum_workspace_bytes == 181_356_080
+    assert result.atrous_result.maximum_workspace_bytes == 209_881_984
+    assert result.maximum_filter_evaluation_bytes == 326_622_864
 
 
 def test_filter_tile_rejects_incomplete_interior_halo() -> None:
@@ -749,19 +768,19 @@ def test_filter_tile_rejects_inconsistent_prepared_shapes() -> None:
         )
 
 
-def test_filter_tile_rejects_read_shape_outside_partition_bounds() -> None:
-    """A self-consistent input still has to cover the declared halo read."""
+def test_filter_tile_rejects_read_shape_outside_the_filter_read() -> None:
+    """A self-consistent input still has to cover the declared filter read."""
     manifest = _manifest(core_yx=(88, 96))
     tile = manifest.tiles[0]
     image, valid, background, rms = _analytic_planes()
     prepared = prepare_scale_filter_inputs(
-        _read_plane(image, tile.read_bounds)[:-1],
-        _read_plane(valid, tile.read_bounds)[:-1],
-        _read_plane(background, tile.read_bounds)[:-1],
-        _read_plane(rms, tile.read_bounds)[:-1],
+        image[:-1],
+        valid[:-1],
+        background[:-1],
+        rms[:-1],
     )
 
-    with pytest.raises(ValueError, match="match the partition read bounds"):
+    with pytest.raises(ValueError, match="match the filter read"):
         evaluate_multiscale_filter_tile(
             prepared,
             partition=tile,
@@ -769,6 +788,237 @@ def test_filter_tile_rejects_read_shape_outside_partition_bounds() -> None:
             beam=_beam(),
             minimum_support_fraction=_SUPPORT_FRACTION,
         )
+
+
+def _quiet_patch_planes() -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray
+]:
+    """Add noise, and a quiet patch that turns one read's filter spatial.
+
+    The bank chooses spatial convolution from the smallest and largest values
+    in its read, so a tile holding this patch must not change its arithmetic
+    for any block but the patch's own.
+    """
+    image, valid, background, rms = _analytic_planes()
+    image = image + np.random.default_rng(193).normal(0.0, 1.0, image.shape)
+    rms = rms.copy()
+    rms[60:66, 150:156] = 1e-12
+    image[~valid] = np.nan
+    return image, valid, background, rms
+
+
+def _noisy_planes() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Add noise to the analytic planes, so no response is trivially zero."""
+    image, valid, background, rms = _analytic_planes()
+    image = image + np.random.default_rng(211).normal(0.0, 1.0, image.shape)
+    image[~valid] = np.nan
+    return image, valid, background, rms
+
+
+def _use_filter_blocks_of(
+    pixels: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Give the kernel another block size, to cross blocks on a small image."""
+
+    def block_pixels(_: BeamShapePixels) -> int:
+        return pixels
+
+    monkeypatch.setattr(multiscale_tiles, "filter_block_pixels", block_pixels)
+
+
+def _core_filter_responses(
+    planes: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    manifest: PartitionManifest,
+) -> tuple[ScaleFilterResponse, ...]:
+    """Return each scale's whole image responses, assembled from every core."""
+    results = tuple(
+        evaluate_multiscale_filter_tile(
+            _prepared_filter_read(*planes, tile, _beam()),
+            partition=tile,
+            image_shape_yx=manifest.image_shape_yx,
+            beam=_beam(),
+            minimum_support_fraction=_SUPPORT_FRACTION,
+        )
+        for tile in manifest.tiles
+    )
+    return _assemble_filter_evidence(results, manifest).matched.responses
+
+
+@pytest.mark.parametrize(
+    "planes",
+    [_noisy_planes, _quiet_patch_planes],
+    ids=["noisy", "quiet-patch"],
+)
+@pytest.mark.parametrize(
+    ("core_yx", "origin_yx"),
+    [
+        pytest.param((128, 128), (0, 0), id="whole-blocks"),
+        pytest.param((88, 96), (0, 0), id="off-the-block-grid"),
+        pytest.param((88, 96), (43, 47), id="shifted-origin"),
+        pytest.param((86, 130), (63, 1), id="seams-beside-block-edges"),
+        pytest.param((90, 87), (65, 64), id="seams-beyond-block-edges"),
+    ],
+)
+def test_filter_responses_are_bitwise_equal_across_tile_grids(
+    monkeypatch: pytest.MonkeyPatch,
+    planes: Callable[
+        [], tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    ],
+    core_yx: tuple[int, int],
+    origin_yx: tuple[int, int],
+) -> None:
+    """No tile grid changes a bit of any response, at any edge or corner.
+
+    Small blocks make a small image cross many of them: blocks here cross
+    tile edges and corners, invalid pixels and the image's edges. The stage
+    test holds the real block size.
+    """
+    _use_filter_blocks_of(64, monkeypatch)
+    reference = _core_filter_responses(planes(), _manifest(core_yx=(193, 211)))
+
+    responses = _core_filter_responses(
+        planes(), _manifest(core_yx=core_yx, origin_yx=origin_yx)
+    )
+
+    for response, expected in zip(responses, reference, strict=True):
+        np.testing.assert_array_equal(
+            response.response_jy_per_beam, expected.response_jy_per_beam
+        )
+        np.testing.assert_array_equal(
+            response.effective_rms_jy_per_beam,
+            expected.effective_rms_jy_per_beam,
+        )
+        np.testing.assert_array_equal(
+            response.valid_support_fraction, expected.valid_support_fraction
+        )
+        np.testing.assert_array_equal(
+            response.scientifically_valid, expected.scientifically_valid
+        )
+
+
+def test_a_core_across_blocks_holds_one_block_at_a_time_and_counts_them_all(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Each block's planes go before the next, and its cost is reported."""
+    _use_filter_blocks_of(64, monkeypatch)
+    evaluate = multiscale_tiles.evaluate_scale_filter_bank
+    previous: list[weakref.ref[np.ndarray]] = []
+    held_across_blocks: list[bool] = []
+
+    def evaluate_recording_release(
+        prepared: PreparedScaleInputs,
+        bank: ScaleFilterBank,
+        *,
+        minimum_support_fraction: float,
+    ) -> ScaleFilterBankResult:
+        gc.collect()
+        held_across_blocks.extend(plane() is not None for plane in previous)
+        previous.clear()
+        result = evaluate(
+            prepared,
+            bank,
+            minimum_support_fraction=minimum_support_fraction,
+        )
+        previous.append(weakref.ref(result.responses[0].response_jy_per_beam))
+        return result
+
+    monkeypatch.setattr(
+        multiscale_tiles,
+        "evaluate_scale_filter_bank",
+        evaluate_recording_release,
+    )
+    manifest = _manifest(core_yx=(88, 96), origin_yx=(43, 47))
+    tile = next(
+        item
+        for item in manifest.tiles
+        if item.core_bounds == ImageBounds(43, 131, 47, 143)
+    )
+
+    result = _evaluate_filter_tile(tile, manifest)
+
+    # The core reaches rows 43 to 130 and columns 47 to 142: three blocks by
+    # three, nine evaluations of the bank's nine convolutions.
+    assert held_across_blocks == [False] * 8
+    assert result.matched_filter.convolution_count == 81
+
+
+def test_a_quiet_patch_changes_the_arithmetic_of_its_own_block_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A block's arithmetic comes from its own window, not the tile's read.
+
+    One block over the whole image takes the patch's spatial arithmetic
+    everywhere, so far from the patch its bits differ from those of a small
+    block that holds no quiet pixel. This also proves the patch has an effect.
+    """
+    planes = _quiet_patch_planes()
+    _use_filter_blocks_of(64, monkeypatch)
+    blocks = _core_filter_responses(planes, _manifest(core_yx=(193, 211)))
+    _use_filter_blocks_of(1024, monkeypatch)
+    whole = _core_filter_responses(planes, _manifest(core_yx=(193, 211)))
+
+    far_from_the_patch = (slice(128, 193), slice(0, 64))
+    assert not np.array_equal(
+        blocks[0].response_jy_per_beam[far_from_the_patch],
+        whole[0].response_jy_per_beam[far_from_the_patch],
+        equal_nan=True,
+    )
+
+
+@pytest.mark.parametrize(
+    ("fwhm_pixels", "halo", "block"),
+    [
+        (4.0, 28, 1024),
+        (15.0, 102, 1024),
+        (15.1, 103, 2048),
+        (30.0, 204, 2048),
+        (100.0, 680, 2721),
+    ],
+)
+def test_filter_blocks_hold_ten_halos_or_the_smallest_core_of_the_beam(
+    fwhm_pixels: float, halo: int, block: int
+) -> None:
+    """Block size follows the beam alone, and tiles can be made of blocks."""
+    beam = BeamShapePixels(fwhm_pixels, fwhm_pixels, 0.0)
+
+    assert scale_filter_halo_pixels(beam) == halo
+    assert filter_block_pixels(beam) == block
+
+
+@pytest.mark.parametrize(
+    ("fwhm_pixels", "core"),
+    [(4.0, 2048), (4.0, 1024), (30.0, 2048), (100.0, 2721)],
+)
+def test_a_core_of_whole_blocks_reads_only_its_tile_and_halo(
+    fwhm_pixels: float, core: int
+) -> None:
+    """The cores production runs on read no more than a tile's halo read."""
+    beam = BeamShapePixels(fwhm_pixels, fwhm_pixels, 0.0)
+    halo = scale_filter_halo_pixels(beam)
+    manifest = plan_image_partitions(
+        image_shape_yx=(5000, 6000),
+        tile_core_shape_yx=(core, core),
+        halo_yx=(halo, halo),
+    )
+
+    for tile in manifest.tiles:
+        assert (
+            multiscale_filter_read_bounds(
+                tile.core_bounds, manifest.image_shape_yx, beam
+            )
+            == tile.read_bounds
+        )
+
+
+def test_a_core_off_the_block_grid_reads_every_block_it_touches() -> None:
+    """It holds whole blocks and their halo, and stops at the image."""
+    beam = BeamShapePixels(4.0, 4.0, 0.0)
+
+    read = multiscale_filter_read_bounds(
+        ImageBounds(1000, 1030, 2100, 2200), (1100, 5000), beam
+    )
+
+    assert read == ImageBounds(0, 1100, 2048 - 28, 3072 + 28)
 
 
 def test_detection_tile_evidence_rejects_misaligned_scale_response() -> None:
@@ -829,18 +1079,13 @@ def test_multiscale_science_is_one_tile_many_tile_equal() -> None:
             candidate.refined_labels,
             one.refined_labels,
         )
-        np.testing.assert_allclose(
+        np.testing.assert_array_equal(
             candidate.combined_snr,
             one.combined_snr,
-            rtol=2e-13,
-            atol=2e-13,
         )
-        np.testing.assert_allclose(
+        np.testing.assert_array_equal(
             candidate.evidence.position_signal_jy_per_beam,
             one.evidence.position_signal_jy_per_beam,
-            rtol=2e-13,
-            atol=2e-13,
-            equal_nan=True,
         )
         _assert_responses_equal(
             candidate.evidence.matched.responses,
@@ -860,12 +1105,9 @@ def test_multiscale_science_is_one_tile_many_tile_equal() -> None:
                 one.evidence.atrous.coarse_smoothing_jy_per_beam,
             ),
         ):
-            np.testing.assert_allclose(
+            np.testing.assert_array_equal(
                 candidate_values,
                 one_values,
-                rtol=2e-13,
-                atol=2e-13,
-                equal_nan=True,
             )
         np.testing.assert_array_equal(
             candidate.evidence.atrous.scientifically_valid,

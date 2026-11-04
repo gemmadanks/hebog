@@ -75,8 +75,6 @@ from hebog.validation.products import (
 from hebog.validation.quick_benchmark import SINGLE_THREAD_ENVIRONMENT
 from hebog.validation.quick_check import (
     ContainerReference,
-    GeneratedCase,
-    ImageCase,
     PreparedCase,
     _staged,
     file_sha256,
@@ -91,11 +89,13 @@ from hebog.validation.rapthor_agreement import (
     CatalogueCutCounts,
     ComponentPixels,
     DecisionCounts,
+    ImageKind,
     Lane,
     NoiseSettings,
     RapthorAgreementConfiguration,
     TruthSettings,
     WeightedAgreement,
+    agreement_cases,
     compare_catalogue_cuts,
     compare_decisions,
     component_strata,
@@ -139,7 +139,6 @@ _MASTER = "pinned-pybdsf-master"
 _CONTROL = "released-pybdsf"
 # PyBDSF's beam area: 2 pi / (8 ln 2) times the product of the FWHMs.
 
-ImageKind = Literal["true-sky", "apparent"] | None
 DerivedKind = Literal["injected", "negated"]
 FloatArray = npt.NDArray[np.float64]
 BoolArray = npt.NDArray[np.bool_]
@@ -1153,10 +1152,7 @@ def main() -> int:
     configuration = load_agreement_configuration(args.configuration)
     quick_check_path = _ROOT / configuration.quick_check
     quick_check = load_quick_check_configuration(quick_check_path)
-    cases: list[tuple[GeneratedCase | ImageCase, ImageKind]] = [
-        (case, None) for case in quick_check.cases
-    ]
-    cases.extend((item.case, item.image_kind) for item in configuration.cases)
+    cases = agreement_cases(quick_check.cases, configuration.cases)
     if args.cases:
         cases = [item for item in cases if item[0].case_id in args.cases]
     label = args.label or _default_label()

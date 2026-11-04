@@ -120,6 +120,20 @@ of another; the check flags both. Completeness and reliability compare
 source rows; an extended object that one finder splits into several rows
 lowers the figure without being a missed source.
 
+Running the matched filter on blocks anchored to the image moved no product:
+catalogue, RMS and mask are byte-identical to `main`'s on six real images of
+2,048 to 5,000 pixels, and to each other on 2,048- and 1,024-pixel cores, with
+Serial matching Dask on the four up to 3,000 pixels (`main` at `423bbab1`;
+identities, hashes and commands in
+`benchmark-results/one-sector-scaling/filter-blocks/evidence-summary.json`). The
+quick check now includes one case larger than a block, ELAIS-N1's central 2,048².
+It costs no measurable time: against `main`, five alternating runs a side give
+median ratios of 1.012 (95% bootstrap 0.995 to 1.029) and 0.989 (0.953 to 1.005)
+on the dense 5,000² cell with six and four Dask workers, and 1.012 (0.981 to
+1.025) on the sparse cell with six. The largest worker's peak rises from 2.16 to
+2.44 GiB on the dense cell with four workers, inside its 4 GB share, and does
+not rise with six.
+
 | Case | Hebog sources | Completeness vs truth (SNR ≥10) | Reliability vs truth | Completeness vs `master` | Reliability vs `master` | Mask IoU vs `master` | Bright emission in mask |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `compact-snr-ladder` | 5 | 1.000 | 1.000 | 1.000 | 1.000 | 0.949 | 1.000 |
@@ -430,7 +444,9 @@ The next actions, as the plan orders them on 24 October:
    cores of the dense cell and a sparse one are measured, and the model
    projects them to the cluster's nodes with targets for Hebog's floor.
    Sizing tiles and task counts from the core budget, the first of four
-   increments that each release, continues; 0.24.0 carries its first part.
+   increments that each release, is held until the matched filter's
+   image-anchored blocks land, since a core chosen from the executor's budget
+   could otherwise change products; 0.24.0 carries its first part.
 2. Human: decide the executor Rapthor gives Hebog, which the sweeps have
    measured, and take the model's checkpoint: the dense threshold, the
    targets, the increments' order and whether per-source costs join; push

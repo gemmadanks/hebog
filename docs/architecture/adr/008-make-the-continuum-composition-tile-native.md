@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-10-11 (every round declares its tasks' memory) |
+| **Last Updated** | 2026-11-02 (the matched filter runs on image-anchored blocks) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -180,7 +180,7 @@ Halo values are for a 5-pixel beam and the reviewed 150/50 and 35/7 grids.
 | Adaptive candidates | 34 (matched-filter) | candidate owned by the core containing its peak | canonical peak, influence box | deterministic union of overlapping boxes keyed by canonical peak |
 | Adaptive fine grid | 75 + 20 + ⌈35/2⌉ + 7 = 120 | as coarse grid, inside candidate regions | fine cells at grid resolution | none |
 | Background and RMS planes | one grid cell (50) | pixel core | none | none |
-| Matched-filter bank | 34 (4σ at 4 beams) | pixel core | none | none |
+| Matched-filter bank | 34 (4σ at 4 beams), around image-anchored blocks (see *Numerical invariance*) | pixel core | none | none |
 | Residual B3 à trous | 14 (frozen cumulative) | pixel core | none | none |
 | Island labelling | 0 | pixel core; labels tile-local | edge label runs, per-label pixel count, sum, bounding box, canonical pixel | union–find over boundary equivalences, tree-reduced; aggregates summed |
 | Island admission | 0 | reconciled island | accepted-label set | area and pixel-count predicates on merged aggregates; the accept map is sharded per tile |
@@ -562,26 +562,34 @@ ownership or results.
 
 ### Numerical invariance
 
-Partition invariance is defined, and tested, at two levels:
+Partition invariance is exact, for decisions and for the values that reach
+them: labels, masks, memberships, reconciled island identity, component and
+source identities, accepted-label sets, catalogue row membership and ordering,
+and every filter response, hold the same bits on any tile grid. The guarantee
+is for one platform and build; rounding may differ between them.
 
-- **Exact** for everything that carries identity or a decision: labels, masks,
-  memberships, reconciled island identity, component and source identities,
-  accepted-label sets, catalogue row membership and ordering.
-- **Bounded** for continuous filter responses, at the relative and absolute
-  2×10⁻¹³ already used by the reviewed multiscale partition-equivalence tests.
-  The à trous transform is a separable direct convolution and is exact under
-  tiling; the residual tolerance comes from the matched-filter bank, which
-  uses an FFT whose rounding depends on the transform shape.
+The à trous transform is a separable direct convolution, so each pixel's sum
+is the same whatever the read. The matched-filter bank uses an FFT, whose
+rounding depends on the transform's shape, so it never runs on a tile. It runs
+on fixed blocks placed from the image origin, each padded by the widest filter
+halo and clipped to the image; a tile evaluates every block its core touches
+and keeps the part it owns. A block's window, and so its transforms and the
+bank's choices from the values in its read, do not depend on the tile.
 
-The residual risk is explicit: a pixel within 2×10⁻¹³ of a detection threshold
-could in principle change membership between partitions. Two responses were
-considered and rejected for now — evaluating the matched filter on
-image-anchored fixed transform blocks (bitwise, but new machinery and extra
-padding work), and direct convolution everywhere (bitwise, but a 69×69 kernel
-per pixel at 4 beams). Both remain available, and the fixed-block form is the
-required escalation if the invariance suite ever observes a knife-edge flip.
-The suite therefore includes knife-edge cases deliberately placed at the
-threshold on tile edges, corners and shifted partition origins.
+A block is 1,024 pixels while ten widest filter halos fit in it, and otherwise
+the smallest core its beam admits, at least 2,048. Every tile core the
+composition chooses is therefore a whole number of blocks and reads only its
+core and halo. A core off the block grid reads up to one block more on a side,
+which is what it declares.
+
+Earlier versions accepted a 2×10⁻¹³ tolerance on filter responses, with these
+blocks as the required escalation if a knife-edge flip was ever observed. One
+was: a filtered peak on the 5σ threshold kept its island on a 2,048-pixel core
+and lost it on a 1,024-pixel one. Direct convolution everywhere, the other
+exact form, remains rejected: it costs a 69×69 kernel per pixel at 4 beams. The
+suite holds that case and compares responses bitwise across tile shapes and
+partition origins, with blocks crossing tile edges and corners, the image's
+edges and invalid pixels.
 
 ### The `float64` and `float32` decision path
 
@@ -636,9 +644,9 @@ milestone: the executor work comes before the convergence it enables.
   from its own pixels, which keeps its rows bit for bit but bounds that
   memory by the image, not the tile, until the reductions move onto the
   cores (*Objects wider than the read budget*).
-- Bad, because the matched-filter FFT leaves a 2×10⁻¹³ tolerance on continuous
-  responses, so invariance is exact for decisions but not bitwise for every
-  plane.
+- Bad, because the matched filter's blocks are machinery a tile-shaped
+  transform would not need, and a core off the block grid reads and evaluates
+  more than its own halo; the composition's cores never are.
 - Risk: association work is bounded by component density, not by pixels. A
   pathologically crowded field could produce a large edge set. The spatial
   cutoff and the per-group resolution bound it in practice; the scalability
@@ -651,8 +659,8 @@ milestone: the executor work comes before the convergence it enables.
 
 - One-tile versus many-tile equivalence on analytic images, over tile shapes,
   partition origins, completion orders and retries, asserting exact equality
-  for identity-carrying outputs and 2×10⁻¹³ for continuous responses, with
-  sources on every edge and corner topology and at knife-edge thresholds.
+  for identity-carrying outputs and for filter responses, with sources on every
+  edge and corner topology and at knife-edge thresholds.
 - Architecture tests reject image-shaped arrays in stage results, in executor
   payloads and in driver-held state, and reject whole-table label broadcasts.
   The composition records carry no array field, which a static test asserts,

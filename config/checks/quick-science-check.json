@@ -212,6 +212,19 @@
           "y_start": 6677
         }
       }
+    },
+    {
+      "case_id": "elais-n1-true-sky-2048",
+      "image": "benchmark-results/quick-check/cutouts/elais-n1-true-sky-2048/image.fits",
+      "kind": "image",
+      "remote_source": {
+        "url": "https://lofar-surveys.org/public/ELAIS-N1_DR2_radio/image_full_ampphase_di_m_withoutbad.NS_shift.int.facetRestored.scaled.blanked.fits",
+        "window": {
+          "size": 2048,
+          "x_start": 6063,
+          "y_start": 6063
+        }
+      }
     }
   ],
   "change_budget_seconds": 600.0,

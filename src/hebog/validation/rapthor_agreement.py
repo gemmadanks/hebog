@@ -30,7 +30,7 @@ cuts Rapthor's astrometry and photometry checks apply to the source rows.
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import astuple, dataclass, replace
 from pathlib import Path
 from typing import Literal, Self, cast
@@ -47,7 +47,7 @@ from scipy.spatial import cKDTree
 
 from hebog.adapters.rapthor_catalogue import read_rapthor_catalogue_fits
 from hebog.data_models import SourceCatalogue
-from hebog.validation.quick_check import ImageCase
+from hebog.validation.quick_check import GeneratedCase, ImageCase
 
 FloatArray = npt.NDArray[np.float64]
 BoolArray = npt.NDArray[np.bool_]
@@ -748,11 +748,14 @@ class TruthSettings(_AgreementModel):
     gate: TruthGateSettings
 
 
+ImageKind = Literal["true-sky", "apparent"] | None
+
+
 class AgreementCase(_AgreementModel):
-    """An image beyond the quick check's, and the kind Rapthor gives it."""
+    """An image the check adds or labels, and the kind Rapthor gives it."""
 
     case: ImageCase
-    image_kind: Literal["true-sky", "apparent"] | None = None
+    image_kind: ImageKind = None
 
 
 class RapthorAgreementConfiguration(_AgreementModel):
@@ -786,6 +789,24 @@ class RapthorAgreementConfiguration(_AgreementModel):
         if len(set(cases)) != len(cases):
             raise ValueError("agreement cases must be unique")
         return self
+
+
+def agreement_cases(
+    quick_check_cases: Iterable[GeneratedCase | ImageCase],
+    agreement: Iterable[AgreementCase],
+) -> list[tuple[GeneratedCase | ImageCase, ImageKind]]:
+    """Return the cases to measure, each once, with the kind Rapthor gives it.
+
+    A case both checks name is measured as the agreement check's entry, which
+    carries its image kind.
+    """
+    entries: list[tuple[GeneratedCase | ImageCase, ImageKind]] = [
+        (item.case, item.image_kind) for item in agreement
+    ]
+    named = {case.case_id for case, _ in entries}
+    return [
+        (case, None) for case in quick_check_cases if case.case_id not in named
+    ] + entries
 
 
 def load_agreement_configuration(path: Path) -> RapthorAgreementConfiguration:

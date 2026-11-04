@@ -134,6 +134,7 @@ matters most.
 | Batch | The unit of work one task receives: several tiles, or up to 256 objects whose reads fit a budget. Batching keeps the number of tasks proportional to tiles and objects, not pixels. |
 | Tile | One rectangle of the image's grid, the unit of tiled work. Background and RMS use 128-pixel tile cores; every other stage uses 2,048-pixel cores, so an image up to 2,048 pixels is one tile there. |
 | Core | The pixels one tile owns and writes. Cores do not overlap and cover the image exactly once. |
+| Filter block | A fixed square, placed from the image origin, on which the matched filter is evaluated with its own padding. Its responses hold the same bits whichever tile evaluates it, because an FFT's rounding depends on its shape. |
 | Halo | The read-only margin around a core that a stage needs to compute the core's edge exactly, such as a filter's width. Each stage declares the smallest halo that makes its output exact. |
 | Stage | One step of the finder in its own module under `hebog.stages`: background and detection, multiscale, support, publication, objects, association, sources, islands and catalogue rows, run in that order by `composition.py`. |
 | Pass | One of the four groups of stages ADR-008 defines, A (noise), B (detection), C (support) and D (objects). A pass ends only where a global reduction must finish before any later decision. |
