@@ -13,7 +13,6 @@ import subprocess
 import sys
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
-from functools import partial
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
@@ -26,6 +25,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from conftest import (
     SubstituteBackgroundRms,
+    fixed_tile_core,
     product_hashes,
     published_plane,
     radio_header,
@@ -1309,11 +1309,11 @@ def test_continuum_mesh_repair_does_not_change_compact_background_policy(
             source,
             metadata,
             config,
-            SerialExecutor(),
-            tmp_path / "work",
+            composition.StageRun(
+                SerialExecutor(), tmp_path / "work", "compact-policy"
+            ),
             beam=beam,
             review=review,
-            generation_id="compact-policy",
         )
 
 
@@ -2001,12 +2001,8 @@ def test_a_crowded_field_with_a_quieter_strip_is_executor_and_tile_invariant(
     )
     monkeypatch.setattr(
         composition,
-        "run_stages_from_background",
-        partial(
-            composition.run_stages_from_background,
-            multiscale_tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS,
-            support_tile_core_pixels=_QUIETER_STRIP_CORE_PIXELS,
-        ),
+        "tile_core_from_budget",
+        fixed_tile_core(_QUIETER_STRIP_CORE_PIXELS),
     )
     planned_cores: list[tuple[int, int]] = []
     plan = composition.plan_image_partitions

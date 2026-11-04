@@ -13,10 +13,12 @@ from hypothesis import strategies as st
 from hebog.data_models.partitioning import ImageBounds
 from hebog.executors import ExecutorCapacity, SerialExecutor, TaskRequirement
 from hebog.stages.batching import (
+    LARGEST_TILE_CORE_PIXELS,
     batch_object_windows,
     map_round,
     objects_per_batch,
     read_pixels,
+    tile_core_from_budget,
     tiles_per_batch,
 )
 
@@ -418,3 +420,106 @@ def test_an_object_share_leaves_every_slot_two_batches(
     assert wider is not None
     assert 1 <= wider <= share
     assert ceil(object_count / share) >= min(object_count, 2 * slots)
+
+
+# A 4-pixel beam's widest multiscale filter halo, the passes' widest.
+_HALO = 28
+
+
+@pytest.mark.parametrize(
+    ("shape_yx", "workers", "threads", "halo", "expected"),
+    [
+        pytest.param((5000, 5000), 1, 1, _HALO, 2048, id="5000-serially"),
+        pytest.param((5000, 5000), 2, 1, _HALO, 2048, id="5000-on-two"),
+        pytest.param((5000, 5000), 4, 1, _HALO, 1024, id="5000-on-four"),
+        pytest.param((5000, 5000), 6, 1, _HALO, 1024, id="5000-on-six"),
+        pytest.param((5000, 5000), 1, 6, _HALO, 1024, id="5000-six-threads"),
+        pytest.param((3000, 3000), 3, 1, _HALO, 1024, id="3000-on-three"),
+        pytest.param((10000, 10000), 11, 1, _HALO, 2048, id="10000-on-11"),
+        pytest.param((10000, 10000), 12, 1, _HALO, 1024, id="10000-on-12"),
+        pytest.param((10000, 10000), 48, 1, _HALO, 1024, id="10000-on-48"),
+        pytest.param((1024, 1024), 6, 1, _HALO, 2048, id="small-one-tile"),
+        pytest.param((2048, 2048), 1, 1, _HALO, 2048, id="2048-serially"),
+        pytest.param((2048, 2048), 4, 1, _HALO, 1024, id="2048-on-four"),
+        pytest.param((5000, 5000), 6, 1, 103, 2048, id="wide-halo"),
+        pytest.param((5000, 5000), 6, 1, 102, 1024, id="widest-halo-admitted"),
+        pytest.param((15402, 15402), 192, 1, _HALO, 2048, id="15402-on-192"),
+        pytest.param((11264, 11264), 192, 1, _HALO, 1024, id="eleven-a-side"),
+        pytest.param((11265, 3000), 192, 1, _HALO, 2048, id="twelve-a-side"),
+    ],
+)
+def test_the_tile_core_halves_while_its_largest_tile_sets_the_round(
+    shape_yx: tuple[int, int],
+    workers: int,
+    threads: int,
+    halo: int,
+    expected: int,
+) -> None:
+    """A wider budget gets more, smaller tiles, within the stated bounds.
+
+    The core halves only while its largest tile holds more than half of
+    one slot's share of the image, and only to a core that adds tiles, is
+    at least 1,024 pixels and ten halos wide, and keeps the grid within
+    eleven tiles a side.
+    """
+    assert (
+        tile_core_from_budget(
+            shape_yx, halo_pixels=halo, capacity=_slots(workers, threads)
+        )
+        == expected
+    )
+
+
+@given(
+    height=st.integers(1, 30_000),
+    width=st.integers(1, 30_000),
+    workers=st.integers(1, 256),
+    halo=st.integers(0, 600),
+)
+def test_a_wider_budget_never_gets_a_coarser_core(
+    height: int, width: int, workers: int, halo: int
+) -> None:
+    """More slots never widen the core, and every core keeps its bounds."""
+    shape = (height, width)
+    core = tile_core_from_budget(
+        shape, halo_pixels=halo, capacity=_slots(workers, 1)
+    )
+    wider = tile_core_from_budget(
+        shape, halo_pixels=halo, capacity=_slots(workers + 1, 1)
+    )
+
+    assert wider <= core <= LARGEST_TILE_CORE_PIXELS
+    if core < LARGEST_TILE_CORE_PIXELS:
+        assert core >= max(1024, 10 * halo)
+        assert max(ceil(side / core) for side in shape) <= 11
+        larger = min(2 * core, height) * min(2 * core, width)
+        assert 2 * workers * larger > height * width
+
+
+@pytest.mark.parametrize(
+    ("in_flight", "tiles", "objects", "core"),
+    [
+        pytest.param(1, 4, None, 2048, id="one-in-flight"),
+        pytest.param(2, 2, 25, 2048, id="two-in-flight"),
+        pytest.param(8, 1, 6, 1024, id="every-thread-in-flight"),
+    ],
+)
+def test_the_tasks_in_flight_bound_the_slots_a_round_is_sized_for(
+    in_flight: int, tiles: int, objects: int | None, core: int
+) -> None:
+    """Admitting fewer tasks at once than threads gets coarser rounds.
+
+    Four workers of two threads that admit only ``in_flight`` tasks at once
+    run no more tasks together than that, so their rounds are sized as for
+    that many slots.
+    """
+    capacity = ExecutorCapacity(4, 2, in_flight)
+
+    assert tiles_per_batch(9, capacity, maximum=4) == tiles
+    assert objects_per_batch(100, capacity) == objects
+    assert (
+        tile_core_from_budget(
+            (5000, 5000), halo_pixels=_HALO, capacity=capacity
+        )
+        == core
+    )

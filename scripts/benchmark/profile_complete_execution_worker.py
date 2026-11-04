@@ -32,7 +32,10 @@ on the host's clock, with the Zarr chunks it read and wrote; each stage then
 reports the tasks that started during it, the share of the workers they
 kept busy, the time no task ran and the Zarr I/O, and each round its tasks.
 That locates where a run waits on its driver. The cluster starts before the
-root stage, so its start-up is not charged to the run.
+root stage, so its start-up is not charged to the run. The record also
+states the executor's budget and every tile grid the stages planned, with
+the stage that planned it, since the stages choose their tiling from that
+budget.
 
 Stage timing needs the POSIX ``resource`` module, so this worker runs on
 macOS and Linux.
@@ -59,12 +62,16 @@ from typing import Any, cast  # noqa: E402
 import hebog  # noqa: E402
 from hebog import public_api  # noqa: E402
 from hebog.config import SourceFinderConfig  # noqa: E402
-from hebog.data_models import SuppliedImageMetadata  # noqa: E402
+from hebog.data_models import (  # noqa: E402
+    PartitionManifest,
+    SuppliedImageMetadata,
+)
 from hebog.executors import (  # noqa: E402
     Executor,
     SerialExecutor,
     ThreadExecutor,
 )
+from hebog.stages import composition  # noqa: E402
 from hebog.validation.execution_profile import (  # noqa: E402
     StageRecorder,
     current_peak_rss_bytes,
@@ -387,6 +394,31 @@ def _executor(
         description["largest_worker_peak_rss_bytes"] = max(peaks.values())
 
 
+def _record_tiling(
+    recorder: StageRecorder, tiling: list[dict[str, Any]]
+) -> None:
+    """Append every tile grid the stages plan to ``tiling``, by stage.
+
+    The composition plans each pass's grid through one function, so it is
+    wrapped in this process only, as the stage timers are.
+    """
+    plan = composition.plan_image_partitions
+
+    def recorded(**arguments: Any) -> PartitionManifest:
+        manifest = plan(**arguments)
+        tiling.append(
+            {
+                "stage": recorder.current_stage,
+                "tile_core_shape_yx": list(manifest.tile_core_shape_yx),
+                "halo_yx": list(manifest.halo_yx),
+                "tile_count": len(manifest.tiles),
+            }
+        )
+        return manifest
+
+    composition.plan_image_partitions = recorded
+
+
 def _round_documents(tasks: list[TaskRecord]) -> list[dict[str, Any]]:
     """Summarise each round's tasks, the costliest first."""
     rounds: dict[str, list[TaskRecord]] = {}
@@ -422,6 +454,8 @@ def main() -> None:
     )
     recorder = StageRecorder()
     wrapped_bindings = install_stage_timers(recorder, _STAGES)
+    tiling: list[dict[str, Any]] = []
+    _record_tiling(recorder, tiling)
     import_rss_bytes = current_peak_rss_bytes()
     profiler = cProfile.Profile() if args.cprofile is not None else None
     description: dict[str, Any] = {}
@@ -430,6 +464,7 @@ def main() -> None:
         _executor(args, description) as executor,
     ):
         recording = RecordingExecutor(executor)
+        budget = asdict(executor.capacity)
         drain_driver_zarr_io()
         if profiler is not None:
             profiler.enable()
@@ -461,6 +496,8 @@ def main() -> None:
         "stages": [item.document() for item in recorder.records()],
         "cprofile": None,
         "executor": description,
+        "budget": budget,
+        "tiling": tiling,
     }
     stage_intervals = recorder.intervals()
     io_by_stage = zarr_io_by_stage(stage_intervals, recording.tasks, driver_io)

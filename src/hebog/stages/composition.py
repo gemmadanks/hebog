@@ -42,7 +42,11 @@ from hebog.executors import Executor
 from hebog.io import ZarrProductSink
 from hebog.io.base import WindowReadable
 from hebog.science.continuum import retained_scale_detections
-from hebog.stages.batching import tiles_per_batch
+from hebog.stages.batching import (
+    LARGEST_TILE_CORE_PIXELS,
+    tile_core_from_budget,
+    tiles_per_batch,
+)
 from hebog.stages.detection import run_detection_stage
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
@@ -66,8 +70,6 @@ if TYPE_CHECKING:  # pragma: no cover - import-time typing only
     from hebog.science.profile import ContinuumScienceProfile
 
 _TILE_SHAPE_YX = (128, 128)
-ADMITTED_TILE_CORE_PIXELS = 2048
-"""Smallest tile core the scalability contract admits, in pixels."""
 _SUPPORT_TILES_PER_BATCH = 4
 _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 # One storage chunk holds a whole tile core, so a batch that reads a window
@@ -79,6 +81,52 @@ _OWNER_BATCH_READ_PIXELS = 4 * 1024 * 1024
 _OWNER_OBJECTS_PER_BATCH = 256
 _DENOISED_POSITION_PEAK_TO_MEAN_RATIO = 3.0
 _ENVELOPE_PAIRS_PER_BATCH = 256
+
+
+@dataclass(frozen=True, slots=True)
+class StageRun:
+    """The settings every stage of one analysis runs under.
+
+    Every round runs on ``executor``, every stage publishes its planes to a
+    store below ``work_directory`` under the generation ``generation_id``,
+    and every pass after the background and RMS tiles on cores of
+    ``tile_core_pixels``. No setting changes a product.
+    """
+
+    executor: Executor
+    work_directory: Path
+    generation_id: str
+    tile_core_pixels: int = LARGEST_TILE_CORE_PIXELS
+
+
+def stage_run(
+    executor: Executor,
+    work_directory: Path,
+    generation_id: str,
+    *,
+    image_shape_yx: tuple[int, int],
+    beam: BeamShapePixels,
+) -> StageRun:
+    """Return the settings one image's stages run under.
+
+    The tile core is the one the executor's budget gets for the widest
+    filter halo, the multiscale pass's
+    (``hebog.stages.batching.tile_core_from_budget``).
+    """
+    from hebog.algorithms.multiscale_tiles import (  # noqa: PLC0415
+        scale_filter_halo_pixels,
+    )
+
+    return StageRun(
+        executor,
+        work_directory,
+        generation_id,
+        tile_core_from_budget(
+            image_shape_yx,
+            halo_pixels=scale_filter_halo_pixels(beam),
+            capacity=executor.capacity,
+        ),
+    )
 
 
 def _support_tiles_per_batch(
@@ -240,12 +288,10 @@ def estimate_background_rms(  # noqa: PLR0913
     source: WindowReadable,
     metadata: ImageMetadata,
     config: SourceFinderConfig,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
-    generation_id: str,
 ) -> BackgroundEstimate:
     """Run the exact candidate-owned bounded background/RMS stage.
 
@@ -268,9 +314,9 @@ def estimate_background_rms(  # noqa: PLR0913
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "background.zarr",
+        run.work_directory / "background.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     candidate_detection = source_finder_configs()[0]
     detection_config = replace(
@@ -293,7 +339,7 @@ def estimate_background_rms(  # noqa: PLR0913
         source,
         manifest,
         detection_config,
-        executor,
+        run.executor,
         sink,
         protect_coarse_source_support=(
             config.profile == "continuum"
@@ -379,14 +425,11 @@ def estimate_has_usable_noise(
 def detect_multiscale_products(  # noqa: PLR0913
     source: WindowReadable,
     background_rms_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, TiledMultiscaleDetection]:
     """Run the tiled detection pass and read its published planes.
 
@@ -395,8 +438,7 @@ def detect_multiscale_products(  # noqa: PLR0913
     response is still on the task that evaluated it. Only the reconciled
     island records come back.
 
-    ``tile_core_pixels`` is the non-overlapping output core each task owns.
-    It defaults to the smallest core the scalability contract admits, and is
+    ``run``'s tile core is the non-overlapping output core each task owns,
     widened when the widest filter halo would exceed a quarter of it. Tile
     geometry changes which task computes a value, never the value. One tile
     per batch is already a coarse task at that core, so batching adds nothing
@@ -417,16 +459,16 @@ def detect_multiscale_products(  # noqa: PLR0913
     )
 
     halo = scale_filter_halo_pixels(beam)
-    core = max(tile_core_pixels, 4 * halo + 1)
+    core = max(run.tile_core_pixels, 4 * halo + 1)
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
         tile_core_shape_yx=(core, core),
         halo_yx=(halo, halo),
     )
     sink = ZarrProductSink(
-        work_directory / "multiscale.zarr",
+        run.work_directory / "multiscale.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_multiscale_stage(
         source,
@@ -437,7 +479,7 @@ def detect_multiscale_products(  # noqa: PLR0913
             detection=residual_detection_config(review),
             maximum_tiles_per_batch=1,
         ),
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return sink, TiledMultiscaleDetection(
@@ -447,15 +489,12 @@ def detect_multiscale_products(  # noqa: PLR0913
     )
 
 
-def reduce_support_topology(  # noqa: PLR0913
+def reduce_support_topology(
     detection_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     scale_orders: tuple[int, ...],
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> ZarrProductSink:
     """Reconcile adjacent-scale persistence and return its plane's store.
 
@@ -471,13 +510,13 @@ def reduce_support_topology(  # noqa: PLR0913
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "support.zarr",
+        run.work_directory / "support.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     run_support_topology_stage(
         detection_source,
@@ -485,10 +524,10 @@ def reduce_support_topology(  # noqa: PLR0913
         config=SupportTopologyStageConfig(
             scale_orders=scale_orders,
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
         ),
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return sink
@@ -497,16 +536,13 @@ def reduce_support_topology(  # noqa: PLR0913
 def publish_support_labels(  # noqa: PLR0913
     detection_source: ZarrProductSink,
     support_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
     detection_islands: tuple[Any, ...],
     config: SourceFinderConfig,
     review: ContinuumScienceProfile,
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[int, int, ZarrProductSink]:
     """Decide owner connectivity and publish the support pass's labels.
 
@@ -526,16 +562,16 @@ def publish_support_labels(  # noqa: PLR0913
     )
 
     halo = segment_refinement_halo_pixels(beam.major_fwhm_pixels)
-    core = max(tile_core_pixels, 4 * halo + 1)
+    core = max(run.tile_core_pixels, 4 * halo + 1)
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
         tile_core_shape_yx=(core, core),
         halo_yx=(halo, halo),
     )
     sink = ZarrProductSink(
-        work_directory / "publication.zarr",
+        run.work_directory / "publication.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_publication_stage(
         detection_source,
@@ -550,22 +586,19 @@ def publish_support_labels(  # noqa: PLR0913
             maximum_tiles_per_batch=1,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return result.accepted_island_count, result.wide_owner_count, sink
 
 
-def publish_component_topology(  # noqa: PLR0913
+def publish_component_topology(
     support_source: ZarrProductSink,
     detection_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     config: SourceFinderConfig,
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, TiledComponentTopology]:
     """Deblend every parent in its own window and read the components.
 
@@ -586,13 +619,13 @@ def publish_component_topology(  # noqa: PLR0913
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "components.zarr",
+        run.work_directory / "components.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_component_topology_stage(
         support_source,
@@ -601,11 +634,11 @@ def publish_component_topology(  # noqa: PLR0913
         config=ComponentTopologyStageConfig(
             deblend=compact_deblend_config(config),
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return sink, TiledComponentTopology(
@@ -621,8 +654,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     detection_source: ZarrProductSink,
     label_source: ZarrProductSink,
     centroid_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
@@ -632,9 +664,7 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
     centroid_product_name: str,
     aperture_tie_policy: Literal["nearest-support", "canonical-source"],
     with_position_diagnostics: bool,
-    generation_id: str,
     sink_name: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[tuple[Any, ...], Mapping[int, float], Mapping[int, Any], int]:
     """Measure one catalogue row per segment, each in its own window.
 
@@ -656,13 +686,13 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / f"{sink_name}.zarr",
+        run.work_directory / f"{sink_name}.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_segment_row_stage(
         source,
@@ -692,14 +722,14 @@ def publish_segment_rows(  # noqa: PLR0913, PLR0917
             ),
             with_position_diagnostics=with_position_diagnostics,
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         wcs_header_text=wcs_header_text,
         beam=restoring_beam,
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return (
@@ -715,11 +745,10 @@ def publish_detection_islands(  # noqa: PLR0913
     background_rms_source: ZarrProductSink,
     publication_source: ZarrProductSink,
     component_source: ZarrProductSink,
-    executor: Executor,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[tuple[Any, ...], Mapping[int, tuple[str, ...]], int]:
     """Measure one catalogue row per island of the published retained mask.
 
@@ -737,7 +766,7 @@ def publish_detection_islands(  # noqa: PLR0913
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     result = run_detection_island_stage(
@@ -754,28 +783,25 @@ def publish_detection_islands(  # noqa: PLR0913
                 / (4.0 * log(2.0))
             ),
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
-        executor=executor,
+        executor=run.executor,
     )
     return result.islands, result.island_ids_by_owner, result.wide_island_count
 
 
-def publish_source_planes(  # noqa: PLR0913, PLR0917
+def publish_source_planes(  # noqa: PLR0913
     component_source: ZarrProductSink,
     detection_source: ZarrProductSink,
     scale_support_source: ZarrProductSink,
     measurement_support_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     association: SourceAssociationResult,
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[ZarrProductSink, ZarrProductSink, int]:
     """Publish the source labels and the persistent support they own.
 
@@ -796,30 +822,30 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     label_sink = ZarrProductSink(
-        work_directory / "source-labels.zarr",
+        run.work_directory / "source-labels.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     run_source_label_stage(
         component_source,
         manifest,
         config=SourceLabelStageConfig(
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
         ),
         source_by_owner=source_label_by_owner(association),
-        executor=executor,
+        executor=run.executor,
         sink=label_sink,
     )
     support_sink = ZarrProductSink(
-        work_directory / "source-support.zarr",
+        run.work_directory / "source-support.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     support_result = run_source_support_stage(
         label_sink,
@@ -829,12 +855,12 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
         manifest,
         config=SourceSupportStageConfig(
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_objects_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
-        executor=executor,
+        executor=run.executor,
         sink=support_sink,
     )
     return label_sink, support_sink, support_result.wide_component_count
@@ -843,14 +869,11 @@ def publish_source_planes(  # noqa: PLR0913, PLR0917
 def publish_hierarchy_overlaps(  # noqa: PLR0913
     detection_source: ZarrProductSink,
     component_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     records: tuple[DetectionComponentRecord, ...],
     scale_detections: Sequence[ScaleDetections],
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[HierarchyOverlaps, ZarrProductSink]:
     """Reduce every pixel fact the source hierarchy decision needs.
 
@@ -867,13 +890,13 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
 
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "hierarchy.zarr",
+        run.work_directory / "hierarchy.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_hierarchy_overlap_stage(
         detection_source,
@@ -881,7 +904,7 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
         manifest,
         config=HierarchyOverlapStageConfig(
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_features_per_batch=_OWNER_OBJECTS_PER_BATCH,
             maximum_pairs_per_batch=_ENVELOPE_PAIRS_PER_BATCH,
@@ -889,19 +912,18 @@ def publish_hierarchy_overlaps(  # noqa: PLR0913
         ),
         records=records,
         scale_detections=scale_detections,
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     return result.overlaps, sink
 
 
-def publish_component_fits(  # noqa: PLR0913, PLR0917
+def publish_component_fits(  # noqa: PLR0913
     source: WindowReadable,
     background_rms_source: ZarrProductSink,
     detection_source: ZarrProductSink,
     component_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     beam: BeamShapePixels,
@@ -910,8 +932,6 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     config: SourceFinderConfig,
     review: ContinuumScienceProfile,
     component_count: int,
-    generation_id: str,
-    tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> tuple[TiledComponentFits, ZarrProductSink]:
     """Fit every measurement parent in its own context window.
 
@@ -958,16 +978,16 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
     fit_config = replace(fit_config, integrated_flux_bias_correction_sigma=0.0)
     atrous_plan = build_residual_atrous_plan(beam, noise_correlation=beam)
     context_margin = int(fit_config.context_margin_pixels)
-    core = max(tile_core_pixels, 4 * context_margin + 1)
+    core = max(run.tile_core_pixels, 4 * context_margin + 1)
     fit_parent_manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
         tile_core_shape_yx=(core, core),
         halo_yx=(context_margin, context_margin),
     )
     fit_parent_sink = ZarrProductSink(
-        work_directory / "fit-parents.zarr",
+        run.work_directory / "fit-parents.zarr",
         fit_parent_manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     run_fit_parent_stage(
         component_source,
@@ -975,7 +995,7 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
         config=FitParentStageConfig(
             context_margin_pixels=context_margin,
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                fit_parent_manifest, executor
+                fit_parent_manifest, run.executor
             ),
             read_margin_pixels=fit_parent_margin_pixels(
                 fit_config, atrous_plan
@@ -984,18 +1004,18 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
                 compact_deblend_config(config).maximum_compact_bounds_pixels
             ),
         ),
-        executor=executor,
+        executor=run.executor,
         sink=fit_parent_sink,
     )
     manifest = plan_image_partitions(
         image_shape_yx=image_shape_yx,
-        tile_core_shape_yx=(tile_core_pixels, tile_core_pixels),
+        tile_core_shape_yx=(run.tile_core_pixels, run.tile_core_pixels),
         halo_yx=(0, 0),
     )
     sink = ZarrProductSink(
-        work_directory / "component-fits.zarr",
+        run.work_directory / "component-fits.zarr",
         manifest,
-        generation_id=generation_id,
+        generation_id=run.generation_id,
     )
     result = run_component_fit_stage(
         source,
@@ -1018,14 +1038,14 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
                 review.matrix.support_fraction_bounds[0]
             ),
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         component_count=component_count,
         wcs_header_text=wcs_header_text,
         beam=restoring_beam,
-        executor=executor,
+        executor=run.executor,
         sink=sink,
     )
     groups = run_extended_group_stage(
@@ -1047,14 +1067,14 @@ def publish_component_fits(  # noqa: PLR0913, PLR0917
                 review.matrix.support_fraction_bounds[0]
             ),
             maximum_tiles_per_batch=_support_tiles_per_batch(
-                manifest, executor
+                manifest, run.executor
             ),
             maximum_batch_read_pixels=_OWNER_BATCH_READ_PIXELS,
         ),
         parents=result.parents,
         wcs_header_text=wcs_header_text,
         beam=restoring_beam,
-        executor=executor,
+        executor=run.executor,
     )
     return TiledComponentFits(
         parents=result.parents,
@@ -1101,34 +1121,30 @@ def _source_association(
 def run_stages(  # noqa: PLR0913
     source: WindowReadable,
     metadata: ImageMetadata,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     config: SourceFinderConfig,
     wcs_header_text: str,
     restoring_beam: RestoringBeam,
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
-    generation_id: str,
 ) -> StageSequenceResult:
     """Estimate the background and RMS, then run every later stage in order.
 
     ``beam`` is the restoring beam in local pixel axes and ``review`` the
     installed profile under the caller's thresholds. ``wcs_header_text`` is
     the header text each task rebuilds the celestial WCS from, and
-    ``restoring_beam`` the beam that header states. Every stage writes its
-    planes to a generation below ``work_directory`` named by
-    ``generation_id``, and later stages read them by window.
+    ``restoring_beam`` the beam that header states. Every stage runs and
+    publishes under ``run``, and later stages read the generations by
+    window.
     """
     estimate = estimate_background_rms(
         source,
         metadata,
         config,
-        executor,
-        work_directory,
+        run,
         beam=beam,
         review=review,
-        generation_id=generation_id,
     )
     if not estimate.usable_noise:
         return StageSequenceResult(
@@ -1144,15 +1160,13 @@ def run_stages(  # noqa: PLR0913
         published=run_stages_from_background(
             source,
             estimate.source,
-            executor,
-            work_directory,
+            run,
             image_shape_yx=metadata.shape_yx,
             config=config,
             wcs_header_text=wcs_header_text,
             restoring_beam=restoring_beam,
             beam=beam,
             review=review,
-            generation_id=generation_id,
         ),
     )
 
@@ -1160,8 +1174,7 @@ def run_stages(  # noqa: PLR0913
 def run_stages_from_background(  # noqa: PLR0913
     source: WindowReadable,
     background_rms_source: ZarrProductSink,
-    executor: Executor,
-    work_directory: Path,
+    run: StageRun,
     *,
     image_shape_yx: tuple[int, int],
     config: SourceFinderConfig,
@@ -1169,66 +1182,48 @@ def run_stages_from_background(  # noqa: PLR0913
     restoring_beam: RestoringBeam,
     beam: BeamShapePixels,
     review: ContinuumScienceProfile,
-    generation_id: str,
-    multiscale_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
-    support_tile_core_pixels: int = ADMITTED_TILE_CORE_PIXELS,
 ) -> PublishedStages:
     """Run every stage after the background and RMS, in order.
 
     ``background_rms_source`` is a published background and RMS generation,
-    which every stage reads by window rather than estimating again.
-    ``multiscale_tile_core_pixels`` is the multiscale pass's core and
-    ``support_tile_core_pixels`` the core of every pass from the support
-    reduction on; both default to the smallest
-    core the scalability contract admits, as ``find_sources`` runs them, and
-    no core changes a product.
+    which every stage reads by window rather than estimating again. Every
+    pass tiles on ``run``'s core: one grid for every pass keeps each read of
+    another pass's planes aligned with the chunks it decodes.
     """
     detection_source, multiscale = detect_multiscale_products(
         source,
         background_rms_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         beam=beam,
         review=review,
-        generation_id=generation_id,
-        tile_core_pixels=multiscale_tile_core_pixels,
     )
     support_source = reduce_support_topology(
         detection_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         scale_orders=tuple(
             range(1, len(multiscale.scale_islands_by_order) + 1)
         ),
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
     )
     accepted_island_count, wide_owner_count, labels_source = (
         publish_support_labels(
             detection_source,
             support_source,
-            executor,
-            work_directory,
+            run,
             image_shape_yx=image_shape_yx,
             beam=beam,
             detection_islands=multiscale.detection_islands,
             config=config,
             review=review,
-            generation_id=generation_id,
-            tile_core_pixels=support_tile_core_pixels,
         )
     )
     component_source, topology = publish_component_topology(
         labels_source,
         detection_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         config=config,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
     )
     scale_detections = retained_scale_detections(multiscale)
     component_fits, fit_source = publish_component_fits(
@@ -1236,8 +1231,7 @@ def run_stages_from_background(  # noqa: PLR0913
         background_rms_source,
         detection_source,
         component_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         beam=beam,
         wcs_header_text=wcs_header_text,
@@ -1245,20 +1239,15 @@ def run_stages_from_background(  # noqa: PLR0913
         config=config,
         review=review,
         component_count=topology.component_count,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
     )
     records = component_fits.component_records
     overlaps, hierarchy_source = publish_hierarchy_overlaps(
         detection_source,
         component_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         records=records,
         scale_detections=scale_detections,
-        generation_id=generation_id,
-        tile_core_pixels=support_tile_core_pixels,
     )
     measurements = reconcile_component_measurements(
         parents=component_fits.parents,
@@ -1276,12 +1265,9 @@ def run_stages_from_background(  # noqa: PLR0913
             detection_source,
             hierarchy_source,
             fit_source,
-            executor,
-            work_directory,
+            run,
             image_shape_yx=image_shape_yx,
             association=association,
-            generation_id=generation_id,
-            tile_core_pixels=support_tile_core_pixels,
         )
     )
     islands, island_ids_by_owner, wide_island_count = (
@@ -1290,10 +1276,9 @@ def run_stages_from_background(  # noqa: PLR0913
             background_rms_source,
             labels_source,
             component_source,
-            executor,
+            run,
             image_shape_yx=image_shape_yx,
             beam=beam,
-            tile_core_pixels=support_tile_core_pixels,
         )
     )
     component_rows, component_local_rms, _, wide_component_segment_count = (
@@ -1303,8 +1288,7 @@ def run_stages_from_background(  # noqa: PLR0913
             detection_source,
             component_source,
             component_source,
-            executor,
-            work_directory,
+            run,
             image_shape_yx=image_shape_yx,
             beam=beam,
             wcs_header_text=wcs_header_text,
@@ -1313,9 +1297,7 @@ def run_stages_from_background(  # noqa: PLR0913
             centroid_product_name="component-measurement-labels",
             aperture_tie_policy="nearest-support",
             with_position_diagnostics=False,
-            generation_id=generation_id,
             sink_name="component-rows",
-            tile_core_pixels=support_tile_core_pixels,
         )
     )
     (
@@ -1329,8 +1311,7 @@ def run_stages_from_background(  # noqa: PLR0913
         detection_source,
         source_support_source,
         source_label_source,
-        executor,
-        work_directory,
+        run,
         image_shape_yx=image_shape_yx,
         beam=beam,
         wcs_header_text=wcs_header_text,
@@ -1339,9 +1320,7 @@ def run_stages_from_background(  # noqa: PLR0913
         centroid_product_name="source-labels",
         aperture_tie_policy="canonical-source",
         with_position_diagnostics=True,
-        generation_id=generation_id,
         sink_name="source-rows",
-        tile_core_pixels=support_tile_core_pixels,
     )
     return PublishedStages(
         detection_source=detection_source,

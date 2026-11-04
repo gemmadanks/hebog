@@ -12,7 +12,7 @@ tags:
 | --- | --- |
 | **Status** | 🟢 Accepted |
 | **Created** | 2026-09-18 |
-| **Last Updated** | 2026-11-02 (the matched filter runs on image-anchored blocks) |
+| **Last Updated** | 2026-11-02 (the matched filter runs on image-anchored blocks; the core budget may halve the tile core) |
 | **Deciders** | Gemma Danks |
 | **Tags** | tiling, halos, ownership, reconciliation, memory, invariance |
 
@@ -551,14 +551,14 @@ The only cost relative to today is one Zarr chunk per stored plane, which
 ADR-007 already accepted as the single intermediate backend. Because filter
 responses and à trous coefficients are not stored, the number of stored planes
 does not grow with the number of stages. Every stage after the noise pass
-uses the contract's smallest admitted core, 2,048 pixels, and the noise pass
-keeps 128-pixel cores because they are its grid cells, not a memory choice;
-batches use fixed limits too. Every round declares its tasks' memory, but
-no stage yet chooses its core from the admitted memory (the plan's task
-72). Choosing a larger
-core from admitted memory within the contract's 2,048–8,192 range remains the
-intent, and a resource choice may change batch size and core size, but never
-ownership or results.
+uses 2,048-pixel cores, or 1,024-pixel cores when the executor's task slots
+would otherwise wait on too few tiles of an image at most eleven such cores
+a side (ADR-010's core budget), and the noise pass keeps 128-pixel cores
+because they are its grid cells, not a memory choice. Every round declares
+its tasks' memory, but no stage yet chooses its core from the admitted
+memory. Choosing a larger core from admitted memory within the contract's
+2,048–8,192 range remains the intent, and a resource choice may change batch
+size and core size, but never ownership or results.
 
 ### Numerical invariance
 

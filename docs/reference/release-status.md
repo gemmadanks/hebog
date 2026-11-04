@@ -26,8 +26,10 @@ version when results must be repeatable.
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`, and `flat-noise-rms.fits` when the request names the sector's flat-noise image. Existing directories are never overwritten. |
 
 Every scientific step runs on bounded tiles through the executor, an image
-larger than 2,048 pixels on either side is reconciled across several tiles
-rather than held as one, and the driver holds no image-sized plane. The
+larger than 2,048 pixels on either side, or 1,024 when the executor has more
+workers or threads than 2,048-pixel tiles can keep busy, is reconciled across
+several tiles rather than held as one, and the driver holds no image-sized
+plane. The
 size limit rises one tier at a time, as each tier's memory and invariance
 evidence is measured. A serial run of the whole 22,500² LOFAR-HD ELAIS-N1
 mosaic allocates at most 1.8 GiB, almost all of it what the analysis holds

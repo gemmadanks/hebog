@@ -127,7 +127,6 @@ def _detect(
         header=_header(image.shape),
         config=config,
         tile_core_pixels=tile_core_pixels,
-        support_tile_core_pixels=tile_core_pixels,
     )
 
 
@@ -233,7 +232,6 @@ def _detect_knife_edge(
         header=_header(shape, _KNIFE_EDGE_BEAM),
         config=config,
         tile_core_pixels=tile_core_pixels,
-        support_tile_core_pixels=tile_core_pixels,
     )
 
 

@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-10-24 |
+| Last updated | 2026-11-04 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -156,12 +156,15 @@ times slower per task on eight workers, which swapped up to 24 GB.
 
 The code shows where the serial work comes from:
 
-- Tile cores are fixed at 2,048 pixels (`stages/composition.py`), so the
-  later stages run 7 to 25 tasks a round at 10,000². Tile rounds now shrink
-  their batches of up to four tiles until each of the executor's task
-  slots has two, and the component-fit and extended-group rounds split
-  their objects the same way, but the cores ignore the executor's
-  capacity.
+- The passes after the background tile on 2,048-pixel cores, halved to
+  1,024 when the largest tile would hold more than half of one task slot's
+  share of the image, within eleven tiles a side (`stages/batching.py`), so
+  a 5,000² sector is 25 tiles on three or more slots but the later stages
+  of the 10,000² anchor still run 25 tiles a round up to eleven slots, and
+  sectors wider than eleven 1,024-pixel cores keep 2,048. Tile rounds
+  shrink their batches of up to four tiles until each slot has two, and
+  the component-fit and extended-group rounds split their objects the same
+  way.
 - Zarr chunks equal the tile core (`io/zarr.py`), so every task's declared
   memory is floored by a 2,048² read; the core, chunk size, read
   amplification and declarations change together.
@@ -300,4 +303,6 @@ and the quick benchmark and profile before and after show the gain.
 | 2026-10-22 | Decision | The cluster has up to 12 nodes, NUMA or not, of 96 cores with 747 GB, 192 cores with 747 GB and 192 cores with 1,494 GB, with no local scratch, on Lustre (maintainer); Hebog must run on every node type without per-node settings. | Agent: the model projects every node type |
 | 2026-10-23 | Progress | The core sweep on the dense cell, Hebog on single-threaded Dask workers in the matched container, gives finder ratios of 1.03, 1.07 and 1.00 on one, four and six cores (screening repetitions), half the thread path's, with products identical at every worker count. The two-core point was skipped for lack of disk. 0.24.0 carries increment 1's first part. | Agent: the two-core point on a quiet night; step 4 |
 | 2026-10-23 | Progress | The model projects 0.24.0 on one cluster node, against `master` on all its cores, to 0.42 on the dense cell, 0.53 at 14,126 sources and 0.50 to 0.78 on the sparse sectors, if `master` uses no more of a node than the four cores its sweep shows and emulation slows both finders alike; 0.75, 1.02 and up to 1.46 if `master` used every core. On a node Hebog's time nears its floor, driver time plus each round's longest task, so at 5,000² extra nodes take only 0.01 to 0.04 off a ratio and the targets are floors: 113 s natively at 14,126 sources and 217 s on the dense cell (55 s and 116 s if `master` used every core), against 128 s and 190 s now. Every limit is within reach of one node. | Human: the checkpoint; agent: increment 1, a sparse sector's core sweep and native profiles of the ladder on a quiet night |
+| 2026-10-23 | Progress | The passes after the background choose their tile core from the executor's budget: 1,024 pixels instead of 2,048 when the largest tile would hold more than half of one task slot's share of the image, since a round takes no less than its longest task, at least ten halos wide and within eleven tiles a side, the widest grid the invariance tests check and at most 121 chunks a plane until the store shards them; products are unchanged. Locally the dense cell changes grid on three or more workers and the 10,000² anchor on none up to eleven; larger sectors keep 2,048 pixels until the bound is lifted. The stages take their executor, work directory, generation and tile core as one record, and the stage profile records the budget and every grid. Reopening the input costs the blocked candidate scan about 16 ms a task, about a second a dense-cell run, so it stays. | Agent: before and after profiles; maintainer: the bound (pending decisions) |
 | 2026-10-24 | Progress | The sparse LoTSS-DR3 cell's core sweep gives finder ratios of 1.65, 1.74 and 1.72 on one, four and six cores (screening repetitions), and both finders keep gaining past four cores there; the dense cell's two-core point gives 1.08, completing step 3. Refitted to them and to native profiles of every ladder sector, the model gives `master` every core of a sparse sector's node, so 0.24.0 on one node misses parity on three of the four sparse sectors (1.06 to 1.26), whose floors' targets are 45 to 61 s against 58 to 65 s now, and meets 0.50 on the dense ones (0.42 and 0.49) if `master` uses four cores of their node. 0.24.0's whole-mosaic traced peak is unchanged from 0.23.0's. | Human: the checkpoint; agent: increment 1 |
+| 2026-10-24 | Progress | Five runs a side on single-threaded Dask workers confirm the tile cores' gain on the dense and sparse cells on four and six workers, with products unchanged and the serial path as before; the support publication, batched two tiles a task, now holds the tile rounds' longest task. The rounds size themselves for no more task slots than the tasks the executor admits in flight. | Agent: the object rounds' batches; maintainer: the bound (pending decisions) |

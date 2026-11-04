@@ -87,6 +87,18 @@ def test_nested_stages_report_time_under_their_parent() -> None:
 
 
 @_needs_usage
+def test_the_current_stage_is_the_innermost_active_one() -> None:
+    """What happens inside a stage can be attributed to it."""
+    recorder = StageRecorder()
+    assert recorder.current_stage is None
+    with recorder.stage("parent"):
+        with recorder.stage("child"):
+            assert recorder.current_stage == "child"
+        assert recorder.current_stage == "parent"
+    assert recorder.current_stage is None
+
+
+@_needs_usage
 def test_only_the_recording_thread_is_timed() -> None:
     """A thread pool runs tasks on other threads, and they are tasks.
 

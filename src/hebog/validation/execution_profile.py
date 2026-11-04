@@ -215,6 +215,11 @@ class StageRecorder:
                 parent_totals.child_cpu_seconds += cpu
                 parent_totals.child_driver_cpu_seconds += driver_cpu
 
+    @property
+    def current_stage(self) -> str | None:
+        """Return the innermost stage the driving thread is in, if any."""
+        return self._path[-1] if self._path else None
+
     def wrap(self, function: Callable[..., Any], name: str) -> Any:
         """Return ``function`` timed as stage ``name``."""
 

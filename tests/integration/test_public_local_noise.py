@@ -52,11 +52,11 @@ def _public_maps(
         source,
         metadata,
         config,
-        SerialExecutor(),
-        tmp_path / "work",
+        composition.StageRun(
+            SerialExecutor(), tmp_path / "work", "noise-fixture"
+        ),
         beam=beam,
         review=review,
-        generation_id="noise-fixture",
     )
     return estimated_maps(estimate.source, metadata.shape_yx)
 

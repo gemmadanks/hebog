@@ -674,11 +674,15 @@ def _estimate_noise(  # noqa: PLR0913
         source,
         metadata,
         config,
-        executor,
-        work_directory,
+        composition.stage_run(
+            executor,
+            work_directory,
+            generation_id,
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+        ),
         beam=beam,
         review=review,
-        generation_id=generation_id,
     )
     return _NoiseEstimate(
         metadata=metadata,
@@ -756,14 +760,18 @@ def _analyse_true_sky(  # noqa: PLR0913
     stages = run_stages(
         source,
         metadata,
-        executor,
-        work_directory,
+        composition.stage_run(
+            executor,
+            work_directory,
+            _generation_id(request),
+            image_shape_yx=metadata.shape_yx,
+            beam=beam,
+        ),
         config=config,
         wcs_header_text=header.tostring(),
         restoring_beam=restoring_beam_from_header(header),
         beam=beam,
         review=review,
-        generation_id=_generation_id(request),
     )
     published = stages.published
     if published is None:

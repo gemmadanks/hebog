@@ -2,16 +2,18 @@
 # pyright: reportUnknownMemberType=false
 """Public products do not change with the tile grid the passes run on.
 
-The public passes after background and RMS run on 2,048-pixel cores, so the
-22,500-pixel envelope is at most an eleven-by-eleven grid, with interior
-tiles bounded on all four sides and a hundred four-way corners. The envelope
-admits every size below its limit, so a last row or column of tiles can be
-any width up to a core, including narrower than a filter halo. These tests
-give a small analytic image that grid by shrinking the cores, end its last
-row of tiles inside the widest filter halo and its last column exactly on a
-core edge, the two extremes a last tile can take, put support on every
-interior corner, seam and image edge, and require the complete product set
-to equal the one-tile run's.
+The public passes after background and RMS run on 2,048-pixel cores, or
+1,024-pixel cores when one tile would hold more than half of an executor
+task slot's share of the image, never more than eleven tiles a side, so
+the 22,500-pixel envelope is at most an eleven-by-eleven grid, with
+interior tiles bounded on all four sides and a hundred four-way corners.
+The envelope admits every size below its limit, so a last row or column
+of tiles can be any width up to a core, including narrower than a filter
+halo. These tests give a small analytic image that grid by shrinking the
+cores, end its last row of tiles inside the widest filter halo and its last
+column exactly on a core edge, the two extremes a last tile can take, put
+support on every interior corner, seam and image edge, and require the
+complete product set to equal the one-tile run's.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ import numpy.typing as npt
 import pytest
 from astropy.io import fits
 from conftest import (
+    fixed_tile_core,
     product_hashes,
     radio_header,
 )
@@ -48,7 +51,7 @@ from hebog.executors import (
 )
 from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderResult
-from hebog.stages import composition
+from hebog.stages import batching, composition
 
 pytestmark = pytest.mark.integration
 
@@ -170,13 +173,7 @@ def _put_passes_on_grid(monkeypatch: pytest.MonkeyPatch) -> None:
     that each of them, including any pass added later, was planned on it.
     """
     monkeypatch.setattr(
-        composition,
-        "run_stages_from_background",
-        partial(
-            composition.run_stages_from_background,
-            multiscale_tile_core_pixels=_CORE_PIXELS,
-            support_tile_core_pixels=_CORE_PIXELS,
-        ),
+        composition, "tile_core_from_budget", fixed_tile_core(_CORE_PIXELS)
     )
 
 
@@ -239,14 +236,16 @@ def _grid_cores(monkeypatch: pytest.MonkeyPatch) -> _PlanRecorder:
 
 
 def test_the_grid_is_the_largest_the_envelope_admits() -> None:
-    """A raise that adds tiles per side must widen this grid with it."""
+    """A raise that adds tiles per side must widen this grid with it.
+
+    A wider budget may halve the core, but only within the tiles a side the
+    envelope holds at the largest core.
+    """
     envelope = public_api._MAXIMUM_PREVIEW_DIMENSION  # pyright: ignore[reportPrivateUsage]
 
-    tiles_per_side = math.ceil(
-        envelope / composition.ADMITTED_TILE_CORE_PIXELS
-    )
+    tiles_per_side = math.ceil(envelope / batching.LARGEST_TILE_CORE_PIXELS)
 
-    assert tiles_per_side == _TILES_PER_SIDE
+    assert tiles_per_side == batching.MOST_TILES_PER_SIDE == _TILES_PER_SIDE
     for side in _SHAPE_YX:
         assert math.ceil(side / _CORE_PIXELS) == _TILES_PER_SIDE
 
@@ -296,6 +295,18 @@ def _round_name(function: Callable[..., object]) -> str:
     return function.__name__
 
 
+def _declare(
+    declared_bytes: dict[str, int],
+    round_name: str,
+    requirement: TaskRequirement | None,
+) -> None:
+    """Keep the most memory any task of the named round declared."""
+    if requirement is not None:
+        declared_bytes[round_name] = max(
+            declared_bytes.get(round_name, 0), requirement.memory_bytes
+        )
+
+
 class _CountingSerial(SerialExecutor):
     """The serial reference, counting the tasks of each round."""
 
@@ -304,6 +315,7 @@ class _CountingSerial(SerialExecutor):
         super().__init__()
         self.round_sizes: list[int] = []
         self.rounds: list[tuple[str, int]] = []
+        self.declared_bytes: dict[str, int] = {}
 
     def map_batches[Input, Output](
         self,
@@ -316,6 +328,7 @@ class _CountingSerial(SerialExecutor):
         submitted = tuple(batches)
         self.round_sizes.append(len(submitted))
         self.rounds.append((_round_name(function), len(submitted)))
+        _declare(self.declared_bytes, _round_name(function), requirement)
         return super().map_batches(
             function, submitted, requirement=requirement
         )
@@ -329,6 +342,7 @@ class _CountingThreads(ThreadExecutor):
         super().__init__(thread_count=_THREAD_SLOTS)
         self.round_sizes: list[int] = []
         self.rounds: list[tuple[str, int]] = []
+        self.declared_bytes: dict[str, int] = {}
 
     def map_batches[Input, Output](
         self,
@@ -341,6 +355,7 @@ class _CountingThreads(ThreadExecutor):
         submitted = tuple(batches)
         self.round_sizes.append(len(submitted))
         self.rounds.append((_round_name(function), len(submitted)))
+        _declare(self.declared_bytes, _round_name(function), requirement)
         return super().map_batches(
             function, submitted, requirement=requirement
         )
@@ -359,12 +374,8 @@ def test_a_wider_executor_splits_tile_rounds_and_keeps_the_products(
     """
     monkeypatch.setattr(
         composition,
-        "run_stages_from_background",
-        partial(
-            composition.run_stages_from_background,
-            multiscale_tile_core_pixels=_SPLIT_CORE_PIXELS,
-            support_tile_core_pixels=_SPLIT_CORE_PIXELS,
-        ),
+        "tile_core_from_budget",
+        fixed_tile_core(_SPLIT_CORE_PIXELS),
     )
     recorder = _PlanRecorder(monkeypatch)
     serial, threads = _CountingSerial(), _CountingThreads()
@@ -386,6 +397,40 @@ def test_a_wider_executor_splits_tile_rounds_and_keeps_the_products(
         )
     )
     assert sum(threads.round_sizes) > sum(serial.round_sizes)
+    assert product_hashes(wide) == product_hashes(narrow)
+    assert product_hashes(wide) == product_hashes(one_tile)
+
+
+def test_a_wider_budget_runs_on_smaller_tiles_and_keeps_the_products(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    one_tile: SourceFinderResult,
+) -> None:
+    """Four threads run the image on four tiles, declaring less a task.
+
+    Serially the image is one 2,048-pixel tile; four slots would share one
+    tile task, so the passes after the background halve their core, and
+    each multiscale task then reads, and declares, a quarter of the image.
+    """
+    recorder = _PlanRecorder(monkeypatch)
+    serial, threads = _CountingSerial(), _CountingThreads()
+
+    narrow = _find_sources(
+        _shared_input(one_tile), tmp_path / "serial", serial
+    )
+    serial_tile_counts = set(recorder.tile_counts)
+    recorder.tile_counts.clear()
+    with threads:
+        wide = _find_sources(
+            _shared_input(one_tile), tmp_path / "threads", threads
+        )
+
+    assert serial_tile_counts == {1}
+    assert set(recorder.tile_counts) == {4}
+    assert (
+        threads.declared_bytes["_publish_scale_labels"]
+        < serial.declared_bytes["_publish_scale_labels"]
+    )
     assert product_hashes(wide) == product_hashes(narrow)
     assert product_hashes(wide) == product_hashes(one_tile)
 
