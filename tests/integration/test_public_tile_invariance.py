@@ -39,6 +39,7 @@ from hebog import SourceFinderConfig, SourceFinderRequest, public_api
 from hebog.algorithms.multiscale import BeamShapePixels
 from hebog.algorithms.multiscale_tiles import scale_filter_halo_pixels
 from hebog.data_models import (
+    ImageBounds,
     PartitionManifest,
     PublicSourceFindingDiagnostics,
     WideObjectCounts,
@@ -52,6 +53,7 @@ from hebog.executors import (
 from hebog.io import read_diagnostics_product
 from hebog.pipeline import SourceFinderResult
 from hebog.stages import batching, composition
+from hebog.stages.batching import read_pixels
 
 pytestmark = pytest.mark.integration
 
@@ -335,7 +337,7 @@ class _CountingSerial(SerialExecutor):
 
 
 class _CountingThreads(ThreadExecutor):
-    """Four threads, counting the tasks of each round."""
+    """Four threads, counting the tasks of each round and keeping them."""
 
     def __init__(self) -> None:
         """Start with no round submitted."""
@@ -343,6 +345,7 @@ class _CountingThreads(ThreadExecutor):
         self.round_sizes: list[int] = []
         self.rounds: list[tuple[str, int]] = []
         self.declared_bytes: dict[str, int] = {}
+        self.batches: dict[str, tuple[Any, ...]] = {}
 
     def map_batches[Input, Output](
         self,
@@ -355,6 +358,7 @@ class _CountingThreads(ThreadExecutor):
         submitted = tuple(batches)
         self.round_sizes.append(len(submitted))
         self.rounds.append((_round_name(function), len(submitted)))
+        self.batches[_round_name(function)] = submitted
         _declare(self.declared_bytes, _round_name(function), requirement)
         return super().map_batches(
             function, submitted, requirement=requirement
@@ -435,16 +439,37 @@ def test_a_wider_budget_runs_on_smaller_tiles_and_keeps_the_products(
     assert product_hashes(wide) == product_hashes(one_tile)
 
 
-@pytest.mark.parametrize("round_name", ["_fit_batch", "_group_batch"])
-def test_a_wider_executor_splits_object_rounds_and_keeps_the_products(
+def _parent_windows(batch: Any) -> tuple[ImageBounds, ...]:
+    """Return the window each fit parent of one batch is measured in."""
+    return tuple(parent.read_bounds for parent in batch.parents)
+
+
+def _feature_windows(batch: Any) -> tuple[ImageBounds, ...]:
+    """Return the window each support feature of one batch is grouped in."""
+    return tuple(feature.window for feature in batch.features)
+
+
+@pytest.mark.parametrize(
+    ("round_name", "object_windows"),
+    [
+        pytest.param("_fit_batch", _parent_windows, id="component-fits"),
+        pytest.param("_group_batch", _feature_windows, id="extended-groups"),
+    ],
+)
+def test_a_wider_executor_splits_object_rounds_by_cost_and_keeps_products(
     tmp_path: Path,
     one_tile: SourceFinderResult,
     round_name: str,
+    object_windows: Callable[[Any], tuple[ImageBounds, ...]],
 ) -> None:
     """Four threads share an object round that one task would hold serially.
 
     The whole image fits one batch's read budget, so serially each object
-    round is one task, and on four threads the slots would wait on it.
+    round is one task, and on four threads the slots would wait on it. An
+    object's time follows the pixels of its window, so no batch of several
+    objects holds more than a sixteenth of the round's window pixels, four
+    batches a slot; a filament's window larger than that is a batch of its
+    own.
     """
     serial, threads = _CountingSerial(), _CountingThreads()
 
@@ -458,6 +483,17 @@ def test_a_wider_executor_splits_object_rounds_and_keeps_the_products(
 
     assert dict(serial.rounds)[round_name] == 1
     assert dict(threads.rounds)[round_name] >= _THREAD_SLOTS
+    costs = [
+        [read_pixels(window) for window in object_windows(batch)]
+        for batch in threads.batches[round_name]
+    ]
+    share = sum(map(sum, costs)) // (4 * _THREAD_SLOTS)
+    assert all(sum(batch) <= share or len(batch) == 1 for batch in costs)
+    # Each task declares the largest read of its round's batches, so the
+    # smaller batches declare no more than the serial round's one batch.
+    assert (
+        threads.declared_bytes[round_name] <= serial.declared_bytes[round_name]
+    )
     assert product_hashes(wide) == product_hashes(narrow)
 
 
