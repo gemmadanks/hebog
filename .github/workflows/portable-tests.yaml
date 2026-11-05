@@ -42,6 +42,9 @@ jobs:
   shard:
     name: ${{ inputs.id }} / shard ${{ matrix.group }}
     runs-on: ${{ inputs.os }}
+    # A shard takes about half an hour at most; without this a stalled one
+    # holds the run for GitHub's six hours.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +92,7 @@ jobs:
           -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data"
           --splits ${{ inputs.splits }} --group ${{ matrix.group }}
           --splitting-algorithm least_duration
+          -o faulthandler_timeout=1200 -o faulthandler_exit_on_timeout=true
           --durations=50 --junitxml=test-results/junit.xml
           --store-durations --clean-durations
           --durations-path=test-results/durations.json

@@ -247,6 +247,7 @@ def test_profile_workers_admit_by_their_limit_and_never_pause_or_restart() -> (
     on Hebog. A limit far below a worker's own memory would otherwise pause
     or restart it before any task runs.
     """
+    import dask.config  # noqa: PLC0415
     from distributed import Client  # noqa: PLC0415
 
     from hebog.validation.profile_cluster import (  # noqa: PLC0415
@@ -261,7 +262,16 @@ def test_profile_workers_admit_by_their_limit_and_never_pause_or_restart() -> (
             for name in ("target", "spill", "pause", "terminate")
         ]
 
-    cluster = local_profile_cluster(2, memory_limit_bytes=1_000)
+    # Dask's defaults, which the test session turns off, so that the profile
+    # cluster has to turn them off itself.
+    defaults = {
+        "distributed.worker.memory.target": 0.6,
+        "distributed.worker.memory.spill": 0.7,
+        "distributed.worker.memory.pause": 0.8,
+        "distributed.worker.memory.terminate": 0.95,
+    }
+    with dask.config.set(defaults):
+        cluster = local_profile_cluster(2, memory_limit_bytes=1_000)
     with cluster, Client(cluster, timeout="60s") as client:
         policies = cast(
             dict[str, tuple[int, list[object]]], client.run(memory_policy)
