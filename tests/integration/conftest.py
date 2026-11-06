@@ -11,6 +11,7 @@ from dataclasses import fields, is_dataclass, replace
 from pathlib import Path
 from typing import Any, TypeVar, cast
 
+import dask.config
 import numpy as np
 import numpy.typing as npt
 import pytest
@@ -54,6 +55,23 @@ def _thread_executor() -> Generator[Executor]:
     """Yield a caller-owned pool of four threads in this process."""
     with ThreadExecutor(thread_count=4) as executor:
         yield executor
+
+
+def pytest_configure() -> None:
+    """Stop Dask acting on memory in tests.
+
+    An in-process worker measures the whole pytest process against its share
+    of the machine, 3.5 GiB of a 7 GiB runner for each of two workers. Past
+    80% it pauses, and while a session's memory stays there its tasks never
+    run and the test waits for good. Pytest loads this file while collecting,
+    so the setting also reaches tests elsewhere in the same session.
+    """
+    dask.config.set(
+        {
+            f"distributed.worker.memory.{name}": False
+            for name in ("target", "spill", "pause", "terminate")
+        }
+    )
 
 
 @contextmanager

@@ -27,14 +27,14 @@ def test_every_matrix_environment_has_a_complete_shard_plan() -> None:
         ("ubuntu-latest", "3.12"),
         ("ubuntu-latest", "3.13"),
         ("ubuntu-latest", "3.14"),
-        ("macos-14", "3.14"),
+        ("macos-15", "3.14"),
         ("windows-latest", "3.14"),
     }
     assert len(environments) == 5
     for row in (*environments, jobs["lowest-shards"]["with"]):
         groups = json.loads(row["groups"])
         assert groups == list(range(1, row["splits"] + 1))
-        assert row["workers"] == (2 if row["os"] == "macos-14" else 4)
+        assert row["workers"] == (2 if row["os"] == "macos-15" else 4)
     assert [
         (row["os"], row["python"]) for row in environments if row["coverage"]
     ] == [("ubuntu-latest", "3.14")]

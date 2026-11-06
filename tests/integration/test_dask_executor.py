@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false
 """Integration tests for execution on a local Dask scheduler."""
 
 import threading
@@ -41,6 +42,29 @@ def test_dask_executor_matches_serial_executor() -> None:
         actual = DaskExecutor(client).map_batches(_square, inputs)
 
     assert actual == expected
+
+
+@pytest.mark.integration
+def test_a_large_test_process_does_not_pause_its_in_process_worker() -> None:
+    """A test's worker runs tasks however much the test process holds.
+
+    An in-process worker measures the whole pytest process against its share
+    of the machine, so on a small CI runner a session's memory could pause it
+    for good, and the executor's wait would then never return.
+    """
+    cluster = LocalCluster(
+        n_workers=1,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address=":0",
+        memory_limit=1_000_000,
+    )
+    with cluster, Client(cluster) as client:
+        # Longer than the worker's memory monitor takes to act on the limit.
+        time.sleep(1.0)
+        future = client.submit(_square, 3)
+
+        assert future.result(timeout=10) == 9
 
 
 def _record_interval(value: int) -> int:
