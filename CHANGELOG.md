@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.0](https://github.com/gemmadanks/hebog/compare/v0.24.0...v0.25.0) (2026-11-06)
+
+
+### 🚀 Features
+
+* project the speed gate to one cluster node and set Hebog's targets ([#204](https://github.com/gemmadanks/hebog/issues/204)) ([423bbab](https://github.com/gemmadanks/hebog/commit/423bbab1139c5436464fd95b38bf6ddb9bfe604c))
+
+
+### 🐛 Bug Fixes
+
+* keep detections independent of how an image is tiled ([#206](https://github.com/gemmadanks/hebog/issues/206)) ([50e4e6e](https://github.com/gemmadanks/hebog/commit/50e4e6e1d0483aebef137ede7121ce1256bb422f))
+
+
+### ⚡ Performance
+
+* shorten the longest source-fitting tasks on crowded sectors ([#208](https://github.com/gemmadanks/hebog/issues/208)) ([ee27444](https://github.com/gemmadanks/hebog/commit/ee2744488f5038734626c5774dbd11c8545b0d22))
+* split a sector into smaller tiles when more workers are free ([#207](https://github.com/gemmadanks/hebog/issues/207)) ([bf1989a](https://github.com/gemmadanks/hebog/commit/bf1989a16c978c99dc249c04f6a092bf2227a2ec))
+
+
+### 📚 Documentation
+
+* record that PyBDSF scales past four cores on sparse sectors ([#205](https://github.com/gemmadanks/hebog/issues/205)) ([bd74287](https://github.com/gemmadanks/hebog/commit/bd74287490dc3d3d3ece34b3981fe0a0682976ea))
+* record the 0.24.0 release and the dense sector's core sweep ([#202](https://github.com/gemmadanks/hebog/issues/202)) ([48574ff](https://github.com/gemmadanks/hebog/commit/48574ffdd514de8900f6fef7383e49613dbfa594))
+
 ## [0.24.0](https://github.com/gemmadanks/hebog/compare/v0.23.0...v0.24.0) (2026-10-23)
 
 
