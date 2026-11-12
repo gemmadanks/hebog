@@ -92,8 +92,35 @@ of `cores`, and Dask starts it only on a worker with that much of both
 still free. The names are yours, so they can match resources your own
 tasks already request. Hebog reads the workers' amounts as its budget, and
 refuses to start when no worker declares them, since Dask would otherwise
-hold the tasks forever. Hebog does not pin tasks to workers; spill policy
-stays under your control.
+hold the tasks forever. Hebog does not pin tasks to workers.
+
+Turn off Dask's own memory actions on the workers that run Hebog's tasks.
+By default Dask pauses a worker whose process holds more than 80% of its
+memory limit, counting memory the allocator keeps after a large task, and
+a paused worker starts no task, so the analysis can wait for good. Hebog's
+declared memory already keeps its tasks within the workers' limits, and
+its workers hold no data between tasks for Dask to spill. Set this before
+starting the workers:
+
+```bash
+export DASK_DISTRIBUTED__WORKER__MEMORY__TARGET=False
+export DASK_DISTRIBUTED__WORKER__MEMORY__SPILL=False
+export DASK_DISTRIBUTED__WORKER__MEMORY__PAUSE=False
+export DASK_DISTRIBUTED__WORKER__MEMORY__TERMINATE=False
+```
+
+For a `LocalCluster`, set the same in `dask.config` before creating it:
+
+```python
+import dask.config
+
+dask.config.set(
+    {
+        f"distributed.worker.memory.{name}": False
+        for name in ("target", "spill", "pause", "terminate")
+    }
+)
+```
 
 Reserve memory for the analysis itself too. In the process that calls it,
 `find_sources` holds Hebog's modules, the records every pass keeps for each
