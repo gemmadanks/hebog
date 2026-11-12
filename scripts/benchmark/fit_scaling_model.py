@@ -107,9 +107,10 @@ _ASSUMPTIONS = (
     {
         "assumption": "Master's parallel parts use at most the cores its "
         "core sweep shows them using, on any node.",
-        "evidence": "Its Gaussian fitting takes the same time on 4 and 6 "
-        "cores (pybdsf_gaussian_fit_seconds): one bin of islands bounds "
-        "it. Only the dense cell has a sweep.",
+        "evidence": "On the dense cell its Gaussian fitting takes the "
+        "same time on 4 and 6 cores (pybdsf_gaussian_fit_seconds): one bin "
+        "of islands bounds it. The sparse cell's sweep, when present, sets "
+        "sparse sectors' cap; its fit finds none up to six cores.",
         "effect": "Without the cap master would be faster on a node; "
         "master_amdahl_seconds and the *_master_amdahl ratios and "
         "targets give that bound. A sector's cap never undercuts the "
@@ -134,9 +135,11 @@ _ASSUMPTIONS = (
     {
         "assumption": "Hebog's rounds keep the task time and longest task "
         "measured on four workers.",
-        "evidence": "Rounds of objects split until each slot has two "
-        "batches, so a node's slots shorten their longest tasks further; "
-        "tile rounds already run one tile a task at 5,000². The profile "
+        "evidence": "Rounds of objects close a batch at a share of their "
+        "objects' summed windows, four batches a slot, so a node's slots "
+        "shorten their longest tasks further until one costly object bounds "
+        "them; tile rounds already run one 1,024-pixel tile a task at "
+        "5,000², which more slots cannot split. The profile "
         "merges a round's repeated invocations under one name, such as "
         "the true-sky and flat-noise background passes, keeping one "
         "longest task.",

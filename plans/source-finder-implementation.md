@@ -1,6 +1,6 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan for 1.0.0. Updated **16 October 2026**.
+Authoritative remaining-work plan for 1.0.0. Updated **12 November 2026**.
 
 This file holds the definition of 1.0.0, the rules that govern the work, the
 ordered tasks that remain, the decisions the maintainer still has to take,
@@ -18,15 +18,15 @@ tooling are in Git history at `4babf0b`.
 The figures behind this table, with their dates and run labels, are on the
 progress page; the two change together.
 
-| Item | Position on 4 November 2026 |
+| Item | Position on 12 November 2026 |
 | --- | --- |
-| Release | v0.24.0 (23 October) keeps every Dask worker busy on sectors up to 5,000 pixels and holds less memory for the local noise of large images; it passed its release check on 22 October with products unchanged, and its whole-mosaic traced peak, measured on 24 October, is unchanged from 0.23.0's. v0.23.0 (20 October) carries `continuum` by default for Rapthor, the crowded-field repairs, the analysis memory statement and the 22,500² tier. v0.22.0 (17 October), the first release on PyPI, carried the Rapthor integration (tasks 16, 20, 21, 23 and 77) and one sector's speed (tasks 73, 74, 71, 55 and 54). Every release is experimental and scientifically unqualified. |
+| Release | v0.25.0 (9 November) carries task 72's first increment: detections independent of the tile grid, tile cores sized from the free task slots and component-fit batches closed by their objects' cost. It passed its release check on 5 November with catalogue, RMS and mask unchanged from 0.24.0; on the 10,000² anchor its largest Dask worker's peak is 12% higher, a trade-off for grid-independent detections that the maintainer accepted on 12 November. v0.24.0 (23 October) keeps every Dask worker busy on sectors up to 5,000 pixels and holds less memory for the local noise of large images. v0.23.0 (20 October) carries `continuum` by default for Rapthor, the crowded-field repairs, the analysis memory statement and the 22,500² tier. v0.22.0 (17 October), the first release on PyPI, carried the Rapthor integration (tasks 16, 20, 21, 23 and 77) and one sector's speed (tasks 73, 74, 71, 55 and 54). Every release is experimental and scientifically unqualified. |
 | Candidate | Public composition v23 with `continuum`'s crowded-field noise repaired (18 October); admitting the 22,500² tier moved no quick-check result. Development-unqualified. |
 | Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 22,500² envelope, admitted on 19 October. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.23.0 on PyPI the branch is ready to push (task 79). |
 | Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October): at most 0.50 of pinned `master`'s on dense sectors, provisionally those where `master` finds at least 10,000 sources, and no slower than `master` on the rest (decision of 18 October). Every cell of the 5,000² source-count ladder fails its limit on Rapthor's thread path with four cores: Hebog's finder part is 3.14 to 4.85 times `master`'s on sparse sectors and 3.16 and 2.26 on the two dense ones (the second from the full protocol), with Hebog keeping 1.3 of four cores busy against `master`'s 2.1; on this path the ratio tends to about 1.7 as sources grow. Hebog's profile of the dense cell shows the thread path held by the interpreter lock: four threads finish it 1.18 times faster than one, four single-threaded Dask workers 2.63 times (21 October). In the matched container on single-threaded Dask workers, one a core, Hebog's finder part on the dense cell is 1.03, 1.08, 1.07 and 1.00 times `master`'s on one, two, four and six cores, half its ratio on threads, with identical products at every worker count, and past four cores both finders gain little (22 to 24 October); on the sparse LoTSS-DR3 cell it is 1.65, 1.74 and 1.72 on one, four and six cores, also half its ratio on threads, and both finders still gain past four cores (24 October). A model fitted to these measurements projects 0.24.0 to one cluster node, against `master` on all its cores and if emulation slows both finders alike: 0.42 on the dense cell and 0.49 at 14,126 sources if `master` uses no more of a dense sector's node than the four cores the dense cell's sweep shows, or 0.75 and 0.94 if it used every core, and 0.67 to 1.26 on the sparse sectors, where the sparse cell's sweep gives `master` every core, so three of the four miss parity; on a node Hebog's time nears its floor, the driver's time plus each round's longest task (24 October). Choosing the tile core from the executor's budget shortens those longest tasks and the 5,000² cells' runs on four and six Dask workers, and closing the object rounds' batches at a share of their estimated cost shortens the dense cell's further, with products unchanged (4 November). On the 3,000² sector Hebog's finder part is 2.43 times `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor, where `master` finds 9,276 sources, it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
 | Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate. |
 | Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, on the local dense cell about `master`'s time on Dask workers and more than twice it on Rapthor's thread path, and more on sparse sectors, where `master` keeps gaining past four cores; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: prepare task 72's first increment for merging on the image-anchored filter blocks, now on `main`: the tile cores from the core budget and the object rounds' batches. Human: merge them and release, decide Hebog's executor under Rapthor, which the sweeps have measured, and take task 72's checkpoint (decisions 4 to 6); push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF report drafted on 20 October (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`), and take the [decisions below](#decisions-pending). |
+| Next action | Agent: re-measure the dense and sparse cells' floors on 0.25.0 and refit the model, then task 72's next increment in the order the checkpoint sets. Human: take task 72's checkpoint (decisions 3 to 5); push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF report drafted on 20 October (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`), and take the [decisions below](#decisions-pending). |
 | Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October); task 15 sits before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
 
 ## Definition of 1.0.0
@@ -93,7 +93,14 @@ is a separate Rapthor decision taken after an operational soak of the
 
 Each decision names the maintainer's call and the agent's recommendation.
 A decision taken here is recorded in the affected row and in the commit,
-never in `LOG.md`. Decided on 18 October: the performance gate binds
+never in `LOG.md`. Decided on 12 November: Rapthor's Hebog task runs the
+analysis on single-threaded Dask worker processes for the cores Rapthor
+gives the step, on a cluster the task owns with Dask's memory actions
+off, and keeps the thread executor for small sectors and tests, since
+the interpreter lock holds the thread path (task 72's third increment);
+and 0.25.0's 12% higher Dask worker peak on the 10,000² anchor is
+accepted as the cost of grid-independent detections. Decided on 18
+October: the performance gate binds
 dense sectors, provisionally those where pinned `master` finds at least
 10,000 sources, at 0.50 of `master`'s finder part, and the rest at no
 slower than `master` (an upper bound of 1.05), with each finder's growth
@@ -128,18 +135,7 @@ after 1.0.0.
    efficiency floor at 10 nodes from the local curve and the contract's
    per-topology floors, and the maintainer approves it with the contract
    amendment.
-3. **Hebog's executor under Rapthor.** Rapthor's Hebog task runs the
-   analysis on a thread executor, and the interpreter lock holds it: four
-   threads finish the dense cell 1.18 times faster than one, four
-   single-threaded Dask worker processes 2.63 times, and no tiling or
-   batching change lifts the thread path. In the matched container the
-   dense cell's finder part is 1.07 times `master`'s on four Dask worker
-   processes against 2.26 on four threads, with identical products.
-   *Recommendation:* Rapthor's Hebog task runs the analysis on
-   single-threaded Dask worker processes for the cores Rapthor gives the
-   step, a cluster Rapthor's task owns, keeping the thread executor for
-   small sectors and tests.
-4. **The dense-sector threshold.** Provisionally 10,000 sources in pinned
+3. **The dense-sector threshold.** Provisionally 10,000 sources in pinned
    `master`'s catalogue. In task 72's model 0.24.0 projects to 0.49 at
    14,126 sources, if `master` uses no more of a dense sector's node than
    four cores; lines fitted to both finders' times on one node cross 0.50
@@ -150,7 +146,7 @@ after 1.0.0.
    *Recommendation:* keep 10,000: it marks where PyBDSF is slow, which the
    gate binds, and moving it to the model's crossing would fit the gate to
    the candidate.
-5. **Task 72's targets and the order of its increments.** On one node
+4. **Task 72's targets and the order of its increments.** On one node
    Hebog's time nears its floor, the driver's time plus each round's
    longest task: 190 s natively on the dense cell and 59 s on the sparse
    LoTSS-DR3 cell, half of it driver time. *Recommendation:* the
@@ -175,7 +171,7 @@ after 1.0.0.
    both need it; then waiting and sharing, with the driver's time; then
    both branches together, which saves only the flat-noise pass's floor at
    5,000².
-6. **Per-source costs.** On a node Hebog's time grows 6.2 ms a source
+5. **Per-source costs.** On a node Hebog's time grows 6.2 ms a source
    natively, against a target of 4.6 ms if `master` uses every core of
    every sector's node, or 9.5 ms from lines that give it four cores on
    dense sectors and every core on sparse ones. Its per-source task work, in
@@ -460,10 +456,14 @@ steps. It then lands as four increments, each merged and released in turn
   local multi-worker cluster runs one analysis, several concurrent
   analyses and workers joining between analyses without deadlock or changed
   products.
-- **Rapthor's distributed path.** The branch passes its client and resource
-  names (`memory_resource`, `core_resource`) to `DaskExecutor`, reserves
-  the analysis memory on the driving task and retires its interim thread
-  path. Hebog's adapter takes over the image's source-count estimate and
+- **Rapthor's distributed path.** The branch runs the analysis on
+  single-threaded Dask worker processes for the step's cores, on a cluster
+  its task owns with Dask's spill, pause and terminate actions off, since a
+  paused worker never runs its task (decision of 12 November); it passes
+  its client and resource names (`memory_resource`, `core_resource`) to
+  `DaskExecutor`, reserves the analysis memory on the driving task and
+  keeps its thread path for small sectors and tests. Hebog's adapter
+  takes over the image's source-count estimate and
   the analysis reservation, so Rapthor supplies only the memory budget
   (decision of 17 October). What Hebog needs from a cluster is documented for any caller
   ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)),
