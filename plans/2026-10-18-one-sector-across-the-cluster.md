@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-11-12 |
+| Last updated | 2026-11-13 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -133,16 +133,17 @@ one bin of islands appears to bound its main Gaussian fitting, 593 and
 while on the sparse cell its fitting falls from 39 s to 28 s. The model
 therefore gives `master` four cores of a dense sector's node and every
 core of a sparse one's. On a node Hebog nears its floor, the driver's
-time with no task running plus each round's longest task: 190 s natively
-on the dense cell, 83 s of it driver and 84 s the component-fit,
-extended-group and publication rounds' longest tasks. If emulation slows
-both finders alike, 0.24.0 on one node meets 0.50 on the dense cell
-(0.42) and, narrowly, at 14,126 sources (0.49), and misses parity on three of the
-four sparse sectors (1.06 to 1.26; the fourth 0.67); lines fitted to both finders' times
-cross the dense limit at about 14,100 to 14,600 sources, a crossing that
-reflects the change of cap between the classes as much as either
-finder's growth. If `master` used every core of a dense sector's node,
-the dense cell projects to 0.75 and the 14,126-source sector to 0.94.
+time with no task running plus each round's longest task: at 0.25.0,
+132 s natively on the dense cell, 79 s of it driver and 37 s the
+component-fit, support-publication and extended-group rounds' longest
+tasks (190 s at 0.24.0). If emulation slows both finders alike, 0.25.0 on
+one node meets 0.50 on the dense cell (0.30) and at 14,126 sources (0.38),
+and parity on all four sparse sectors (0.52 to 1.03, the noise ×4 sector
+narrowly); lines fitted to both finders' times cross the dense limit at
+about 8,400 to 8,600 sources, a crossing that reflects the change of cap
+between the classes as much as either finder's growth. If `master` used
+every core of a dense sector's node, the dense cell projects to 0.53 and
+the 14,126-source sector to 0.72.
 
 Run `task74-stack` (15 October) took the 10,000² anchor from 1,357 s on
 one worker to 429 s on six. An Amdahl fit gives 250 s serial and 1,085 s
@@ -197,7 +198,7 @@ The code shows where the serial work comes from:
 | Question | Owner | Needed by | Status or answer |
 | --- | --- | --- | --- |
 | Whether Rapthor's layout gives Hebog's Dask client several task slots a node, which is Rapthor's change. | Human | Step 7 | `open` |
-| The dense threshold. | Human | Checkpoint after step 4 | Provisionally 10,000 sources; the model's lines cross 0.50 at about 14,100 to 14,600, joining sparse sectors where `master` uses every core to dense ones where it uses four |
+| The dense threshold. | Human | Checkpoint after step 4 | Provisionally 10,000 sources; at 0.25.0 the model's lines cross 0.50 at about 8,400 to 8,600, joining sparse sectors where `master` uses every core to dense ones where it uses four |
 | Whether per-source costs (association, fits and catalogue rows) join task 72 if the model shows they decide the dense gate. | Human | Checkpoint after step 4 | `open`; on a node the task work per source spreads across the cores, while the driver's per-source work, the catalogue write, reconciliation and catalogue records, is a third of the dense cell's driver time |
 
 ## Proposed approach
@@ -250,7 +251,7 @@ and the quick benchmark and profile before and after show the gain.
 | 3 | Measure: both finders on the ladder at four cores (one warm-up, two repetitions) and the full protocol on the dense cell (one warm-up, five); both on the dense cell at 1, 2, 4 and 6 cores, Hebog on as many single-threaded Dask workers (screening repetitions); Hebog's stage profile on the dense cell (1 and 4 threads; 1, 2, 4 and 6 Dask workers) and the anchor (1, 2, 4 and 6 Dask workers) | Agent | `done` | Evidence records and reports under `benchmark-results/` |
 | 4 | Fit the model, project the ratios and set the targets; refit it to a sparse sector's core sweep (1, 4 and 6 cores) and native profiles of every ladder sector | Agent | `done` | Model, projections and targets on the progress page (runs `step4` and `step4-night5-sweeps`) |
 | — | Checkpoint: threshold, targets, increment order and whether per-source costs join | Human | `not started` | Decisions recorded in the implementation plan |
-| 5 | Increment 1, core budget and cost model, with the batched candidate scan | Agent | `in progress` | Tests; scaling profile before and after; quick check and quick benchmark; release |
+| 5 | Increment 1, core budget and cost model, with the batched candidate scan | Agent | `done` | Tests; scaling profile before and after; quick check and quick benchmark; release 0.25.0; floors re-measured (run `release-0.25.0`) |
 | 6 | Increment 2, waiting and sharing, with completion order, the split completion record and task-reported checksums | Agent | `not started` | As step 5; concurrent-analysis and joining-worker tests |
 | 7 | Increment 3, Rapthor's distributed path | Agent, human on Rapthor | `not started` | Adapter and Rapthor-branch tests; integration container summary |
 | 8 | Increment 4, both branches together | Agent | `not started` | As step 5 |
@@ -310,3 +311,4 @@ and the quick benchmark and profile before and after show the gain.
 | 2026-10-24 | Progress | The component-fit and extended-group rounds close a batch at a share of the objects' summed window pixels, four batches a task slot, instead of a share of the objects, two a slot: summed over a batch, an object's window tracks the batch's time better than the object count, and a batch spends nearly all its time measuring rather than reading. Five runs a side shorten the dense cell's runs by 1.3% on four workers, leave its gain on six within noise and the sparse cell unchanged, with products unchanged, and nearly halve the dense cell's longest fitting tasks. The costliest single fit parent now bounds the component fits on many slots. | Agent: increment 1's release once both changes merge; maintainer: the bound (pending decisions) |
 | 2026-11-09 | Progress | 0.25.0 releases increment 1 on the image-anchored filter blocks. Its release check leaves catalogue, RMS and mask unchanged from 0.24.0; on the 10,000² anchor four Dask workers take 1.009 times 0.24.0's time and their largest worker's peak is 1.12 times, five alternating runs a side. | Agent: re-measure the floors on 0.25.0 |
 | 2026-11-12 | Decision | Rapthor's Hebog task runs the analysis on single-threaded Dask worker processes for the step's cores, on a cluster it owns with Dask's memory actions off, keeping the thread executor for small sectors and tests; 0.25.0's higher worker peak is accepted. | Agent: increment 3 carries the executor |
+| 2026-11-13 | Progress | On 0.25.0 the floors on four Dask workers fall to 132 s on the dense cell and 46 s on the sparse one, from 190 s and 59 s, and Hebog's time on a node grows 4.0 ms a source instead of 6.2 ms. The refitted model projects every limit met on one node if `master` uses four cores of a dense sector's node, the noise ×4 sector narrowly (1.03), and 0.53 and 0.72 on the two dense sectors if it used every core. Serial on the 10,000² anchor takes 1.000 times 0.24.0's time, five alternating runs a side. | Maintainer: the checkpoint; agent: the next increment in its order |
