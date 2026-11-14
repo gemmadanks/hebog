@@ -45,7 +45,8 @@ worker processes of its own (see below). Hebog's own tasks never start a
 cluster.
 
 Optionally declare the budget Hebog may use. Without it, `DaskExecutor` reads
-the cluster's current size:
+the cluster's size again for each round, so workers that join while an
+analysis runs take its later rounds:
 
 ```python
 from hebog.executors import ExecutorCapacity

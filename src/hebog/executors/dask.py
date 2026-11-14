@@ -86,10 +86,15 @@ class DaskExecutor:
 
     @property
     def capacity(self) -> ExecutorCapacity:
-        """Return the declared budget, or the cluster's current one."""
-        if self._declared_capacity is None:
-            self._declared_capacity = self._cluster_capacity()
-        return self._declared_capacity
+        """Return the declared budget, or the cluster's current one.
+
+        An undeclared budget is read from the cluster each time, so
+        workers that join or leave while an analysis runs change the
+        rounds that follow.
+        """
+        if self._declared_capacity is not None:
+            return self._declared_capacity
+        return self._cluster_capacity()
 
     def _workers(self) -> list[dict[str, Any]]:
         """Return what the caller's cluster reports of each current worker."""
@@ -216,9 +221,10 @@ class DaskExecutor:
         the failure of the earliest batch is raised, as the serial
         reference would raise it.
         """
-        self.capacity.admit(requirement)
+        capacity = self.capacity
+        capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
-        limit = admitted_tasks_in_flight(self.capacity, requirement)
+        limit = admitted_tasks_in_flight(capacity, requirement)
         resources = self._task_resources(requirement)
         self._require_a_worker_for(resources)
         # Each future stays in flight until it has settled, so an exception

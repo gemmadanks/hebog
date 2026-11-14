@@ -45,6 +45,25 @@ def test_dask_executor_matches_serial_executor() -> None:
 
 
 @pytest.mark.integration
+def test_a_worker_that_joins_takes_the_next_round() -> None:
+    """A cluster that grows between rounds admits the later rounds wider."""
+    cluster = LocalCluster(
+        n_workers=1,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address=":0",
+    )
+    with cluster, Client(cluster) as client:
+        executor = DaskExecutor(client)
+        assert executor.map_batches(_square, [1, 2]) == [1, 4]
+        cluster.scale(2)
+        client.wait_for_workers(2)
+
+        assert executor.capacity.worker_count == 2
+        assert executor.map_batches(_square, [3, 4]) == [9, 16]
+
+
+@pytest.mark.integration
 def test_a_large_test_process_does_not_pause_its_in_process_worker() -> None:
     """A test's worker runs tasks however much the test process holds.
 

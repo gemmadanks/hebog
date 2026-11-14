@@ -184,6 +184,11 @@ class _StubClient:
         self.submitted_resources: list[dict[str, float] | None] = []
         self._nthreads = nthreads
         self._resources = resources
+        self._joined: list[int] = []
+
+    def add_worker(self, *, nthreads: int) -> None:
+        """Let one more worker join, as a scaling cluster would."""
+        self._joined.append(nthreads)
 
     def outstanding(self) -> int:
         """Return how many submitted tasks have not settled."""
@@ -191,18 +196,23 @@ class _StubClient:
 
     def scheduler_info(self) -> dict[str, Any]:
         """Report the budget a caller-owned cluster would report."""
-        return {
-            "workers": {
-                f"tcp://worker-{index}": {
-                    "nthreads": self._nthreads,
-                    "memory_limit": memory_limit,
-                    "resources": resources,
-                }
-                for index, (memory_limit, resources) in enumerate(
-                    zip((2_000, 4_000), self._resources, strict=True), start=1
-                )
+        workers = {
+            f"tcp://worker-{index}": {
+                "nthreads": self._nthreads,
+                "memory_limit": memory_limit,
+                "resources": resources,
             }
+            for index, (memory_limit, resources) in enumerate(
+                zip((2_000, 4_000), self._resources, strict=True), start=1
+            )
         }
+        for index, nthreads in enumerate(self._joined, start=3):
+            workers[f"tcp://worker-{index}"] = {
+                "nthreads": nthreads,
+                "memory_limit": 4_000,
+                "resources": {},
+            }
+        return {"workers": workers}
 
     def submit(
         self,
@@ -237,6 +247,31 @@ def test_dask_executor_reads_the_cluster_budget() -> None:
     assert capacity.threads_per_worker == 4
     assert capacity.maximum_tasks_in_flight == 16
     assert capacity.memory_bytes_per_worker == 2_000
+
+
+def test_dask_executor_reads_a_joining_worker_into_its_budget() -> None:
+    """Workers that join while the analysis runs take its later rounds."""
+    client = _StubClient()
+    executor = _stub_executor(client)
+    assert executor.capacity.worker_count == 2
+
+    client.add_worker(nthreads=4)
+
+    assert executor.capacity.worker_count == 3
+    assert executor.capacity.maximum_tasks_in_flight == 24
+
+
+def test_dask_executor_keeps_a_declared_budget() -> None:
+    """A budget the caller states holds however the cluster changes."""
+    client = _StubClient()
+    declared = ExecutorCapacity(
+        worker_count=1, threads_per_worker=2, maximum_tasks_in_flight=2
+    )
+    executor = _stub_executor(client, capacity=declared)
+
+    client.add_worker(nthreads=4)
+
+    assert executor.capacity == declared
 
 
 _NAMED_RESOURCES = (
