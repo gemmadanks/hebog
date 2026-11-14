@@ -413,7 +413,8 @@ def test_dask_executor_bounds_submission(
     results = executor.map_batches(_square, list(range(9)))
 
     assert results == [value**2 for value in range(9)]
-    assert _peak_in_flight(client.events) <= 3
+    # Each submission joins the tasks still outstanding.
+    assert max(client.outstanding_at_submit) + 1 == 3
 
 
 @pytest.mark.parametrize(
@@ -513,16 +514,6 @@ def test_executors_package_rejects_an_unknown_name() -> None:
 
     with pytest.raises(AttributeError, match="ClusterExecutor"):
         _ = executors_package.ClusterExecutor  # pyright: ignore[reportAttributeAccessIssue]
-
-
-def _peak_in_flight(events: list[str]) -> int:
-    """Return the most tasks outstanding at once in one submission log."""
-    in_flight = 0
-    peak = 0
-    for event in events:
-        in_flight += 1 if event.startswith("submit") else -1
-        peak = max(peak, in_flight)
-    return peak
 
 
 def _stub_bounded_executor(client: _StubClient) -> Any:

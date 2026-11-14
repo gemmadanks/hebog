@@ -255,9 +255,11 @@ All executors obey the same rules, so a defect shows up on a laptop under
 - Submission is bounded by `capacity.maximum_tasks_in_flight`. A
   `TaskRequirement` (memory and threads) narrows that bound and is refused up
   front if one task cannot fit one worker. Every round declares one, as
-  described [below](#memory).
-- After a failure nothing more is submitted, and the call raises the first
-  failing batch's own error only once no task it submitted is still running,
+  described [below](#memory). Whichever task finishes makes room for the
+  next, so one slow task holds only its own slot.
+- After a failure nothing more is submitted, and the call raises the error of
+  the earliest failing batch, as the serial reference would, only once no
+  task it submitted is still running,
   so none writes into a work directory the caller is removing. Dask cannot
   stop a task a worker has started, so `DaskExecutor` waits for every task
   in flight rather than cancelling it.

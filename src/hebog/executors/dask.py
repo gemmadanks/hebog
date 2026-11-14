@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import deque
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 from typing import Any, TypeVar, cast
@@ -49,8 +48,8 @@ class DaskExecutor:
     """Submit coarse batches to an existing Dask client.
 
     Hebog never creates, resizes or closes the client. Submission stays
-    within the admitted in-flight bound and results are consumed in input
-    order.
+    within the admitted in-flight bound, a task is submitted whenever one
+    finishes, and results are returned in input order.
 
     ``memory_resource`` and ``core_resource`` name Dask worker resources
     the caller declared, for example with ``dask worker --resources
@@ -211,34 +210,57 @@ class DaskExecutor:
     ) -> list[Output]:
         """Submit batches and gather their results in input order.
 
-        No more tasks are in flight than the admitted bound, and the oldest
-        is consumed before another is submitted.
+        No more tasks are in flight than the admitted bound, and each task
+        that finishes, whichever it is, makes room for the next batch. A
+        failure stops submission; once every task in flight has settled,
+        the failure of the earliest batch is raised, as the serial
+        reference would raise it.
         """
         self.capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
         limit = admitted_tasks_in_flight(self.capacity, requirement)
         resources = self._task_resources(requirement)
         self._require_a_worker_for(resources)
-        in_flight: deque[Any] = deque()
-        results: list[Output] = []
+        # Each future stays in flight until it has settled, so an exception
+        # that reaches the driver while it waits, as a caller's deadline
+        # does, still waits for every task below.
+        in_flight: dict[Any, int] = {}
+        results: dict[int, Output] = {}
         submitted = 0
         try:
             while submitted < len(prepared) or in_flight:
                 while len(in_flight) < limit and submitted < len(prepared):
-                    in_flight.append(
-                        self._submit(function, prepared[submitted], resources)
+                    future = self._submit(
+                        function, prepared[submitted], resources
                     )
+                    in_flight[future] = submitted
                     submitted += 1
-                # The future stays in flight until it has settled, so an
-                # exception that reaches the driver while it waits, as a
-                # caller's deadline does, still waits for this task below.
-                future = in_flight[0]
-                wait([future])
-                # Futures are consumed in input order, so the first failure
-                # observed is the first failing batch.
-                results.append(cast(Output, future.result()))
-                in_flight.popleft()
-            return results
+                # A task the client cancels, as it does when it loses the
+                # scheduler, has settled too; it fails below as a batch would.
+                with suppress(FuturesCancelledError):
+                    wait(list(in_flight), return_when="FIRST_COMPLETED")
+                finished = [
+                    future
+                    for future in in_flight
+                    if future.status != "pending"
+                ]
+                if any(future.status != "finished" for future in finished):
+                    _wait_for_submitted(in_flight)
+                    # Every batch before the failing one was submitted, so
+                    # the earliest failure among them is the serial one.
+                    min(
+                        (
+                            future
+                            for future in in_flight
+                            if future.status != "finished"
+                        ),
+                        key=in_flight.__getitem__,
+                    ).result()
+                for future in finished:
+                    results[in_flight.pop(future)] = cast(
+                        Output, future.result()
+                    )
+            return [results[index] for index in range(len(prepared))]
         finally:
             # Nothing more of the plan is submitted, and the call returns only
             # once no task it submitted can still be running, so none writes
