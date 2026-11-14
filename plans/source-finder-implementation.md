@@ -1,628 +1,428 @@
 # Hebog implementation plan
 
-Authoritative remaining-work plan for 1.0.0. Updated **13 November 2026**.
+The authoritative plan for 1.0.0: what 1.0.0 means, how far Hebog is from
+it, the remaining tasks in order, the decisions the maintainer still has to
+take, and the rules and gates that govern the work. Updated
+**13 November 2026**.
 
-This file holds the definition of 1.0.0, the rules that govern the work, the
-ordered tasks that remain, the decisions the maintainer still has to take,
-the risks and the gates. It does not hold measured figures, which live on
-[progress against goals](../docs/reference/progress-against-goals.md), or
-user-facing capability and limits, which live in
-[release status](../docs/reference/release-status.md). Git history records
-completed work with its rationale, validation and evidence references; ADRs
-record architecture decisions; [`LOG.md`](../LOG.md) is a historical archive
-and receives no new entries. Closed Phase 5 contracts, reviews and campaign
-tooling are in Git history at `4babf0b`.
+Measured figures are on
+[progress against goals](../docs/reference/progress-against-goals.md) and
+user-facing limits in [release status](../docs/reference/release-status.md);
+the summary below and the progress page change together. Git history
+records completed work, ADRs record architecture decisions, and
+[`LOG.md`](../LOG.md) is an archive that receives no new entries.
 
-## Current state
+## How far from 1.0.0
 
-The figures behind this table, with their dates and run labels, are on the
-progress page; the two change together.
+Hebog's latest release is v0.25.0 (9 November), experimental and
+scientifically unqualified. The candidate is public composition v23 with
+`continuum`'s crowded-field noise repaired (18 October).
 
-| Item | Position on 13 November 2026 |
-| --- | --- |
-| Release | v0.25.0 (9 November) carries task 72's first increment: detections independent of the tile grid, tile cores sized from the free task slots and component-fit batches closed by their objects' cost. It passed its release check on 5 November with catalogue, RMS and mask unchanged from 0.24.0; on the 10,000² anchor its largest Dask worker's peak is 12% higher, a trade-off for grid-independent detections that the maintainer accepted on 12 November. v0.24.0 (23 October) keeps every Dask worker busy on sectors up to 5,000 pixels and holds less memory for the local noise of large images. v0.23.0 (20 October) carries `continuum` by default for Rapthor, the crowded-field repairs, the analysis memory statement and the 22,500² tier. v0.22.0 (17 October), the first release on PyPI, carried the Rapthor integration (tasks 16, 20, 21, 23 and 77) and one sector's speed (tasks 73, 74, 71, 55 and 54). Every release is experimental and scientifically unqualified. |
-| Candidate | Public composition v23 with `continuum`'s crowded-field noise repaired (18 October); admitting the 22,500² tier moved no quick-check result. Development-unqualified. |
-| Functionality | The standalone finder is complete under Serial, Thread and caller-owned Dask executors within the 22,500² envelope, admitted on 19 October. The Rapthor adapter is complete, and [Rapthor's Hebog branch](../scripts/validation/rapthor-integration/README.md) runs it on Rapthor's interim one-single-threaded-worker-per-node layout with a thread executor, memory admission, PyBDSF fallback and dual runs. With 0.23.0 on PyPI the branch is ready to push (task 79). |
-| Performance | The deployment gate binds the source-finding part of Rapthor's step (decision of 16 October): at most 0.50 of pinned `master`'s on dense sectors, provisionally those where `master` finds at least 10,000 sources, and no slower than `master` on the rest (decision of 18 October). Every cell of the 5,000² source-count ladder fails its limit on Rapthor's thread path with four cores: Hebog's finder part is 3.14 to 4.85 times `master`'s on sparse sectors and 3.16 and 2.26 on the two dense ones (the second from the full protocol), with Hebog keeping 1.3 of four cores busy against `master`'s 2.1; on this path the ratio tends to about 1.7 as sources grow. Hebog's profile of the dense cell shows the thread path held by the interpreter lock: four threads finish it 1.18 times faster than one, four single-threaded Dask workers 2.63 times (21 October). In the matched container on single-threaded Dask workers, one a core, Hebog's finder part on the dense cell is 1.03, 1.08, 1.07 and 1.00 times `master`'s on one, two, four and six cores, half its ratio on threads, with identical products at every worker count, and past four cores both finders gain little (22 to 24 October); on the sparse LoTSS-DR3 cell it is 1.65, 1.74 and 1.72 on one, four and six cores, also half its ratio on threads, and both finders still gain past four cores (24 October). On a node Hebog's time nears its floor, the driver's time plus each round's longest task. Choosing the tile core from the executor's budget and closing the object rounds' batches at a share of their estimated cost shorten those longest tasks, with products unchanged, so 0.25.0's floors are 132 s on the dense cell and 46 s on the sparse one, against 0.24.0's 190 s and 59 s. A model fitted to these measurements projects 0.25.0 to one cluster node, against `master` on all its cores and if emulation slows both finders alike: 0.30 on the dense cell and 0.38 at 14,126 sources if `master` uses no more of a dense sector's node than the four cores the dense cell's sweep shows, or 0.53 and 0.72 if it used every core, and 0.52 to 1.03 on the sparse sectors, where the sparse cell's sweep gives `master` every core, so all four meet parity, the noise ×4 sector narrowly (13 November). On the 3,000² sector Hebog's finder part is 2.43 times `master`'s on the thread path and 1.99 on four Dask workers (one repetition), with both finders using about the same CPU; on the 10,000² anchor, where `master` finds 9,276 sources, it is 1.23 on four Dask workers (the screening of 16 October, one repetition), both finders keeping about three of four cores busy and Hebog using 11% more CPU. PyBDSF's subprocess could not run the 15,402² mosaic in the 16 GB container VM. One sector on four local Dask workers takes 0.36 of one worker's time on the anchor with a 20% serial share; threads in one process barely scale, and four Dask workers gain nothing on a 3,000² sector of four tiles. Like for like, the whole ELAIS-N1 sector now takes 4.2 times less time than at 0.19.0, and the `compact` default 1.6 times less again. |
-| Science | Rapthor keeps or rejects alike with Hebog's `compact`/zero mask and pinned `master`'s for 92.8% of sky-model components; the 99.5% target, which released PyBDSF also misses (99.29%), is retired for a truth-based gate (decision of 16 October). Its limits were set on 17 October, and the agreement check applies them. `continuum` passes them under either background since its local noise no longer degenerates in crowded fields (17 October); `compact` with a zero background fails them on extended sources, at image edges and narrowly on false islands. Rapthor runs `continuum` with a zero background, chosen from the gate. |
-| Blockers | Every task under [Path to 1.0.0](#path-to-100). Largest risks: the performance gap, on the local dense cell about `master`'s time on Dask workers and more than twice it on Rapthor's thread path, and more on sparse sectors, where `master` keeps gaining past four cores; memory that grows with the image and the sources found; the development machine's limits; upstream churn; and the three steps outside the agent's control: cluster time, Rapthor's worker layout and independent reviewers. |
-| Next action | Agent: task 72's next increment in the order the checkpoint sets. Human: take task 72's checkpoint (decisions 3 to 5); push Rapthor's Hebog branch (task 79), file the Astropy report drafted on 5 October (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF report drafted on 20 October (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`), and take the [decisions below](#decisions-pending). |
-| Deferred | Scientific improvements that are not confirmed incorrect supported outputs wait until the integration and scaling work is complete (decision of 9 October); task 15 sits before the freeze, and the rest is here. Meshes scaled with the restoring beam, which would admit beams wider than 10 pixels (task 62's measurement: every SNR ≥ 10 source recovered to 22 pixels at about 2.5 times the local-noise read); every real Rapthor image is at most about 7 pixels. Wide-object reductions on the cores instead of the driver, reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. Aegean, ProFound and SoFiA comparisons. PyBDSF's second grouping rule, which Rapthor's island grouping does not need. Native code without a passing profile gate. A confirmed incorrect supported output reopens its item at once. |
+| Goal | Where it stands | What remains |
+| --- | --- | --- |
+| Telescopes | LOFAR and SKA-Mid images run under the input header contract | Validation in the parity study (task 29); a varying PSF measured and documented (task 15) |
+| Functionality | Complete in Hebog; Rapthor's Hebog branch runs it on today's worker layout | Push the branch (task 79); its distributed path (task 72); the operational trial (task 32) |
+| Science | Rapthor's profile passes the truth-based gate on development evidence | The candidate freeze (task 28); the powered parity study (task 29); the released-PyBDSF check (task 31) |
+| Performance | Measured, every sector fails its limit; projected, 0.25.0 meets every limit on one cluster node if `master` uses four cores of a dense sector's node | Task 72's three remaining increments; matched benchmarks (task 23); the cluster run that measures the gate (task 30) |
+| Scalability | 22,500² admitted, with products invariant across tilings and executors; nothing has run beyond one machine | The envelope freeze (task 22); planner bounds (task 24); the store (task 25); the cluster benchmark (tasks 27 and 30) |
+| Release | On PyPI; CI on Linux, macOS and Windows | Independent acceptance (task 33); 1.0.0 (task 34) |
+
+- **Largest risks:** the performance gap; memory that grows with the image
+  and the sources found; the development machine's limits; upstream churn;
+  and three steps outside the agent's control: cluster time, Rapthor's
+  worker layout and independent reviewers. See [risks](#risks).
+- **Next action.** Agent: task 72's next increment, in the order the
+  checkpoint sets. Human: take the checkpoint (decisions 3 to 5); push
+  Rapthor's Hebog branch (task 79); file the Astropy report
+  (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
+  report (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`).
+- **Deferred** until the integration and scaling work is complete, unless
+  an output is confirmed incorrect: meshes scaled with the beam, to admit
+  beams wider than 10 pixels; wide-object reductions on the cores instead
+  of the driver; Aegean, ProFound and SoFiA comparisons; PyBDSF's second
+  grouping rule; native code without a passing profile gate.
 
 ## Definition of 1.0.0
 
-Version 1.0.0 is the first release demonstrated to be a backend Rapthor can
-switch to: proven at Rapthor's sector sizes, faster than PyBDSF's source
-finding and scaling across nodes, with the Rapthor-consumed science
-qualified (decision of 16 October 2026). Every claim is bound to reviewed
-evidence for that exact candidate:
+Version 1.0.0 is the first release shown to be a backend Rapthor can switch
+to: proven at Rapthor's sector sizes, faster than PyBDSF's source finding,
+scaling across nodes, with the science Rapthor consumes qualified (decision
+of 16 October 2026). Every claim is bound to reviewed evidence for the
+exact candidate.
 
-- **Telescopes.** The standalone finder accepts standard FITS continuum
-  images from any radio telescope that meet the documented
-  [input header contract](../docs/reference/input-header-contract.md), and
-  accepts their imager conventions (WSClean, CASA and SKA SDP products) or
-  rejects them with a specific error. It is validated on LOFAR and SKA-Mid
-  images for 1.0.0, and on SKA-Low precursor data at the minor release
-  whose envelope admits them.
-- **Functionality.** Hebog is a supported, feature-flagged backend for
-  Rapthor's `filter_skymodel`, selected through Rapthor's `source_finder`,
-  at a pinned Rapthor and LSMTool revision: true-sky and flat-noise
-  branches, the Rapthor profile, native catalogue, mask, RMS and
-  source-count products, empty and blanked-image paths, retry and restart,
-  and PyBDSF fallback. The standalone public API remains usable without
-  Rapthor, Prefect, LSMTool or Dask.
-- **Science.** The Rapthor profile passes the truth-based retained/rejected
-  component gate of the [scientific gates](#scientific-gates), and the
-  frozen candidate passes
-  prospective, powered, held-out parity/retention against pinned PyBDSF
-  `master` (`c70103b`) on full LOFAR images inside the envelope, SDC1
-  simulations with truth and a MeerKAT MIGHTEE image; a single check
-  against released PyBDSF 1.14.1 confirms Rapthor-profile agreement for
-  users of the release.
-- **Performance.** The source-finding part of Rapthor's `filter_skymodel`
-  step, from the task's start to LSMTool's `filter_sources` call, takes at
-  most 0.50 of pinned `master`'s on dense sectors, where PyBDSF's source
-  finding is slow, and no longer than `master`'s on the rest, under the
-  confidence rules of the [performance gates](#performance-and-scale-gates),
-  for sectors up to the envelope: like for like on one node, and on dense
-  sectors also across the nodes Rapthor deploys against PyBDSF's one node.
-  How each finder's time grows with the source count and with cores, and
-  the complete step, are reported beside it. The gate is measured on the
-  cluster; the development machine shows the trend in sources, cores and
-  the CPU ratio.
-- **Scalability.** The envelope is the 22,500² tier, which covers Rapthor's
-  default sectors. One sector's finder part keeps falling from 1 to 10
-  nodes with invariant products and the efficiency floor task 27 fixes;
-  results do not change with worker count, tile geometry, completion order
-  or retry; planner tests bound graph size and reduction depth for 100,000²
-  images on 100 to 200+ nodes. Release notes say that 100,000² images and
-  that node count are designed for but not demonstrated.
-- **Release.** Published on PyPI with portability, security, licensing,
-  current documentation and independent radio-astronomy and engineering
-  acceptance, under the 1.x compatibility policy in the
-  [delivery policy](#delivery-policy).
+- **Telescopes.** Standard FITS continuum images from any radio telescope
+  that meet the [input header contract](../docs/reference/input-header-contract.md),
+  with WSClean, CASA and SKA SDP conventions accepted or refused with a
+  specific error. Validated on LOFAR and SKA-Mid images for 1.0.0, and on
+  SKA-Low precursor data at the minor release whose envelope admits them.
+- **Functionality.** A supported, feature-flagged backend for Rapthor's
+  `filter_skymodel` at pinned Rapthor and LSMTool revisions: both image
+  branches, the Rapthor profile, catalogue, mask, RMS and source-count
+  products, empty and blanked images, retry and restart, and PyBDSF
+  fallback. The standalone API works without Rapthor, Prefect, LSMTool or
+  Dask.
+- **Science.** The Rapthor profile passes the truth-based gate of the
+  [scientific gates](#scientific-gates), and the frozen candidate passes a
+  prospective, powered, held-out parity study against pinned PyBDSF
+  `master` on full LOFAR images, SDC1 simulations with truth and a MeerKAT
+  MIGHTEE image. One check against released PyBDSF 1.14.1 confirms
+  agreement for users of the release.
+- **Performance.** The source-finding part of Rapthor's step takes at most
+  0.50 of pinned `master`'s time on dense sectors and no longer than
+  `master`'s on the rest, under the
+  [performance gates](#performance-and-scale-gates), for sectors up to the
+  envelope: on one node, and on dense sectors also across the nodes Rapthor
+  deploys. The gate is measured on the cluster.
+- **Scalability.** The 22,500² envelope, which covers Rapthor's default
+  sectors. One sector's time keeps falling from 1 to 10 nodes with
+  invariant products, and planner tests bound graph size and reduction
+  depth for 100,000² images on 100 to 200+ nodes, which release notes call
+  designed for, not demonstrated.
+- **Release.** On PyPI with portability, security, licensing, current
+  documentation and independent radio-astronomy and engineering
+  acceptance, under the 1.x policy in the [delivery policy](#delivery-policy).
 
-Each later envelope raise is a minor release under that policy: 45,000²
-on the development machine, the out-of-core demonstration, and 90,000² on
-the cluster, with SKA-Low precursor evidence and a PSF-map input as the
-work that fits them ([after 1.0.0](#after-100)). Rapthor's default cutover
-is a separate Rapthor decision taken after an operational soak of the
-1.0.0 backend; the PyBDSF fallback remains until then.
+Later envelope raises are minor releases ([after 1.0.0](#after-100)).
+Rapthor's default cutover is Rapthor's own decision after an operational
+soak; the PyBDSF fallback stays until then.
 
 ## Decisions pending
 
-Each decision names the maintainer's call and the agent's recommendation.
-A decision taken here is recorded in the affected row and in the commit,
-never in `LOG.md`. Decided on 12 November: Rapthor's Hebog task runs the
-analysis on single-threaded Dask worker processes for the cores Rapthor
-gives the step, on a cluster the task owns with Dask's memory actions
-off, and keeps the thread executor for small sectors and tests, since
-the interpreter lock holds the thread path (task 72's third increment);
-and 0.25.0's 12% higher Dask worker peak on the 10,000² anchor is
-accepted as the cost of grid-independent detections. Decided on 18
-October: the performance gate binds
-dense sectors, provisionally those where pinned `master` finds at least
-10,000 sources, at 0.50 of `master`'s finder part, and the rest at no
-slower than `master` (an upper bound of 1.05), with each finder's growth
-against the source count and cores reported beside them, not gated;
-reducing serial work is part of task 72 where it gives clear gains; no
-change may degrade the science (see the [scientific gates](#scientific-gates));
-the window RMS keeps no truncation correction, since correcting it lowered
-completeness on every truth measure without a measurable gain in
-reliability, and the scatter of its windows is a [risk](#risks).
-Decided on 17 October: the Rapthor and LSMTool pins
-move to their heads before the Rapthor change is pushed, done the same day;
-the change lives on a branch of Rapthor's repository, not as a patch in
-Hebog, and testing, trials and benchmarks use the branch without waiting
-for it to merge; Rapthor runs `continuum` with a zero background, which
-passes the truth-based gate where `compact` fails it, rather than the
-interim `compact`; the truth-based gate's limits are those the
-[scientific gates](#scientific-gates) record, which `just
-rapthor-agreement` applies to every lane and the released control.
-Decided on 16 October and recorded in the rows: the 1.0.0 scope above; the
-gate's finder-part form and its measurement on the cluster; the retirement
-of the 99.5% agreement target; task 56's completion-record split joins
-task 72; task 72 as
-four releases; the cluster benchmark as one sector at 1, 2, 5 and 10
-nodes; task 15 as measurement and documentation, with a PSF-map input
-after 1.0.0.
+Each names the maintainer's call and the agent's recommendation. A decision
+taken is recorded in the row it affects and in the commit, never in
+`LOG.md`.
 
-1. **Independent acceptance (task 33).** Reviewers have not been named.
+1. **Independent reviewers (task 33)** have not been named.
    *Recommendation:* approach the radio-astronomy and engineering reviewers
    when the Rapthor branch is pushed, so their review runs beside Rapthor's.
 2. **The scaling floor.** "Scales well across nodes" needs a number before
    the cluster session. *Recommendation:* task 27 proposes a strong-scaling
-   efficiency floor at 10 nodes from the local curve and the contract's
-   per-topology floors, and the maintainer approves it with the contract
-   amendment.
-3. **The dense-sector threshold.** Provisionally 10,000 sources in pinned
-   `master`'s catalogue. In task 72's model 0.25.0 projects to 0.38 at
-   14,126 sources, if `master` uses no more of a dense sector's node than
-   four cores; lines fitted to both finders' times on one node cross 0.50
-   at about 8,400 to 8,600 sources, below the threshold, but they join
-   sparse sectors, where the model gives `master` every core, to dense
-   ones, where it gives it four, so the crossing reflects that change as
-   much as either finder's growth.
-   *Recommendation:* keep 10,000: it marks where PyBDSF is slow, which the
-   gate binds, and moving it to the model's crossing would fit the gate to
-   the candidate.
-4. **Task 72's targets and the order of its increments.** On one node
+   efficiency floor at 10 nodes from the local curve, approved with the
+   contract amendment.
+3. **The dense-sector threshold**, provisionally 10,000 sources in
+   `master`'s catalogue. The model's lines cross 0.50 at about 8,400 to
+   8,600 sources, but they join sparse sectors, where `master` uses every
+   core, to dense ones, where it uses four, so the crossing reflects that
+   change as much as either finder's growth. *Recommendation:* keep 10,000;
+   it marks where PyBDSF is slow, and moving it to the crossing would fit
+   the gate to the candidate.
+4. **Task 72's targets and the order of its increments.** On a node
    Hebog's time nears its floor, the driver's time plus each round's
-   longest task: at 0.25.0, 132 s natively on the dense cell, 79 s of it
-   driver time, and 46 s on the sparse LoTSS-DR3 cell, about half of it
-   (0.24.0: 190 s and 59 s). Under the model 0.25.0 meets every limit on
-   one node if `master` uses four cores of a dense sector's node, the
-   noise ×4 sector narrowly (1.03 against 1.05), and would miss 0.50 on
-   the dense cell (0.53) and at 14,126 sources (0.72) if `master` used
-   every core. *Recommendation:* the increments aim at a floor, as the
-   scaling profile measures it, of 100 s on the dense cell and 40 s on the
-   sparse one, with no faster growth in the source count, and each
-   increment's profile reports the sparse cell's floor beside the dense
-   cell's. If the task time stays as it is, driver time and longest tasks
-   fall together and the floor moves linearly in the source count between
-   the two cells, the model then meets every limit, the noise ×4 sector at
-   0.96, and all but the 14,126-source cell's (0.58) if `master` used every
-   core of a dense sector's node too. Increment 1 has halved the dense
-   cell's longest tasks, so driver time now holds most of the floor.
-   Rapthor's distributed path follows, since the gate and the cluster run
-   that settles `master`'s core use and emulation both need it; then
-   waiting and sharing, with the driver's time, whose FITS writes and
-   reconciliation take 32 s of the dense cell's 79 s; then both branches
-   together, which saves only the flat-noise pass's floor at 5,000².
-5. **Per-source costs.** On a node Hebog's time grows 4.0 ms a source
-   natively at 0.25.0 (6.2 ms at 0.24.0), against a target of 4.6 ms if
-   `master` uses every core of every sector's node, or 9.5 ms from lines
-   that give it four cores on dense sectors and every core on sparse ones.
-   Its per-source task work, in association, fits and catalogue rows,
-   spreads across the cores, while the driver's per-source work, the
-   catalogue write, reconciliation and catalogue records, takes about 30 s
-   of the dense cell's 79 s of driver time. *Recommendation:* no separate
-   per-source work in task 72, since Hebog's growth is within the stricter
-   4.6 ms target; the driver's per-source work joins with waiting and
-   sharing.
+   longest task; increment 1 halved the dense cell's longest tasks, so the
+   driver now holds most of it. *Recommendation:* aim at floors of 100 s
+   on the dense cell and 40 s on the sparse one, with no faster growth in
+   the source count, and report both in each increment's profile. Order:
+   Rapthor's distributed path first, which the gate and the cluster run
+   both need; then waiting and sharing, with the driver's FITS writes and
+   reconciliation; then both branches together.
+5. **Per-source costs.** Hebog's time on a node grows 4.0 ms a source,
+   within the stricter 4.6 ms target. *Recommendation:* no separate
+   per-source work; the driver's per-source work joins waiting and sharing.
 
 ## Scope and resource rules
 
-- **Use cases** (maintainer, 10 October 2026). Four, each a performance
-  target; none may be optimized by regressing another:
-    1. *One Rapthor sector across a cluster* of nodes with up to 192 cores,
-       tens of nodes possible: the usual Rapthor run and the first
-       performance focus.
-    2. *One Rapthor sector on one node*: the other main Rapthor run, and
-       the deployment gate's like-for-like comparison with PyBDSF.
-    3. *Standalone use on a local machine* with smaller images, through
-       the public API and the Serial or Thread executor, where setup and
-       scheduler overhead dominate.
-    4. *Standalone use on a cluster*, for an image too large for one node,
-       on a Dask cluster the user starts.
+- **Use cases** (maintainer, 10 October 2026), each a performance target;
+  none may be optimized by regressing another:
+    1. one Rapthor sector across a cluster of nodes with up to 192 cores:
+       the usual Rapthor run and the first performance focus;
+    2. one Rapthor sector on one node, the gate's like-for-like comparison;
+    3. standalone use on a local machine with smaller images, where setup
+       and scheduler overhead dominate;
+    4. standalone use on a Dask cluster the user starts, for an image too
+       large for one node.
 
-  Several Rapthor sectors at once stay supported. Hebog defines what it
-  needs from a Dask cluster and the caller provides it
+  Several sectors at once stay supported. Hebog states what it needs from a
+  Dask cluster and the caller provides it
   ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md));
-  Rapthor builds the executor from its layout and passes it in
-  ([layouts](../docs/architecture/rapthor-execution-layouts.md)). The
-  target is two-dimensional continuum images; a cube or time axis is a
-  new ADR, and the executor protocol stays blind to the image's
-  dimensions.
-- **Compute.** Development, checks and benchmarks run on the maintainer's
-  machine (Apple M3 Pro, 12 logical CPUs, six performance cores, 18 GiB
-  RAM; a 16 GB, six-core Podman VM for the containers, which cannot hold
-  pinned `master` on a 15,402² sector). A cluster of up to 12 nodes runs
-  one benchmark for 1.0.0 and never blocks development: nodes of 96 cores
-  with 747 GB and of 192 cores with 747 or 1,494 GB, NUMA or not, with no
-  local scratch disk, sharing a Lustre filesystem (maintainer, 22 October
-  2026). Hebog runs on every node type without per-node settings.
-- **Disk.** A 22,500² run holds up to 49 GiB beside its 1.9 GiB input,
-  about 100 bytes a pixel, almost all of it uncompressed Zarr intermediates;
-  at that rate a 45,000² run needs about 200 GiB, so the intermediates shrink
-  before that tier (see [risks](#risks)). The local ladder stops at
-  45,000²; 90,000² runs only on the cluster.
-- **Data.** Scale testing uses public LOFAR images; no generated 100,000²
-  image or simulated SKA-Low image is built, and the only generated large
-  image is the 10,000² wide-object diagnostic. The public LoTSS-Deep DR2
-  ELAIS-N1 apparent and primary-beam-corrected pair is the representative
-  two-branch Rapthor input. SDC1 cut-outs serve science checks for SKA-Mid.
-  See [reference images](#reference-images).
-- **Pins.** Rapthor `main` at `aff26023` (the Prefect/Dask line since the
-  9 October 2026 merge; `master` is the CWL/Toil release line and not a
-  target), LSMTool `master` at `156ae6a` (v1.9.0 plus 27 commits) and
-  PyBDSF `master` at `c70103b` (`v1.14.1-40`). Rapthor and LSMTool pins
-  move only at the checkpoints the [risks](#risks) name, with the contract
-  audit, the acceptance scenarios and the agreement check re-run and the
-  outcome recorded in the commit. If Rapthor declares a different LSMTool
-  revision, record both and test the latest LSMTool.
-- **Limitations that block 1.0.0.** Of the limitations accepted for v0.7.0,
-  those that change Rapthor-consumed fields must pass before 1.0.0:
-  `E_RA`/`E_DEC` calibration on a real high-declination field (it passes
-  on beam-correlated noise; `E_RA` is a great-circle angle, as PyBDSF
-  publishes it and Rapthor's cut compares it); the `Total_flux` rows of the
-  [scientific gates](#scientific-gates), which pass on independent
-  realizations; and faint association where it changes island grouping,
-  and therefore patches. The other accepted limitations stay documented
-  limitations.
+  Rapthor builds the executor from its
+  [layout](../docs/architecture/rapthor-execution-layouts.md). Images are
+  two-dimensional; a cube or time axis needs a new ADR.
+- **Rapthor's profile** is `continuum` with a zero background, which passes
+  the truth-based gate where `compact` fails it (decision of 17 October).
+- **Compute.** Development and benchmarks run on the maintainer's machine:
+  Apple M3 Pro, six performance cores, 18 GiB, and a six-core, 16 GB Podman
+  VM for the containers. A cluster of up to 12 nodes (96 or 192 cores, 747
+  or 1,494 GB, NUMA or not, no local scratch, shared Lustre) runs one
+  benchmark for 1.0.0 and never blocks development. Hebog runs on every node
+  type without per-node settings.
+- **Disk.** A 22,500² run holds up to 49 GiB of scratch; the intermediates
+  shrink before the 45,000² tier, which would otherwise need about 200 GiB.
+  The local ladder stops at 45,000²; 90,000² runs only on the cluster.
+- **Data.** Scale testing uses public LOFAR images; the LoTSS-Deep DR2
+  ELAIS-N1 pair is the representative Rapthor input, and SDC1 cut-outs
+  serve SKA-Mid science. See [reference images](#reference-images).
+- **Pins.** Rapthor `main` at `aff26023`, LSMTool `master` at `156ae6a`,
+  PyBDSF `master` at `c70103b`. Rapthor and LSMTool move only at the
+  checkpoints the [risks](#risks) name, re-running the contract audit,
+  acceptance scenarios and agreement check. If Rapthor declares a different
+  LSMTool revision, record both and test the latest LSMTool.
+- **Limitations that block 1.0.0:** `E_RA`/`E_DEC` calibration on a real
+  high-declination field; the `Total_flux` rows of the
+  [scientific gates](#scientific-gates); and faint association where it
+  changes island grouping. Other accepted limitations stay documented.
 
 ## Delivery policy
 
-Ship frequent, useful experimental `0.x` increments, normally one release
-for each merged task that changes behaviour. Development favours fast
-iterations over long campaigns; every check has a budget on the
-development machine, and a check that outgrows its budget is sampled,
-split or moved to a less frequent level, never silently extended:
+Ship frequent experimental `0.x` releases, normally one for each merged task
+that changes behaviour. Every check has a budget; one that outgrows it is
+sampled, split or moved to a less frequent level, never silently extended:
 
 - **Change check (about 15 minutes):** relevant tests, the quick science
-  check and, for performance-relevant changes, the quick benchmark's
-  default tier. Runs for every change that can affect science or runtime.
-- **Release check (about 1 hour):** the change check, Serial/Dask
-  agreement on the largest anchor whose two runs fit the hour (10,000²
-  today) and the installed wheel. Runs before each `0.x` release. The
-  quick benchmark's large tier runs for profiling and before a release that
-  claims a runtime change, never waited on otherwise.
-- **Tier gate (up to a day, unattended):** the gate under
-  [the envelope](#the-deployment-envelope-and-gate) on a new tier's
-  anchor, once for each envelope raise.
-- **1.0.0 qualification (once):** one powered science study sized to finish
-  overnight on the development machine, and one benchmark on the cluster.
-  Neither blocks `0.x` development or releases.
+  check and, for performance changes, the quick benchmark's default tier.
+- **Release check (about 1 hour):** the change check, Serial/Dask agreement
+  on the largest anchor that fits (10,000² today) and the installed wheel.
+- **Tier gate (up to a day, unattended):** the
+  [envelope gate](#the-deployment-envelope-and-gate) on a new tier's anchor.
+- **1.0.0 qualification (once):** one powered science study, overnight on
+  the development machine, and one cluster benchmark.
 
-PyBDSF outputs and timings are computed once for each input, reference
-revision and host, cached outside Git with checksums, and reused. A defect
-that escapes the quick checks adds its case to the fixed case set. PR CI
-shards the complete supported-platform suite as the
-[contribution guide](../docs/how-to/index.md#pull-request-feedback)
-describes; hosted timings guide CI scheduling only.
+PyBDSF outputs and timings are computed once per input, revision and host,
+and cached outside Git. A defect that escapes the quick checks adds its case
+to the fixed set.
 
-The four levels of done stay distinct:
+Four levels of done stay distinct:
 
-- **Merge:** a coherent reviewed change with passing applicable tests and
-  accurate documentation. Merge each PR in a sequence before branching the
-  next, so CI isolates the responsible change.
+- **Merge:** a coherent reviewed change with passing tests and accurate
+  docs. Merge each PR in a sequence before branching the next.
 - **Experimental release:** a tested package that states its unqualified
-  science and current limitations and has no unresolved confirmed
-  incorrect supported output. It need not establish general PyBDSF parity,
-  the Rapthor speed target or facility scale.
-- **Scientific qualification:** candidate-bound parity and quality
-  retention, fresh held-out evidence and independent scientific and
-  engineering acceptance. An experimental label never turns a failed or
-  underpowered check into a pass.
-- **Rapthor deployment or default cutover:** separately qualified workflow
-  behaviour, complete-path performance and operational acceptance, with the
-  feature-flagged PyBDSF fallback retained until the acceptance matrix
-  passes.
+  science and limits, with no known incorrect supported output.
+- **Scientific qualification:** candidate-bound parity, fresh held-out
+  evidence and independent acceptance. An experimental label never turns a
+  failed check into a pass.
+- **Rapthor deployment or cutover:** separately qualified workflow,
+  performance and operational acceptance, keeping the PyBDSF fallback until
+  the acceptance matrix passes.
 
-Versioning after 1.0.0 (decision of 16 October 2026): the public API, the
-Rapthor adapter contract and the product schemas are stable within 1.x,
-and a change to them is a 2.0; an envelope raise is a minor release; a
-science change ships as a minor release with a new composition version and
-release notes that say what moved, never silently; patch releases change
-no product.
-
-Ownership follows
-[`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff): the agent
-implements, validates, documents and commits locally; the human pushes,
-merges, runs notebook refreshes and makes scientific and priority
-decisions. Explicit user authorization may delegate a push or PR update to
-the agent. Release Please alone edits versions, the changelog and release
-notes.
+After 1.0.0 (decision of 16 October 2026) the public API, the Rapthor
+adapter contract and the product schemas are stable within 1.x; an envelope
+raise is a minor release; a science change is a minor release with a new
+composition version and notes saying what moved; patch releases change no
+product. Ownership follows [`AGENTS.md`](../AGENTS.md#changes-releases-and-handoff),
+and Release Please alone edits versions and release notes.
 
 ## Collaboration and repair decisions
 
-These rules govern agent work on this plan and are referenced from
-[`AGENTS.md`](../AGENTS.md).
+These rules govern agent work on this plan; [`AGENTS.md`](../AGENTS.md)
+refers to them.
 
-- The agent owns routine completeness checks, integration checks and clear
-  recommendations. Do not depend on the user discovering missing checks,
-  requesting a cheap diagnostic or reconstructing status across
-  conversations. Reserve human attention for scientific interpretation,
-  priorities and trade-offs that require human judgment.
-- Before a scientific or campaign repair, write a short decision statement
-  in the existing task or plan: observed problem, proposed cause,
-  independent test, expected measurable change and stopping condition.
-  Distinguish a correctness defect, agreed-gate failure, operational
-  failure and optional improvement; an aggregate failed endpoint alone does
-  not establish a cause.
-- After two repairs aimed at the same mechanism produce no material change
-  against the stated expectation, review the diagnosis and recommend a
-  bounded next step before another full replay. This is a reassessment
-  trigger, not permission to abandon required work, change gates or retry
-  closed evidence.
-- Keep development closure, scientific qualification, release and default
-  cutover distinct, as in the delivery policy. Record optional improvements
-  as deferred work rather than expanding the current milestone. Known
-  incorrect supported outputs remain release blockers; a phase label or
-  accepted development limitation cannot waive them.
-- Carry existing authorization forward within its scope. Complete
-  authorized preparation and present a concrete recommendation before
-  requesting a new scientific or resource decision. Explain the exact
-  boundary requiring that decision; do not add approval steps for routine
-  reversible work.
-- At milestone reviews, use Git history, PR discussion and existing
-  evidence to assess time to actionable diagnosis, avoidable campaign
-  interruptions, repairs without useful change and user effort needed to
-  recover status or scope. Use these observations to improve the workflow,
-  not commit counts, test totals or documentation volume as productivity
-  targets. Do not introduce a separate tracking framework.
+- The agent owns routine completeness and integration checks and gives
+  clear recommendations. Don't rely on the user to notice a missing check,
+  ask for a cheap diagnostic or rebuild status across conversations. Keep
+  human attention for scientific interpretation, priorities and trade-offs.
+- Before a scientific or campaign repair, write a short decision in the task
+  or plan: the problem, the proposed cause, an independent test, the
+  expected measurable change and when to stop. Distinguish a correctness
+  defect, a failed gate, an operational failure and an optional
+  improvement; a failed aggregate alone does not establish a cause.
+- After two repairs of the same mechanism make no material change, review
+  the diagnosis and recommend a bounded next step before another full
+  replay. This triggers reassessment; it does not permit dropping required
+  work, changing gates or retrying closed evidence.
+- Keep development closure, qualification, release and cutover distinct.
+  Record optional improvements as deferred work. A known incorrect supported
+  output blocks release whatever the phase label.
+- Carry authorization forward within its scope. Finish authorized
+  preparation and give a concrete recommendation before asking for a new
+  scientific or resource decision, and explain the exact boundary; add no
+  approval steps for routine reversible work.
+- At milestone reviews, use Git history, PR discussion and evidence to
+  judge time to diagnosis, avoidable interruptions, ineffective repairs and
+  the user's effort to recover status. Improve the workflow from them, not
+  from commit counts or documentation volume, and add no tracking
+  framework.
 
 ## Path to 1.0.0
 
-A task number is a stable identifier: a completed task is removed and its
-number is not reused (numbers up to 80 have been used). The sections, and
-the rows within them, are in the order the tasks are expected to finish.
-Each is a bounded work item that merges, and normally releases as a `0.x`
-increment, within the iteration budgets; split a task when a measured
-result reveals independent changes. Unless a task says otherwise, the agent
-implements and validates on the development machine and the human merges.
-A qualification, scale or deployment task authorizes only its stated claim
-and still needs the named human decision.
+Task numbers are stable: a finished task is removed and its number never
+reused (up to 80 used). Sections and rows are in expected finishing order.
+Each task merges, and normally releases, within the iteration budgets; split
+it when a measurement reveals independent changes. Unless stated otherwise,
+the agent implements and validates locally and the human merges. A
+qualification, scale or deployment task authorizes only its stated claim.
 
-Four rules govern the sequence. **Measure before changing:** nothing is
-optimized or re-architected without a profile, and no science-touching
-change merges without `just quick-science-check`. **One tier and one
-release at a time:** the public envelope rises only through its tier gate,
-and every raise is a release. **Products unchanged through a refactor:** a
-change made for readability or structure leaves the quick check's
-catalogue, RMS and mask byte-identical, with only the composition hash
-moving, and no production file loses coverage; a removal starts with the
-test that fails for the reason its row states. **A review's figure is
-confirmed on a real anchor** before a task that changes cost or memory
-closes.
+Four rules govern the sequence:
 
-The order, set on 9 October 2026 and amended through 19 October:
+- **Measure before changing:** no optimization without a profile, and no
+  science-touching merge without `just quick-science-check`.
+- **One tier and one release at a time:** the envelope rises only through
+  its tier gate, and each raise is a release.
+- **Products unchanged through a refactor:** catalogue, RMS and mask stay
+  byte-identical on the quick check, no production file loses coverage, and
+  a removal starts with a test that fails for the reason it states.
+- **Confirm on a real anchor:** a review's figure is confirmed on a real
+  anchor before a task that changes cost or memory closes.
 
-1. **Push Rapthor's Hebog branch** (task 79), so Rapthor's CI runs on it
-   and trials install Rapthor from it, with Hebog from PyPI. The
-   integration waits on no tier: its inputs are inside the envelope, and
-   Rapthor's 3,000² demonstration sector is refused for its 30-pixel
-   synthetic beam, not its size.
-2. **One sector across the cluster** (task 72), on the profile chosen.
-   The screening of 16 October found a finder-part ratio of 1.23 on four
-   Dask workers at the 10,000² anchor. Rapthor usually images one
-   sector, 17,000 to 20,000 pixels a side, on nodes of up to 192 cores;
-   its interim thread path cannot use a node's cores, so the distributed
-   path comes before everything else (decisions of 15 and 16 October).
-   It starts by measuring where PyBDSF is slow: both finders against the
-   source count and cores (decision of 18 October).
-3. **The deployment envelope and gate** (tasks 22 and 23), with the store,
-   planner and cluster benchmark packaging (tasks 24, 25 and 27).
-4. **Science before the freeze** (task 15), deferred until the work above
-   is complete unless an output is confirmed incorrect.
-5. **Qualification and 1.0.0** (tasks 28 to 34).
+The order:
+
+1. Push Rapthor's Hebog branch (task 79).
+2. One sector across the cluster (task 72): Rapthor's interim thread path
+   cannot use a node's cores, so the distributed path comes first.
+3. The deployment envelope and gate (tasks 22 and 23), with the store,
+   planner and cluster benchmark (tasks 24, 25 and 27).
+4. Science before the freeze (task 15).
+5. Qualification and 1.0.0 (tasks 28 to 34).
 
 ### Release and publication
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 79 | Human pushes, agent prepares | Push Rapthor's Hebog branch. | The pins moved to Rapthor `aff26023` and LSMTool `156ae6a` on 17 October, with the change rebased, the integration container rebuilt and its summary re-recorded; they move again before the push only if upstream changes the filter step. The branch's `rapthor[hebog]` extra accepts any `0.x` release from 0.22 (`hebog>=0.22,<1`), because Hebog's feature releases also bump the minor version (decision of 17 October); a breaking change to the adapter therefore needs a matching change on the branch. Done when the tested commit is on a branch of Rapthor's repository and Rapthor's CI passes on it. The trial (task 32) and the cluster benchmark (task 27) use the branch; the merge request, with the dual-run mode and the PyBDSF fallback described, follows when the maintainer chooses. |
+| 79 | Human pushes, agent prepares | Push Rapthor's Hebog branch. | The tested commit is on a branch of Rapthor's repository and Rapthor's CI passes. The pins move again first only if upstream changes the filter step. The branch accepts any Hebog `0.x` from 0.22, so a breaking adapter change needs a matching branch change. Trials and the cluster benchmark use the branch; the merge request follows when the maintainer chooses. |
 
 ### One sector across the cluster
 
-The design stays Dask-native and simple: Hebog's tile tasks are
-single-threaded and numerous, Dask schedules every core, no thread pool is
-nested inside a Dask task, and Hebog's arrays stay NumPy behind its
-executor protocol (ADR-004 and ADR-005), not Dask arrays. The aim is a
-strong-scaling curve for one sector that keeps falling while cores are
-added, not the use of every core; several sectors share the cluster beyond
-the point where one stops scaling. The baseline is run `task74-stack`
-(15 October): the 10,000² anchor in 1,357 s on one worker and 429 s on six,
-with no task running for 77 s and a 20% serial share, so the speed-up cap
-is near five; eight workers swapped up to 24 GB, and rounds hold only 7 to
-25 tasks. In the screening of 16 October both finders used about three of
-four cores at 10,000², where `master` finds 9,276 sources, just under the
-dense threshold; the gate binds where PyBDSF's time grows with the source
-count, and Hebog's must grow more slowly there and spread across more
-cores.
+Hebog's tile tasks stay single-threaded and numerous so Dask can schedule
+every core; no thread pool is nested in a task, and arrays stay NumPy behind
+the executor protocol. The aim is a curve for one sector that keeps falling
+as cores are added; several sectors share the cluster beyond the point where
+one stops scaling. The [execution plan](2026-10-18-one-sector-across-the-cluster.md)
+holds the steps and evidence. Task 72 lands as four increments, each merged
+and released in turn:
 
-Task 72 starts by measuring both finders against the source count and
-against cores in the matched container, under Rapthor's step: sectors of
-one size with rising source counts, and the dense cell, a deep ELAIS-N1
-5,000² window where `master` finds 24,780 sources, on 1, 2, 4 and 6
-cores, with Hebog's finder part profiled stage by stage (decisions of 17,
-18 and 20 October). A fitted model of
-each finder's serial and parallel work projects the ratio on dense and
-sparse sectors at the cluster's node sizes, sets targets for Hebog's serial
-term, per-source cost and CPU, and orders the work below, except the first
-increment, which every order needs and which starts while the model is
-fitted (decision of 21 October); the
-[execution plan](2026-10-18-one-sector-across-the-cluster.md) holds the
-steps. It then lands as four increments, each merged and released in turn
-(decision of 16 October):
-
-- **Core budget and cost model.** The caller states the cores Hebog may
-  use, defaulting to the client's capacity, since a client's capacity
-  counts threads that DP3 or another analysis holds. Each stage chooses its
-  tile core from its halo and its task count from batching by a stated
-  cost model fitted to that profile, the scaling profiles of 15 October
-  and the screening, holding the memory a worker needs per core as well as
-  its tiling, so parallelism rises without small cores multiplying halo
-  overhead, and a sector of a few 2,048-pixel tiles still occupies the
-  workers it is given. The memory each
-  task declares follows the chosen core; the composition's run settings
-  (executor, work directory, generation, tile core) become one record; the
-  run's timing record states the tiling and budget chosen; a small image
-  stays one tile with no scheduler overhead (use case 3). Products depend
-  on none of it.
-- **Waiting and sharing.** An analysis started inside a worker task secedes
-  while it waits on its tile tasks. Once tasks are packed by declared
-  memory, each round's declaration is re-audited against its measured peak
-  (`scripts/benchmark/audit_task_memory.py`; background's grouped pilot
-  declares about five times its peak). Each generation's completion record
-  is split by tile, so a task reads only its window's entries rather than
-  parsing the whole record (16 MB and 0.42 s a task at 15,402², which
-  thousands of tasks on ten nodes would each pay), without a process-wide
-  cache that holds memory no task declares (decision of 15 October). A
-  local multi-worker cluster runs one analysis, several concurrent
-  analyses and workers joining between analyses without deadlock or changed
-  products.
-- **Rapthor's distributed path.** The branch runs the analysis on
+- **Core budget and cost model** (in 0.25.0). Each stage chooses its tile
+  core and task count from the cores the caller states, and each task's
+  declared memory follows its core. Products depend on none of it.
+- **Waiting and sharing.** The analysis secedes from its worker slot while
+  it waits on its tasks; each round's declared memory is re-audited against
+  its measured peak; each completion record is split by tile, so a task
+  reads only its window's entries; several analyses and joining workers run
+  without deadlock or changed products.
+- **Rapthor's distributed path.** Rapthor's task runs the analysis on
   single-threaded Dask worker processes for the step's cores, on a cluster
-  its task owns with Dask's spill, pause and terminate actions off, since a
-  paused worker never runs its task (decision of 12 November); it passes
-  its client and resource names (`memory_resource`, `core_resource`) to
-  `DaskExecutor`, reserves the analysis memory on the driving task and
-  keeps its thread path for small sectors and tests. Hebog's adapter
-  takes over the image's source-count estimate and
-  the analysis reservation, so Rapthor supplies only the memory budget
-  (decision of 17 October). What Hebog needs from a cluster is documented for any caller
-  ([ADR-010](../docs/architecture/adr/010-scale-hebog-independently-of-its-integrations.md)),
-  with one way Rapthor can provide it beside DP3 and WSClean.
+  it owns with Dask's memory actions off, and passes its client and
+  resource names to `DaskExecutor`; it keeps threads for small sectors and
+  tests (decision of 12 November). Hebog's adapter takes over the
+  source-count estimate and the analysis reservation, so Rapthor supplies
+  only its memory budget (decision of 17 October). What Hebog needs from a
+  cluster is documented for any caller.
 - **Both branches together.** The true-sky analysis and the flat-noise
-  estimate submit their tile tasks through the executor at once, not
-  through a thread of Hebog's own, so the serial reference stays
-  single-threaded.
+  estimate submit their tasks through the executor at once.
 
-Each increment also cuts the serial work it touches where a measured gain
-is clear (decision of 18 October): the candidate scan's one task per
-128-pixel cell and each task's reopening of the FITS file (the cost model);
-results awaited in submission order, the completion record each task
-parses whole, and the driver's re-read and hash of every chunk it
-publishes, which the writing tasks can report instead (waiting and
-sharing); and the flat-noise estimate, which starts only after the whole
-true-sky analysis (both branches together).
+Each increment also cuts the serial work it touches where the gain is clear
+(decision of 18 October).
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 72 | Agent | Make Hebog's tasks scale on any Dask cluster, Rapthor's included. | Both finders' curves against the source count and cores are recorded with the model's projections for dense and sparse sectors, and the four increments above have merged and released. Products are byte-identical across the thread and Dask paths in the executor contract suite; task 73's curve, re-measured with the cost model's tiling, falls further than the baseline above; and the Dask path's CPU overhead on the 3,000² and 10,000² sectors (371 s against 206 s on threads, and 11% over `master`) and the dense cell's ratio are measured again. |
+| 72 | Agent | Make Hebog's tasks scale on any Dask cluster, Rapthor's included. | The four increments have merged and released, with products byte-identical across executors; the local curve on the 10,000² anchor falls below the 15 October baseline; and the dense and sparse cells' ratios and the Dask path's CPU overhead are measured again. |
 
 ### The deployment envelope and gate
 
-Each tier passes the same gate before its limit and release status change:
-exact tiled-invariance tests, the quick science check, a quick benchmark
-on both sides of any crossover, a reproduced `just traced-peak`, and the
-task memory audit (`scripts/benchmark/audit_task_memory.py`) on the tier's
-anchor. The memory measure is `tracemalloc`'s peak, which is deterministic
-and is measured only by `just traced-peak`; peak RSS, which varies 42% with
-machine load, is reported beside it as an envelope, never as the
-threshold. Science on the large images uses the LoTSS-DR3 PyBDSF catalogue
-and maps and the per-facet LOFAR-HD PyBDSF catalogues, with global
-invariants, as in ADR-005.
+Each tier passes one gate before its limit changes: the tiling-invariance
+tests, the quick science check, a quick benchmark on both sides of any
+crossover, a reproduced `just traced-peak` and the task memory audit on the
+tier's anchor. The memory measure is `tracemalloc`'s peak, which is
+deterministic; peak RSS varies with machine load and is reported beside it,
+never as the threshold.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 22 | Agent proposes, human freezes | Freeze the deployment envelope. | Sizes and workloads match Rapthor's production sectors (17,000 to 20,000 pixels a side; the demonstration sector is 3,000² and refused for its beam), and the 22,500² tier is admitted. An image above the envelope is refused with a typed error and Rapthor falls back to PyBDSF. |
-| 23 | Agent | Run matched `filter_skymodel` benchmarks and optimize the finder part towards the gate. | Hebog through Rapthor's native task, and pinned `master` through Rapthor's PyBDSF subprocess on the same cores, in the same Linux container on the development machine, with cached reference timings. `scripts/benchmark/measure_filter_skymodel.py` measures a cell: a sector written from a real image at real resolution with WSClean-like component lists on its island pixels, one warm-up and five measured repetitions of each finder in fresh containers, alternating; the gate's ratio is the finder part's and the complete step's is reported beside it; the image is x86-64 under Rosetta. On the sparse 3,000² sector both finders burn the same CPU, so parity on four cores needs Hebog to keep as many cores busy as `master`; the VM cannot hold `master` on a 15,402² sector, so the ELAIS-N1 central 5,000² is the dense cell it should hold. Done when, on every cell the VM holds, dense and sparse, the finder part's CPU ratio and its wall ratio against cores are measured and recorded, the largest constant factors the profile names are cut, and memory and Hebog-curve non-regression and the quick science check pass; the gate itself is decided by the cluster run (task 30). Native code enters only through the native-code gates and an accepted ADR. |
+| 22 | Agent proposes, human freezes | Freeze the deployment envelope. | Sizes and workloads match Rapthor's production sectors (17,000 to 20,000 pixels a side), and a larger image is refused with a typed error so Rapthor falls back to PyBDSF. |
+| 23 | Agent | Run matched `filter_skymodel` benchmarks and optimize the finder part towards the gate. | On every cell the container VM holds, dense and sparse, the finder part's CPU and wall ratios against cores are recorded (`scripts/benchmark/measure_filter_skymodel.py`: one warm-up and five measured runs of each finder, alternating, in fresh containers); the largest constant factors the profile names are cut; memory, Hebog-curve non-regression and the quick check pass. The gate itself is decided on the cluster (task 30). |
 
 ### Scale beyond one machine
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and a valid memory admission for both topologies, including the kept records that grow with the image and the sources found. |
-| 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, owned-chunk writes from concurrent local workers, codec and chunk geometry, missing chunks and injected failures pass within an admitted memory budget. Zarr v3's sharding codec is evaluated against one file per chunk, since a run writes 19,373 chunk files at 10,000² and thousands of tasks on the cluster's Lustre filesystem, its only scratch, mean many small files; the completion record's split by tile (task 72) is reviewed with it. Shared-storage throughput is measured by the cluster benchmark. |
-| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one dense Rapthor sector at its default size at 1, 2, 5 and 10 nodes, and a sparse one on one node: through Rapthor's native task on the layout its Hebog branch documents, and standalone on the same cluster, which is the scaling evidence if Rapthor has not yet given each node several task slots. They record evidence, the hardware, a scaling-model fit, the finder-part ratio against PyBDSF on one node and the strong-scaling efficiency against the floor decision 2 fixes. `config/benchmarks/phase-0-scalability.json`, the performance and scalability contracts page and the `test-scalability` recipe describe the development-machine tier and that benchmark, keeping the 50, 100 and 200-node gates as design targets (task 26, folded in). A dry run with a local Dask cluster at small sizes passes, so the cluster session measures rather than debugs. |
+| 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and valid memory admission for both topologies. |
+| 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, concurrent owned-chunk writes, codecs and chunk geometry, missing chunks and injected failures pass within an admitted memory budget, and Zarr v3 sharding is evaluated against one file per chunk, since the cluster's only scratch is Lustre. |
+| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one dense sector at its default size on 1, 2, 5 and 10 nodes, and a sparse one on one node, through Rapthor's task and standalone; they record the hardware, a scaling-model fit, the ratio against PyBDSF on one node and the efficiency against decision 2's floor. `config/benchmarks/phase-0-scalability.json`, the contracts page and `just test-scalability` describe it, keeping 50 to 200 nodes as design targets. A local dry run passes, so the session measures rather than debugs. |
 
 ### Science before the freeze
 
-This scientific measurement waits until the work above is complete
-(decision of 9 October); a confirmed incorrect supported output reopens it
-at once. It closes before the candidate is frozen.
-
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 15 | Agent measures, human dispositions | Measure and document a point-spread function that varies across the field. | LOFAR facets and MWA mosaics (which ship PSF maps) have a PSF the header beam cannot describe. Done when the effect on fluxes and sizes is measured with injected truth and documented as a limitation with its measured effect; a PSF-map input is work after 1.0.0 unless the effect changes a Rapthor-consumed field (decision of 16 October). |
+| 15 | Agent measures, human dispositions | Measure and document a point-spread function that varies across the field. | Its effect on fluxes and sizes is measured with injected truth and documented as a limitation; a PSF-map input follows 1.0.0 unless the effect changes a field Rapthor consumes. Waits until the work above is complete unless an output is confirmed incorrect. |
 
 ### Qualification and 1.0.0
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 28 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed; a later change restarts only the affected qualification tasks. The Rapthor, LSMTool and PyBDSF pins move forward here for the last time. |
-| 29 | Agent designs, human approves | Run one powered parity/retention study with fresh held-out and public-survey data, sized to finish overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed contract, population and power design, including the limitations that block 1.0.0, a per-noise-class check of the `Total_flux` rows, the truth-based retained/rejected gate at its approved limits, and full LOFAR images inside the envelope, SDC1 simulations with truth and a MeerKAT MIGHTEE image. Closed failed campaigns are never reused as confirmation. |
-| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's finder part at 1, 2, 5 and 10 nodes keeps falling to the floor decision 2 fixed, with invariant products; its ratio against PyBDSF's finder part on one node passes the gate like for like at one node and in Rapthor's deployed configuration, under the confidence rule, for the envelope's sizes. A failure becomes a normal `0.x` repair task. |
-| 31 | Agent | Check released PyBDSF 1.14.1 once. | One matched run against 1.14.1, cached for reuse, confirms the performance gate against the release on a dense and a sparse sector inside the deployment envelope, and Rapthor-profile agreement against it. A failure is reported with its cause before the 1.0.0 decision. |
-| 32 | Human runs in Rapthor, agent supports | Run the operational trial behind the Rapthor flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
-| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, Rapthor profile, performance, scale, portability, a dependency and licence audit, packaging and current documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance from the reviewers decision 1 names. |
-| 34 | Human | Release 1.0.0. | Release Please produces 1.0.0 (for example through a `Release-As: 1.0.0` commit footer) and the package publishes to PyPI. Release notes state the envelope, the 1.x compatibility policy, and that 100,000² images and 100 to 200+ nodes are designed for but not demonstrated. |
+| 28 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed, and the pins move for the last time; a later change restarts only the affected qualification tasks. |
+| 29 | Agent designs, human approves | Run one powered parity study on fresh held-out and public-survey data, overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed design, including the limitations that block 1.0.0 and the truth-based gate, on full LOFAR images, SDC1 simulations and a MIGHTEE image. Closed failed campaigns are never reused as confirmation. |
+| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's time falls to decision 2's floor at 1, 2, 5 and 10 nodes with invariant products, and its ratio against PyBDSF passes the gate on one node and as Rapthor deploys. A failure becomes a `0.x` repair task. |
+| 31 | Agent | Check released PyBDSF 1.14.1 once. | One matched run confirms the performance gate and Rapthor-profile agreement against the release on a dense and a sparse sector. |
+| 32 | Human runs in Rapthor, agent supports | Run the operational trial behind Rapthor's flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
+| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, profile, performance, scale, portability, dependency and licence audit, packaging and documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance. |
+| 34 | Human | Release 1.0.0. | Release Please produces 1.0.0 and it publishes to PyPI, with notes stating the envelope, the 1.x policy and what is designed for but not demonstrated. |
 
 ### After 1.0.0
 
-Each envelope raise is a minor release through the same tier gate; the
-rows wait until 1.0.0 ships unless a 1.0.0 task needs them.
+Each envelope raise is a minor release through the tier gate.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
-| 56 | Agent | Measure the analysis again now its local-noise requests are bounded. | The requests go out in rounds of 64 MiB and no longer grow with the image, but the analysis was last audited and traced with them built all at once. Done when the whole 22,500² mosaic and its central 7,500² are audited and traced again, `scripts/benchmark/attribute_traced_peak.py` names what now peaks, and `hebog.analysis_memory_bytes`' pixel term comes down as far as every anchor's new peak allows. The 22,500² audit needs about 58 GiB of free disk. Needed before the 45,000² tier. |
-| 12 | Agent, human approves | Raise to 45,000² on the LOFAR-HD mosaic (1.1). | The run's scratch fits the free disk with 15 GiB to spare, which needs the intermediates shrunk first (about 200 GiB at today's 100 bytes a pixel). The tier gate passes and the raise is a minor release. This is the out-of-core demonstration: the run completes on 18 GiB with the traced peak bounded by tile size although one `float64` copy of the image (16 GB) would not fit. The local ladder ends here. GLEAM-X's 31,468-pixel side fits this tier, so SKA-Low precursor evidence joins it. |
-| 80 | Human runs, agent analyses | Raise to 90,000² on the cluster (1.2). | The 90,000² LOFAR-HD mosaic runs standalone on the cluster at two node counts within the amended gates, with invariant products, and the raise is a minor release. |
+| 56 | Agent | Measure the analysis memory again now its local-noise requests are bounded. | The whole 22,500² mosaic and its central 7,500² are audited and traced again, the new peak is named, and `hebog.analysis_memory_bytes` comes down as far as the anchors allow. Needs about 58 GiB of free disk; needed before 45,000². |
+| 12 | Agent, human approves | Raise to 45,000² on the LOFAR-HD mosaic (1.1). | The scratch fits the free disk with 15 GiB to spare, which needs the intermediates shrunk first, and the tier gate passes. This is the out-of-core demonstration: the run completes in 18 GiB with the traced peak bounded by the tile, although one `float64` copy of the image would not fit. GLEAM-X's SKA-Low precursor data joins it. |
+| 80 | Human runs, agent analyses | Raise to 90,000² on the cluster (1.2). | The 90,000² mosaic runs standalone on the cluster at two node counts with invariant products. |
 
-A PSF-map input (task 15's measured limitation) and the deferred science
-in the current-state table join these releases as evidence and demand
-allow.
+A PSF-map input and the deferred science join these releases as evidence
+and demand allow.
 
 ### Risks
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Hebog's finder part is slower than PyBDSF's on sparse sectors, about 1.7 times pinned `master`'s on Dask workers on the sparse 5,000² cell, where `master` keeps gaining past four cores, and about `master`'s time on the dense cell, where the 0.50 gate binds. | Task 30 fails on dense sectors, or passes only at node counts Rapthor does not deploy; sparse sectors stay slower than `master`, which task 72's model projects for three of the four sparse ladder sectors on one node. | Task 72 has measured both finders against the source count and cores and modelled the ratio at the cluster's node sizes with floor targets for both classes; its increments raise occupancy and cut serial work and the Dask path's CPU overhead; task 23 cuts the largest constant factors, including the per-pixel cost that decides sparse sectors; use the native-code gates only for a profiled kernel; report the gap honestly at each milestone. |
-| Hebog's mask makes Rapthor keep different sky-model components from pinned `master`'s: 92.8% agreement at best, where released PyBDSF reaches 99.29%. | Rapthor's calibration model differs from PyBDSF's, most on deep LOFAR fields, and the truth-based gate fails where Hebog loses real sources. | `just rapthor-agreement` measures each lane against truth, so a profile is not chosen for copying PyBDSF's errors, and re-measures every lane at each pin move and science change. |
-| One sector's speed-up is capped: a 20% serial share on the 10,000² anchor caps it near five; a worker needs about 2 GB a core for the multiscale tasks, so a node short of memory swaps before its cores are busy; rounds hold 7 to 25 tasks and a 3,000² sector only four tiles; Python's global lock throttles a process with many threads; concurrent sectors could deadlock workers that run one task each. | Rapthor's cluster cores go unused, and the gate is missed on occupancy rather than work. | Task 72's cost model sizes tiles and task counts from the core budget and the memory a core needs, with single-threaded tasks on several worker processes a node, resource annotations and seceding while waiting; the cluster benchmark reports where one sector stops scaling. |
-| Scaling across nodes inside Rapthor needs Rapthor to give each node several task slots, which is Rapthor's change to make. | The Rapthor run of the cluster benchmark uses one core a node. | The Rapthor branch documents the layout; the standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
-| The passes keep records from every tile, growing the traced peak about 1.7 bytes a pixel in the multiscale pass and about 3 in background/RMS, and the analysis holds about 42 KB a source and grows with the pixels through the background's noise grids. | The whole 22,500² mosaic traces 1.8 GiB, below the 2.1 GiB those slopes forecast, but its peak was what the analysis held between tasks, about 3.6 bytes a pixel, while the local-noise requests were all built at once; the bounded rounds' peak is not yet traced; a dense sector's analysis (over 5 GiB for 123,186 sources) must be reserved by its Rapthor worker. | Task 56 before the 45,000² tier; shard, stream or drop kept records such as candidates that can never become islands; task 24's planner bounds include them; `hebog.analysis_memory_bytes` states the analysis's memory from the image's shape and an expected source count meanwhile. |
-| An object wider than the read budget brings its own pixels to the driver in the island, deferred-fit and catalogue-row rounds, at up to 186 bytes a pixel: about 94 GB for a field-filling object at 22,500². No real LoTSS-DR3 object comes within a factor of ten of the budget. | Driver memory scales with the wide segments of a round, not the tile. | Deferred: associative partial sums on the cores first, then a reviewed design for the local-noise median; reopened when a tier's traced peak shows the term or when the cluster benchmark is planned. A connected network of narrow filaments is the diagnostic that would measure its growth. |
-| Source association costs more than the image grows; a dense Rapthor sector (ELAIS-N1, 123,186 sources) took 8.5 h serially on 11 October. | A dense sector takes hours inside the envelope. | Tasks 55 and 54 removed the quadratic hierarchy decision and the strip-shaped reads; under the same `continuum` profile the sector took 2.0 h on 17 October against 8.5 h, and 1.3 h under the `compact` default. Profile the anchors again within task 23. |
-| The development machine's 18 GiB RAM, free disk (about 64 GiB on 19 October) and 16 GB container VM limit local tiers and matched benchmarks: `master` cannot run a 15,402² sector in the VM. | Local evidence stops at the 10,000² anchor for matched runs and at 22,500² for tiers. | The cluster measures the gate; the intermediates shrink before 45,000² (next row). |
-| The Zarr intermediates are stored without compression and kept until the run ends, about 100 bytes a pixel: on the 22,500² mosaic five `float64` planes (background, RMS and three multiscale signal planes) of 3.8 to 3.9 GiB each and ten mostly empty `int32` label planes of 1.9 GiB each, 49 GiB at the peak. | A 45,000² run needs about 200 GiB of scratch, more than the development machine has free, and a cluster's shared storage carries the same volume. | Before the 45,000² tier: compress the label planes losslessly and delete each plane after its last reader; `float64` stays unless equivalence evidence admits `float32`. |
-| Rapthor and LSMTool change frequently; their pins moved to the upstream heads on 17 October, and PyBDSF's `master` is 91 commits past the binding reference. | Adapter, contract, benchmark or reference churn, or a backend that only works on a stale revision. | Move the Rapthor and LSMTool pins again only if upstream changes the filter step before the Rapthor branch is pushed (task 79), before the matched benchmarks (task 23) and at the freeze (task 28), re-running the contract audit, the acceptance scenarios and the agreement check and recording the outcome in the commit; keep PyBDSF at `c70103b` until the freeze. |
-| The cluster benchmark depends on hardware not yet scheduled, acceptance on reviewers not yet named, and selecting Hebog from released Rapthor on the Rapthor branch merging. | 1.0.0 waits on a session and on reviews; until the merge, Rapthor users install Rapthor from the branch. | Testing, the trial and the cluster benchmark use the branch at a recorded commit, so none waits on the merge; Rapthor calls Hebog directly, so no LSMTool registry entry is required; the cluster session is one sector at four node counts after a local dry run (task 27); reviewers are approached when the branch is pushed (decision 1). |
-| Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate a scientific trade-off to the human rather than weakening invariance silently. |
-| Large public images have minimal or non-standard headers, and no large public SKA-Low image exists. | Anchors cannot run unmodified, their science comparison is weak, or SKA-Low coverage relies on precursor data after 1.0.0. | Headers checked against the input header contract before download; explicit request metadata; per-facet LOFAR-HD catalogues for science; GLEAM-X DR1 with its PSF maps at the 45,000² release, and SKA-Low science-verification data once released (expected from 2027). |
-| A noise window is fixed at 35 pixels, so under a beam several pixels wide it holds few independent samples: its estimate scatters, and patches of each noise map read well below the true noise. | Noise peaks in those patches pass as faint sources, and single cases move by chance whenever the noise estimate changes. | Judge a noise change by whole-map tails against injected noise, not single cases; windows scaled with the restoring beam (deferred) would narrow the scatter. |
-| Short checks miss a rare regression, or scientific campaigns absorb the schedule again. | A defect reaches a `0.x` release, or performance and scale slip. | Releases stay experimental and each escaped defect adds a fixed case; iteration budgets, cached references and endpoints limited to Rapthor-consumed fields hold the schedule; the one powered study at task 29 is the backstop. |
+| Hebog's finder part is about `master`'s time on the dense cell on Dask workers, where the gate needs half, and about 1.7 times it on the sparse cell, where `master` keeps gaining past four cores. | The cluster gate fails on dense sectors, or sparse sectors stay slower than `master`. | Task 72's model and increments raise occupancy and cut serial work; task 23 cuts the largest constant factors; native code only through its gates; report the gap honestly at each milestone. |
+| Hebog's mask makes Rapthor keep different components from `master`'s on deep LOFAR fields. | The truth-based gate fails where Hebog loses real sources. | `just rapthor-agreement` measures every lane against truth at each pin move and science change. |
+| One sector's speed-up is capped by serial work, memory per core, rounds of few tasks, the interpreter lock, or deadlock between concurrent sectors. | Cluster cores go unused and the gate is missed on occupancy. | Task 72's increments; the cluster benchmark reports where one sector stops scaling. |
+| Scaling inside Rapthor needs Rapthor to change its worker layout. | Rapthor's cluster run uses one core a node. | The standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
+| Kept records and the analysis's memory grow with the image and the sources found. | Large tiers exceed memory; a dense sector's analysis needs several GB on its worker. | Task 56 before 45,000²; planner bounds include the records (task 24); `hebog.analysis_memory_bytes` states the analysis's memory. |
+| An object wider than a task's read budget is reduced on the driver. | Driver memory grows with wide objects, not the tile. | Deferred; reopened when a tier's traced peak shows it or the cluster benchmark is planned. |
+| The development machine's RAM, disk and container VM limit local tiers and matched runs. | Matched runs stop at the 10,000² anchor and tiers at 22,500². | The cluster measures the gate. |
+| Uncompressed Zarr intermediates take about 100 bytes a pixel. | A 45,000² run needs about 200 GiB of scratch. | Before 45,000²: compress label planes losslessly and delete each plane after its last reader. |
+| Rapthor and LSMTool change often, and PyBDSF's `master` has moved past the reference. | Adapter, benchmark or reference churn. | Move the Rapthor and LSMTool pins only before task 79's push if the filter step changes, before task 23 and at the freeze, re-running the audits; keep PyBDSF at `c70103b` until the freeze. |
+| The cluster session, the reviewers and Rapthor's merge are not yet scheduled. | 1.0.0 waits on them. | Testing, the trial and the benchmark use the Rapthor branch at a recorded commit; reviewers are approached when the branch is pushed. |
+| Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate any scientific trade-off. |
+| Large public images have minimal or non-standard headers, and no large SKA-Low image exists. | Anchors need explicit metadata; SKA-Low evidence comes after 1.0.0. | Check headers before download; GLEAM-X at the 45,000² release. |
+| The 35-pixel noise window holds few independent samples under a wide beam. | Noise peaks pass as faint sources, and single cases move by chance. | Judge noise changes by whole-map tails against injected noise; beam-scaled windows are deferred. |
+| Short checks miss a rare regression, or campaigns absorb the schedule. | A defect reaches a release, or the schedule slips. | Each escaped defect adds a fixed case; budgets and cached references hold the schedule; task 29 is the backstop. |
 
 ## Scientific gates
 
 Analytic or injected truth is primary. Pinned PyBDSF `master` at `c70103b`
-(`v1.14.1-40`, the Phase 5 reference) is the binding finder reference.
-Released 1.14.1, which Rapthor installs today, is checked once at task 31.
-The two diverge scientifically (14 versus 12 sources on the representative
-3,000² image), so neither is truth. Later upstream `master` commits are
-adopted only by a deliberate plan decision, which invalidates cached
-reference outputs. Aegean comparisons are paused: neither binding nor run
-routinely, and task 29's design decides whether to reinstate them.
+is the binding finder reference; released 1.14.1, which Rapthor installs
+today, is checked once (task 31). The two diverge, so neither is truth.
+Later `master` commits are adopted only by a plan decision. Aegean
+comparisons are paused until task 29's design decides.
 
-- No change degrades the science (decision of 18 October): a change keeps
-  or improves every case it moves on the quick check, the agreement
-  check's truth measures and the truth catalogues, not only the gated
-  endpoints, and an escaped defect first gains a fixed case that fails
-  without its repair.
-- Each campaign uses its own prospectively reviewed endpoint registry and
-  decision contract. Choose a whole incumbent before viewing results; never
-  combine historical best values into a synthetic comparator.
-- Require every applicable relative PyBDSF and incumbent Hebog comparison,
-  with fixed practical margins and the conjunctive one-sided confidence
-  rule. Inconclusive binding evidence is not parity. An old candidate's
-  uncertainty exception does not transfer to a replacement.
-- Freeze population, semantic applicability, independent sampling unit,
-  margins, missing-output rules and endpoint and joint power before
-  execution. Pair and resample whole realizations, not dependent source
-  rows or pixels. Planning variance sizes the study; the observed-data
-  interval decides. Superiority claims need a prospective multiplicity
-  rule, and improvements cannot compensate for failed binding checks.
-- Product validity, finite or explicitly unavailable measurements, complete
-  processing status, schemas, provenance and deterministic execution remain
-  binding. Report absolute targets separately. Retain all morphology,
-  scale, SNR, noise and boundary strata.
-- Compare like source, component and support semantics. Use original
-  pixels for flux and photometry and valid pixels for mask precision,
-  recall and IoU. Report splits, merges, duplicates and low-SNR
-  completeness and reliability separately.
-- Before a long campaign or replay, run a bounded development screen
-  through the same runner and evaluator with an explicit time and resource
-  budget, selecting cases before inspecting results. A clean screen is
-  neither powered parity nor a prediction of campaign success.
+- **No change degrades the science** (decision of 18 October): a change
+  keeps or improves every case it moves on the quick check, the agreement
+  check's truth measures and the truth catalogues, and an escaped defect
+  first gains a fixed case that fails without its repair.
+- Each campaign has its own prospectively reviewed endpoints and decision
+  rules. Choose a whole incumbent before viewing results; never combine
+  historical best values into a synthetic comparator.
+- Require every applicable PyBDSF and incumbent comparison, with fixed
+  margins and the conjunctive one-sided confidence rule. Inconclusive
+  evidence is not parity, and an old candidate's uncertainty exception
+  does not transfer to a replacement.
+- Freeze the population, sampling unit, margins, missing-output rules and
+  power before running. Resample whole realizations, not source rows or
+  pixels. Planning variance sizes the study; the observed interval
+  decides. Superiority claims need a prospective multiplicity rule, and
+  improvements cannot offset a failed binding check.
+- Valid products, finite or explicitly unavailable measurements,
+  schemas, provenance and deterministic execution stay binding. Keep every
+  morphology, scale, SNR, noise and boundary stratum.
+- Compare like semantics: original pixels for flux, valid pixels for mask
+  scores; report splits, merges, duplicates and low-SNR completeness and
+  reliability separately.
+- Before a long campaign, run a bounded development screen with cases
+  chosen before seeing results. A clean screen is not powered parity.
 
-The dataset matrix retains compact SNR 3–100, blends, diffuse Gaussians,
-filaments and shells, mixed emission, different beams, WCS, pixel scales
-and units, negative backgrounds, empty, all-NaN and invalid data, varying
-noise, image edges and all tile-edge and corner topologies. Every dataset
-has a development, regression or qualification role, provenance, checksums
-and generator identity
+The dataset matrix keeps compact SNR 3–100, blends, diffuse Gaussians,
+filaments and shells, mixed emission, varied beams, WCS, pixel scales and
+units, negative backgrounds, empty, all-NaN and invalid data, varying noise,
+edges and every tile-edge and corner topology. Every dataset has a role,
+provenance, checksums and generator identity
 ([dataset manifests](../docs/reference/dataset-manifests.md)), and new
-populations are seed-disjoint from existing manifests. General
-qualification includes full public or challenge images from LOFAR and
-SKA-Mid for 1.0.0, SKA-Low precursor data at the release that admits it,
-plus at least one other instrument. Compare Serial before alternate
-executors and external finders.
+populations are seed-disjoint from existing ones. Qualification includes
+full public or challenge images from LOFAR and SKA-Mid and at least one
+other instrument. Compare Serial before other executors and external
+finders.
 
 | Measurement | Target |
 | --- | --- |
-| Rapthor retained/rejected components | Truth-based (decision of 17 October). Of the real components `master` keeps, on the ideal mask of a generated image or at least 7σ above the negative-pixel noise of a real one, a lane rejects ≤1% overall and ≤2% in every stratum; of the sources injected into the real images it keeps at least `master`'s share less 5 points at every level from 6σ, and all from 10σ; on the negated real images it finds false islands numbering ≤1% of the islands on the originals. Agreement with `master` is reported beside it |
+| Rapthor retained/rejected components | Truth-based (decision of 17 October). Of the real components `master` keeps (on the ideal mask of a generated image, or at least 7σ above the negative-pixel noise of a real one), a lane rejects ≤1% overall and ≤2% in every stratum; of sources injected into the real images it keeps at least `master`'s share less 5 points at every level from 6σ, and all from 10σ; false islands on negated real images ≤1% of the islands on the originals. Agreement with `master` is reported beside it |
 | Reference recovery, SNR ≥10 | ≥99% |
 | SNR ≥5 | Report the compatibility curve; no single pass fraction |
 | False-discovery rate | ≤1 percentage point above reference |
@@ -631,76 +431,52 @@ executors and external finders.
 | Isolated SNR ≥10 integrated-flux difference, median / p95 | ≤5% / 10% |
 | `Total_flux` excess against injected truth, median, SNR 10 / 20 / 50 | ≤ +14% / +3.5% / +1% |
 | `Total_flux` absolute excess against injected truth, p95, SNR 10 / 20 / 50 | ≤ 35% / 12% / 6% |
-| `Total_flux` Hebog minus pinned PyBDSF `master`, paired over realizations, upper one-sided 95% bound, per stratum | ≤ +1 point in median and p95 |
+| `Total_flux` Hebog minus pinned `master`, paired over realizations, upper one-sided 95% bound, per stratum | ≤ +1 point in median and p95 |
 | `Total_flux` 3σ-clipped mean ratio to truth, SNR ≥ 20 | within ±3%, clipped scatter ≤ 5% |
 | Source-free RMS-map difference, median / p95 | ≤2% / 5% |
 
-The `Total_flux` rows are the binding limits set on 23 September from PyBDSF
-parity on the M1 calibration population and Rapthor's 10% photometry
-decision floor; strata are that population's SNR 10, 20 and 50 classes,
-binding pooled over white and beam-correlated noise (decision of
-6 October), with the powered study adding a per-noise-class check. They
-pass on independent realizations (`config/datasets/m1-flux-calibration.json`).
-The retained/rejected row is measured by `just rapthor-agreement` over
-every distinct pixel holding a Gaussian centre fitted by `master` or any
-Hebog lane, overall and in the bright, extended, edge, masked, crowded,
-sparse, true-sky and apparent strata; the former ≥99.5% agreement target
-was retired on 16 October because released PyBDSF misses it too, and the
-truth-based limits, which released PyBDSF passes, were set on 17 October.
+The `Total_flux` limits (23 September) come from PyBDSF parity on the M1
+calibration population and Rapthor's 10% photometry floor, pooled over white
+and beam-correlated noise; the powered study adds a check per noise class.
+`just rapthor-agreement` measures the retained/rejected row overall and in
+the bright, extended, edge, masked, crowded, sparse, true-sky and apparent
+strata.
 
 ## Performance and scale gates
 
-For supported Rapthor deployment, the matched median ratio of the
-source-finding part of Rapthor's `filter_skymodel` step, from the task's
-start to LSMTool's `filter_sources` call, and its upper one-sided 95%
-bootstrap confidence bound must satisfy (decision of 18 October 2026):
+For Rapthor deployment, the matched median ratio of the source-finding part
+of Rapthor's `filter_skymodel` step, from the task's start to LSMTool's
+`filter_sources` call, and its upper one-sided 95% bootstrap bound must
+satisfy (decision of 18 October 2026):
 
 ```text
 dense sectors:  Hebog / pinned PyBDSF master (c70103b) <= 0.50
 other sectors:  Hebog / pinned PyBDSF master (c70103b) <= 1.05
 ```
 
-A sector is dense when pinned `master` finds at least 10,000 sources in
-it, a provisional threshold confirmed or moved from the measured
-source-count curve before the cluster benchmark is packaged. PyBDSF's
-source finding is slow where sources are many, which is where Rapthor's
-step needs a faster finder; where finding is already fast, matching
-`master` is enough, and 1.05 is the margin of the Hebog non-regression rule
-below. Each finder's time against the source count at fixed cores, and its
-speed-up against cores on a dense sector, are reported beside the ratios
-and not gated.
-
-The gate binds the span the finder controls; LSMTool's filtering is the
-same for either finder (291 s and 307 s on the 10,000² anchor) and is
-reported beside it as the complete step, never gated (decision of
-16 October 2026; `measured_phase` in
-`config/benchmarks/phase-0-performance.json`). Pinned `master` was faster
-than released 1.14.1 in every matched Phase 0 run (3.0% at 256², 6.8% at
-3,000²), so the dense gate is at least as strict as the former release gate;
-task 31 confirms the release ratio once. Scientific eligibility precedes
-performance acceptance. These are minimum deployment gates, not a reason to
-stop optimizing or to hold an experimental standalone release.
+A sector is dense when `master` finds at least 10,000 sources in it, a
+provisional threshold confirmed or moved before the cluster benchmark is
+packaged (decision 3). Each finder's time against the source count and its
+speed-up against cores are reported beside the ratios, not gated. LSMTool's
+filtering is the same for either finder, so it is reported as the complete
+step and never gated. Scientific eligibility comes before performance
+acceptance, and these minimum gates are no reason to stop optimizing.
 
 - Maintain the anchors and workloads of the
   [performance and scalability contracts](../docs/reference/performance-scalability-contracts.md),
-  with the real images below beside the nearest anchor and both sides of
-  every measured crossover. Gate deployment on the frozen envelope; 1.0.0
-  qualification measures the gate on the cluster at the envelope's sizes,
-  with 100,000² covered by planner tests only.
-- Compute reference-finder timings once per input, revision and host and
-  reuse them; rerun them only when one of those changes.
+  with both sides of every measured crossover. 1.0.0 measures the gate on
+  the cluster at the envelope's sizes; 100,000² is covered by planner tests
+  only.
+- Compute reference timings once per input, revision and host, and reuse
+  them.
 - Match environments and record evidence as
   [`AGENTS.md`](../AGENTS.md#scientific-and-performance-gates) and the
   [evidence records](../docs/reference/evidence-documents.md) require: one
-  warm-up and at least five measured repetitions with every value retained,
-  and unavailable instrumentation recorded with a reason, never zero.
+  warm-up and at least five measured repetitions, every value kept.
 - Hebog non-regression needs an upper one-sided 95% bound ≤1.05 against the
-  previous reviewed curve; a lower bound >1.05 is a regression and crossing
-  the margin is inconclusive. A >10% peak worker or aggregate memory
-  regression against either PyBDSF reference needs an approved throughput
-  trade-off.
-- Component budgets remain diagnostic; the finder part of the complete
-  step decides deployment.
+  previous reviewed curve; a lower bound above 1.05 is a regression. A
+  memory regression above 10% against either PyBDSF reference needs an
+  approved trade-off.
 
 ### Reference images
 
@@ -734,17 +510,12 @@ The [architecture](../docs/architecture/index.md), the
 [distributed execution contract](../docs/architecture/distributed-execution.md),
 the [native-code assessment](../docs/explanation/native-code-assessment.md)
 and [`AGENTS.md`](../AGENTS.md) hold the requirements: a pipeline-neutral
-scientific library with inert imports and small typed requests and results;
-one tile-native composition for every image size with Serial as the oracle,
-Zarr as the sole intermediate backend, stage-specific halos, global
-ownership and hierarchical reductions; never a complete large plane on one
-worker; dtype preserved unless scientific evidence supports a change.
+library with inert imports and small typed requests; one tile-native
+composition for every size with Serial as the oracle; Zarr as the sole
+intermediate backend; stage-specific halos, global ownership and
+hierarchical reductions; never a complete large plane on one worker; dtype kept
+unless scientific evidence supports a change.
 
-Keep the README, docs home, release status, progress page and tutorial
-focused on current behaviour, replacing stale summaries when status
-changes; the progress page and the current-state table above change
-together. User and developer documentation names work by what it does,
-never by plan task number, and carries no development history; the plan
-and Git history hold those. Record completed work in Git history with
-exact evidence references, not as another "latest" section in user
-guidance. Removing a historical narrative never changes a closed result.
+User-facing documentation describes current behaviour, names work by what
+it does rather than by task number, and carries no development history;
+the plan and Git history hold those.

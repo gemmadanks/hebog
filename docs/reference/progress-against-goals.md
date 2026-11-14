@@ -307,7 +307,7 @@ These guard against erosion; they do not establish parity or readiness.
 
 ## Keeping this page current
 
-Update this page in the same change as the plan's current-state table: after
+Update this page in the same change as the plan's summary of how far 1.0.0 is: after
 a release check, a gate run, a new quick-check baseline or a repaired defect.
 Replace stale figures rather than adding to them, and record each figure's
 date and run label; Git history keeps earlier figures. The figures come from
