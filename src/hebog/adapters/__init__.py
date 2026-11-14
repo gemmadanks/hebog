@@ -1,6 +1,7 @@
 """Workflow compatibility boundaries built on Hebog's scientific API."""
 
 from hebog.adapters.rapthor import (
+    WORKER_PROCESS_BYTES,
     RapthorBlankedImageError,
     RapthorCompatibilityConfig,
     RapthorSectorMemory,
@@ -11,6 +12,7 @@ from hebog.adapters.rapthor import (
 )
 
 __all__ = [
+    "WORKER_PROCESS_BYTES",
     "RapthorBlankedImageError",
     "RapthorCompatibilityConfig",
     "RapthorSectorMemory",

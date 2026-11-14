@@ -31,6 +31,7 @@ from hebog import (
 )
 from hebog.adapters import rapthor
 from hebog.adapters.rapthor import (
+    WORKER_PROCESS_BYTES,
     RapthorBlankedImageError,
     RapthorCompatibilityConfig,
     RapthorSourceFindingRequest,
@@ -435,6 +436,58 @@ def test_a_sectors_memory_reserves_the_analysis_and_leaves_the_rest_for_tasks(
     assert memory.expected_sources == expected > 0
     assert memory.analysis_bytes == analysis
     assert memory.task_bytes == 8 * 1024**3 - analysis
+
+
+def test_each_worker_process_rapthor_starts_is_given_its_own_memory(
+    tmp_path: Path,
+) -> None:
+    """A worker process holds Hebog's modules before it runs any task.
+
+    No task declares that memory, so it comes out of the budget before the
+    tasks share the rest: a stated allowance for each process.
+    """
+    request = _sector(tmp_path)
+    in_process = sector_memory(request, _config(), 8 * 1024**3)
+
+    memory = sector_memory(request, _config(), 8 * 1024**3, worker_processes=4)
+
+    assert WORKER_PROCESS_BYTES == 256 * 1024**2
+    assert memory.worker_process_bytes == 4 * WORKER_PROCESS_BYTES
+    assert in_process.worker_process_bytes == 0
+    assert memory.analysis_bytes == in_process.analysis_bytes
+    assert (
+        memory.task_bytes == in_process.task_bytes - 4 * WORKER_PROCESS_BYTES
+    )
+
+
+def test_a_budget_the_worker_processes_fill_is_refused(
+    tmp_path: Path,
+) -> None:
+    """The processes' own memory counts against the budget too."""
+    request = _sector(tmp_path)
+    analysis = sector_memory(request, _config(), 8 * 1024**3).analysis_bytes
+
+    with pytest.raises(ExecutorAdmissionError, match="no memory remains"):
+        sector_memory(
+            request,
+            _config(),
+            analysis + 2 * WORKER_PROCESS_BYTES,
+            worker_processes=2,
+        )
+
+
+@pytest.mark.parametrize("worker_processes", [-1, True, 1.5])
+def test_a_worker_process_count_is_a_non_negative_integer(
+    tmp_path: Path, worker_processes: int
+) -> None:
+    """A process count that is not a whole number is a caller's error."""
+    with pytest.raises(ValueError, match="worker_processes"):
+        sector_memory(
+            _sector(tmp_path),
+            _config(),
+            8 * 1024**3,
+            worker_processes=worker_processes,
+        )
 
 
 def test_a_budget_the_analysis_fills_is_refused(tmp_path: Path) -> None:

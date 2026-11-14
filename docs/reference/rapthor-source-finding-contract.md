@@ -315,7 +315,11 @@ true-sky image's sources at `threshpix`, keeps `hebog.analysis_memory_bytes`
 for them in the process that will call `find_sector_sources`
 (`analysis_bytes`), and leaves the rest for the analysis's tasks
 (`task_bytes`), from which Rapthor builds its executor. Rapthor passes the
-budget less what it and LSMTool already hold in that process. When the
+budget less what it and LSMTool already hold in that process, and, with
+`worker_processes`, the number of Dask worker processes it starts for the
+sector: each holds Hebog's modules before it runs a task, which no task
+declares, so each is allowed `hebog.adapters.WORKER_PROCESS_BYTES` (256 MiB;
+181 MiB measured). When the
 analysis leaves nothing, it raises `ExecutorAdmissionError`, the typed
 refusal on which Rapthor falls back to PyBDSF.
 
