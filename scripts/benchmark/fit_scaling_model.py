@@ -138,14 +138,20 @@ _ASSUMPTIONS = (
         "evidence": "Rounds of objects close a batch at a share of their "
         "objects' summed windows, four batches a slot, so a node's slots "
         "shorten their longest tasks further until one costly object bounds "
-        "them; tile rounds already run one 1,024-pixel tile a task at "
-        "5,000², which more slots cannot split. The profile "
+        "them. Tile rounds cannot shrink their tiles, 1,024-pixel cores at "
+        "5,000², but the rounds batched by count run three of the 25 tiles "
+        "a task on four slots and one on a node's, so their longest tasks "
+        "may fall to about a third: 14 s of the dense cell's 54 s of "
+        "longest tasks and 4 s of the sparse cell's 22 s at 0.25.0, most "
+        "of it the component fits' support publication. The profile "
         "merges a round's repeated invocations under one name, such as "
         "the true-sky and flat-noise background passes, keeping one "
         "longest task.",
         "effect": "The floor is neither bound: high by what more slots "
-        "take off the object rounds' longest tasks, low by the longest "
-        "tasks of repeated invocations.",
+        "take off the object rounds' longest tasks and the batched tile "
+        "rounds', up to about 9 s on the dense cell and 3 s on the sparse "
+        "from the tile batches alone; low by the longest tasks of repeated "
+        "invocations.",
     },
     {
         "assumption": "Screening repetitions bound the inputs.",

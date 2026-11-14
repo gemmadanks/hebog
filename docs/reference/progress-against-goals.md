@@ -330,14 +330,16 @@ twelve such nodes.
   time plus longest tasks: natively 132 s on the dense cell (79 s driver,
   of which the catalogue FITS write takes 15 s and reconciliation 10 s;
   54 s longest tasks, 37 s of it in component fits, their support
-  publication and extended groups, a batch or tile a task) and 46 s on
-  the sparse LoTSS-DR3 cell, against 190 s and 59 s at 0.24.0; second
-  runs give 130 s and 48 s. The profile merges a round's
+  publication and extended groups, a batch or three tiles a task) and
+  46 s on the sparse LoTSS-DR3 cell, against 190 s and 59 s at 0.24.0;
+  second runs give 130 s and 48 s. The profile merges a round's
   repeated invocations, such as the two background passes, so the floor
   may be low by their longest tasks; more task slots split object rounds
-  further, so it may be high. At 5,000² extra nodes add little: twelve
-  96-core nodes take 0.01 to 0.04 off one node's ratio, most of it on the
-  second node, as the time nears the floor. Of six workers' 380 s on the dense cell (0.23.0), the 199 s beyond one worker's
+  further and give the tile rounds now batched three tiles a task one
+  tile each, so it may be high, by up to about 9 s and 3 s on the two
+  cells from the tile batches alone. At 5,000² extra nodes add little:
+  twelve 96-core nodes take 0.01 to 0.04 off one node's ratio, most of
+  it on the second node, as the time nears the floor. Of six workers' 380 s on the dense cell (0.23.0), the 199 s beyond one worker's
   task time shared is 84 s driver, 36 s contention and 78 s round tails.
 - **`master`** takes serial and parallel seconds from each ladder run's
   wall and CPU time on four cores. On dense sectors its parallel work uses
