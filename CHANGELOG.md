@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.25.1](https://github.com/gemmadanks/hebog/compare/v0.25.0...v0.25.1) (2026-11-14)
+
+
+### 📚 Documentation
+
+* record 0.25.0's shorter floors and the refitted speed projections ([#212](https://github.com/gemmadanks/hebog/issues/212)) ([ee83a67](https://github.com/gemmadanks/hebog/commit/ee83a67c1d5ae3e421cf63920ae4fec3f8a241e0))
+* tell Dask users to turn off worker memory pausing ([#210](https://github.com/gemmadanks/hebog/issues/210)) ([9657511](https://github.com/gemmadanks/hebog/commit/9657511b577c4be0a53374c0196e002814d6323b))
+
 ## [0.25.0](https://github.com/gemmadanks/hebog/compare/v0.24.0...v0.25.0) (2026-11-06)
 
 
