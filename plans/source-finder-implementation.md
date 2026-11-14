@@ -31,9 +31,9 @@ scientifically unqualified. The candidate is public composition v23 with
   and the sources found; the development machine's limits; upstream churn;
   and three steps outside the agent's control: cluster time, Rapthor's
   worker layout and independent reviewers. See [risks](#risks).
-- **Next action.** Agent: task 72's next increment, in the order the
-  checkpoint sets. Human: take the checkpoint (decisions 3 to 5); push
-  Rapthor's Hebog branch (task 79); file the Astropy report
+- **Next action.** Agent: task 72's next increment, Rapthor's distributed
+  path. Human: push Rapthor's Hebog branch (task 79), then approach the
+  reviewers (task 33); file the Astropy report
   (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
   report (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`).
 - **Deferred** until the integration and scaling work is complete, unless
@@ -88,36 +88,12 @@ soak; the PyBDSF fallback stays until then.
 
 ## Decisions pending
 
-Each names the maintainer's call and the agent's recommendation. A decision
-taken is recorded in the row it affects and in the commit, never in
-`LOG.md`.
-
-1. **Independent reviewers (task 33)** have not been named.
-   *Recommendation:* approach the radio-astronomy and engineering reviewers
-   when the Rapthor branch is pushed, so their review runs beside Rapthor's.
-2. **The scaling floor.** "Scales well across nodes" needs a number before
-   the cluster session. *Recommendation:* task 27 proposes a strong-scaling
-   efficiency floor at 10 nodes from the local curve, approved with the
-   contract amendment.
-3. **The dense-sector threshold**, provisionally 10,000 sources in
-   `master`'s catalogue. The model's lines cross 0.50 at about 8,400 to
-   8,600 sources, but they join sparse sectors, where `master` uses every
-   core, to dense ones, where it uses four, so the crossing reflects that
-   change as much as either finder's growth. *Recommendation:* keep 10,000;
-   it marks where PyBDSF is slow, and moving it to the crossing would fit
-   the gate to the candidate.
-4. **Task 72's targets and the order of its increments.** On a node
-   Hebog's time nears its floor, the driver's time plus each round's
-   longest task; increment 1 halved the dense cell's longest tasks, so the
-   driver now holds most of it. *Recommendation:* aim at floors of 100 s
-   on the dense cell and 40 s on the sparse one, with no faster growth in
-   the source count, and report both in each increment's profile. Order:
-   Rapthor's distributed path first, which the gate and the cluster run
-   both need; then waiting and sharing, with the driver's FITS writes and
-   reconciliation; then both branches together.
-5. **Per-source costs.** Hebog's time on a node grows 4.0 ms a source,
-   within the stricter 4.6 ms target. *Recommendation:* no separate
-   per-source work; the driver's per-source work joins waiting and sharing.
+None. A decision is listed here with the maintainer's options and the
+agent's recommendation until it is taken, then recorded as a rule in the
+row it affects and in the commit, never in `LOG.md`. The last were taken on
+14 November 2026: task 72's targets, order and executor (below), the dense
+threshold ([performance gates](#performance-and-scale-gates)), and how the
+reviewers and the scaling floor are chosen (tasks 33 and 27).
 
 ## Scope and resource rules
 
@@ -278,29 +254,42 @@ the executor protocol. The aim is a curve for one sector that keeps falling
 as cores are added; several sectors share the cluster beyond the point where
 one stops scaling. The [execution plan](2026-10-18-one-sector-across-the-cluster.md)
 holds the steps and evidence. Task 72 lands as four increments, each merged
-and released in turn:
+and released in turn, in the order below (decision of 14 November):
 
 - **Core budget and cost model** (in 0.25.0). Each stage chooses its tile
   core and task count from the cores the caller states, and each task's
   declared memory follows its core. Products depend on none of it.
+- **Rapthor's distributed path.** Whenever the step has more than one
+  core, Rapthor's task runs the analysis on single-threaded Dask worker
+  processes for those cores, on a cluster it owns with Dask's memory
+  actions off, and passes its client and resource names to `DaskExecutor`
+  (decision of 12 November). Threads remain only for one core and
+  Rapthor's synchronous tests, since the processes were faster on every
+  sector measured (decision of 14 November). Rapthor's own Dask workers
+  become non-daemonic so the task can start those processes, rather than
+  Hebog's tasks running on Rapthor's cluster, which needs several task
+  slots a node. Hebog's adapter states the sector's memory: from Rapthor's
+  budget and the number of worker processes it returns the source-count
+  estimate, the analysis reservation and the bytes left for tasks, after a
+  stated allowance for each process's own memory (decisions of 17 October
+  and 14 November). What Hebog needs from a cluster is documented for any
+  caller.
 - **Waiting and sharing.** The analysis secedes from its worker slot while
   it waits on its tasks; each round's declared memory is re-audited against
   its measured peak; each completion record is split by tile, so a task
   reads only its window's entries; several analyses and joining workers run
-  without deadlock or changed products.
-- **Rapthor's distributed path.** Rapthor's task runs the analysis on
-  single-threaded Dask worker processes for the step's cores, on a cluster
-  it owns with Dask's memory actions off, and passes its client and
-  resource names to `DaskExecutor`; it keeps threads for small sectors and
-  tests (decision of 12 November). Hebog's adapter takes over the
-  source-count estimate and the analysis reservation, so Rapthor supplies
-  only its memory budget (decision of 17 October). What Hebog needs from a
-  cluster is documented for any caller.
+  without deadlock or changed products. The driver's per-source work (the
+  catalogue write, reconciliation and catalogue records) is cut here, with
+  no separate per-source task (decision of 14 November).
 - **Both branches together.** The true-sky analysis and the flat-noise
   estimate submit their tasks through the executor at once.
 
 Each increment also cuts the serial work it touches where the gain is clear
-(decision of 18 October).
+(decision of 18 October). The increments aim at floors, the driver's time
+plus each round's longest task as the scaling profile measures them, of
+100 s on the dense cell and 40 s on the sparse one, with no faster growth
+in the source count; each increment's profile reports both (decision of
+14 November).
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
@@ -328,7 +317,7 @@ catalogues, with global invariants, as in ADR-005.
 | --- | --- | --- | --- |
 | 24 | Agent | Bound the graph for 100,000² at 10 and at 200 nodes without running the science. | Planner tests show at most 50,000 tasks, bounded reduction depth, bounded driver memory and valid memory admission for both topologies. |
 | 25 | Agent | Qualify the Zarr store and the restart and recovery path locally. | Atomicity, concurrent owned-chunk writes, codecs and chunk geometry, missing chunks and injected failures pass within an admitted memory budget, and Zarr v3 sharding is evaluated against one file per chunk, since the cluster's only scratch is Lustre. |
-| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one dense sector at its default size on 1, 2, 5 and 10 nodes, and a sparse one on one node, through Rapthor's task and standalone; they record the hardware, a scaling-model fit, the ratio against PyBDSF on one node and the efficiency against decision 2's floor. `config/benchmarks/phase-0-scalability.json`, the contracts page and `just test-scalability` describe it, keeping 50 to 200 nodes as design targets. A local dry run passes, so the session measures rather than debugs. |
+| 27 | Agent packages, human approves the contract | Package the cluster benchmark and amend the scalability contract. | One command and a short guide run one dense sector at its default size on 1, 2, 5 and 10 nodes, and a sparse one on one node, through Rapthor's task and standalone; they record the hardware, a scaling-model fit, the ratio against PyBDSF on one node and the efficiency against a 10-node floor the agent proposes from the local curve and the maintainer approves with the contract amendment (decision of 14 November). `config/benchmarks/phase-0-scalability.json`, the contracts page and `just test-scalability` describe it, keeping 50 to 200 nodes as design targets. A local dry run passes, so the session measures rather than debugs. |
 
 ### Science before the freeze
 
@@ -342,10 +331,10 @@ catalogues, with global invariants, as in ADR-005.
 | --- | --- | --- | --- |
 | 28 | Human | Freeze the 1.0.0 candidate. | Science, profile and envelope are fixed, and the pins move for the last time; a later change restarts only the affected qualification tasks. |
 | 29 | Agent designs, human approves | Run one powered parity study on fresh held-out and public-survey data, overnight on the development machine. | Every binding endpoint passes under a prospectively reviewed design, including the limitations that block 1.0.0 and the truth-based gate, on full LOFAR images, SDC1 simulations and a MIGHTEE image. Closed failed campaigns are never reused as confirmation. |
-| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's time falls to decision 2's floor at 1, 2, 5 and 10 nodes with invariant products, and its ratio against PyBDSF passes the gate on one node and as Rapthor deploys. A failure becomes a `0.x` repair task. |
+| 30 | Human runs, agent analyses | Run the cluster benchmark once: the gate's measurement. | One sector's time falls to the approved floor at 1, 2, 5 and 10 nodes with invariant products, and its ratio against PyBDSF passes the gate on one node and as Rapthor deploys. A failure becomes a `0.x` repair task. |
 | 31 | Agent | Check released PyBDSF 1.14.1 once. | One matched run confirms the performance gate and Rapthor-profile agreement against the release on a dense and a sparse sector. |
 | 32 | Human runs in Rapthor, agent supports | Run the operational trial behind Rapthor's flag. | Dual runs on production data show no unexplained difference, retry and restart work, and the fallback is exercised. |
-| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, profile, performance, scale, portability, dependency and licence audit, packaging and documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance. |
+| 33 | Agent assembles, independent reviewers accept | Assemble the readiness packet and obtain acceptance. | The packet binds science, profile, performance, scale, portability, dependency and licence audit, packaging and documentation to the frozen candidate, with separate radio-astronomy and engineering acceptance from reviewers approached when Rapthor's Hebog branch is pushed (decision of 14 November). |
 | 34 | Human | Release 1.0.0. | Release Please produces 1.0.0 and it publishes to PyPI, with notes stating the envelope, the 1.x policy and what is designed for but not demonstrated. |
 
 ### After 1.0.0
@@ -458,9 +447,10 @@ dense sectors:  Hebog / pinned PyBDSF master (c70103b) <= 0.50
 other sectors:  Hebog / pinned PyBDSF master (c70103b) <= 1.05
 ```
 
-A sector is dense when `master` finds at least 10,000 sources in it, a
-provisional threshold confirmed or moved before the cluster benchmark is
-packaged (decision 3). Each finder's time against the source count and its
+A sector is dense when `master` finds at least 10,000 sources in it
+(confirmed on 14 November): it marks where PyBDSF is slow, and the model's
+crossing near 8,500 sources reflects `master`'s change of core use between
+the classes as much as either finder's growth. Each finder's time against the source count and its
 speed-up against cores are reported beside the ratios, not gated. LSMTool's
 filtering is the same for either finder, so it is reported as the complete
 step and never gated. Scientific eligibility comes before performance
