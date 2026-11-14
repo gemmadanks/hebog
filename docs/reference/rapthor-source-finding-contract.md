@@ -240,22 +240,33 @@ the fallback
 [Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
 implements today's one-single-threaded-worker-per-node path. Its real Prefect task, native Hebog and LSMTool
 filtering, fallback and dual subprocess runs pass in the pinned Linux
-integration container. Upstream publication and merge remain pending. The
-distributed layout and resource annotations described below are later work.
+integration container. Upstream publication and merge remain pending.
+Running Hebog's tasks on Rapthor's own client, described below, is later
+work.
 
-On the current layout the task caps its ThreadExecutor by the filter core
-request, sector `max_threads` and configured `cpus_per_task`. It limits native
-thread pools to one and subtracts `hebog.analysis_memory_bytes` and resident
-process RSS from the smaller configured/worker memory budget before admitting
-tile tasks. It reserves for the sources `hebog.expected_source_count`
-estimates from the detection image at `threshpix`; peeled sources are not in
-the image and reserve nothing. A component list is far longer than the source
-list: on the matched benchmark's 3,000² sector WSClean's 101,144 components reserved
+On the current layout the task uses the filter core request, capped by
+sector `max_threads` and configured `cpus_per_task`. With more than one
+core it starts a `LocalCluster` of that many single-threaded worker
+processes, with Dask's memory actions off and `memory` and `cores`
+resources, passes a `DaskExecutor` on it, and closes it when Hebog
+returns; with one core, or under Rapthor's synchronous test runner, it
+passes a `ThreadExecutor`. On four cores the worker processes took 0.42 to
+0.55 of the threads' time on every image measured, from 2,048² to the dense
+5,000² sector, with identical products. Rapthor starts its own workers
+non-daemonic, since a daemonic process cannot start processes; on a
+daemonic worker, such as one `dask worker` starts without
+`DASK_DISTRIBUTED__WORKER__DAEMON=False`, the task warns and keeps threads.
+It limits native thread pools to one and passes `sector_memory` (below) the
+smaller configured/worker memory budget less its resident process RSS.
+Hebog reserves for the sources `hebog.expected_source_count` estimates from
+the detection image at `threshpix`; peeled sources are not in the image and
+reserve nothing. A component list is far longer than the source list: on
+the matched benchmark's 3,000² sector WSClean's 101,144 components reserved
 5.9 GB for 890 sources, where the image's 1,155 peaks reserve 0.27 GB. When
-no memory remains for the tile tasks, or one needs more than remains, Hebog's
-`ExecutorAdmissionError` is a typed refusal and the task falls back to
-PyBDSF, recording the reason in the image diagnostics; an unsupported worker
-layout fails explicitly. The whole task occupies the worker's only task
+no memory remains for the tile tasks, or one needs more than a worker's
+share, Hebog's `ExecutorAdmissionError` is a typed refusal and the task
+falls back to PyBDSF, recording the reason in the image diagnostics; an
+unsupported worker layout fails explicitly. The whole task occupies the worker's only task
 slot, so its analysis reservation does not require Dask resource annotations
 on this interim path. Synchronous runs also respect host available memory and
 container/process memory limits.
@@ -277,7 +288,7 @@ stay supported. The executor follows Rapthor's workers:
 | Rapthor's workers | Executor Rapthor passes | Why |
 | --- | --- | --- |
 | Give each node several task slots, in a layout Rapthor chooses | `DaskExecutor` on Rapthor's client | Dask schedules every free core, on one node or many, for as long as one sector keeps scaling (its serial share is measured and cut first) |
-| One single-threaded worker a node, today's layout | `ThreadExecutor` inside the worker's task, sized to the node's cores | Through Dask that worker would run one Hebog task at a time; one sector uses one node. Retired inside Rapthor once each node has several task slots |
+| One single-threaded worker a node, today's layout | `DaskExecutor` on single-threaded worker processes the worker's task starts, one a core of the node | Through Rapthor's client that worker would run one Hebog task at a time, and threads in one process share Python's lock; one sector uses one node. Retired inside Rapthor once each node has several task slots |
 
 Rapthor's nodes reach 192 cores, and its workers run one task each with
 `--nthreads 1`, one a node today. On Rapthor's client, Hebog's tile tasks

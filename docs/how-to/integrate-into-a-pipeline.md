@@ -40,8 +40,9 @@ executor = DaskExecutor(client, retry_limit=1)
 
 All three produce the same products. Hebog never creates, resizes or closes
 your client. If `find_sources` is itself a task in your graph, give it a
-client through your framework's usual mechanism; do not let Hebog tasks nest a
-second cluster.
+client through your framework's usual mechanism, or let that task start
+worker processes of its own (see below). Hebog's own tasks never start a
+cluster.
 
 Optionally declare the budget Hebog may use. Without it, `DaskExecutor` reads
 the cluster's current size:
@@ -143,6 +144,52 @@ client.submit(run_finder, request, resources={"memory": reserve, "cores": 1})
 With a serial or thread executor the tasks run in the calling process, so
 reserve their admitted memory on top.
 
+When `find_sources` runs as a task on a worker that holds a whole node's
+cores, as Rapthor's filter step does, that task can start worker processes
+for Hebog's tasks and close them when the finder returns. On four cores they
+took about half the time of a `ThreadExecutor`, whose threads share
+Python's interpreter lock, on every image measured, the smallest 2,048
+pixels a side. Dask starts daemonic workers by default, and a daemonic
+process cannot start processes, so start the outer workers with
+`DASK_DISTRIBUTED__WORKER__DAEMON=False`, or with
+`distributed.worker.daemon` set to `False` in `dask.config` before creating
+a `LocalCluster`. Inside the task:
+
+```python
+import dask.config
+from distributed import Client, LocalCluster
+
+import hebog
+from hebog.executors import DaskExecutor
+
+
+def run_finder(request, config, task_bytes, cores):
+    share = task_bytes // cores
+    memory_off = {
+        f"distributed.worker.memory.{name}": False
+        for name in ("target", "spill", "pause", "terminate")
+    }
+    with (
+        dask.config.set(memory_off),
+        LocalCluster(
+            n_workers=cores,
+            threads_per_worker=1,
+            resources={"memory": share, "cores": 1},
+            dashboard_address=None,
+        ) as cluster,
+        Client(cluster) as client,
+    ):
+        executor = DaskExecutor(
+            client, memory_resource="memory", core_resource="cores"
+        )
+        return hebog.find_sources(request, config, executor)
+```
+
+Each worker process holds about 180 MiB of Python and Hebog's modules
+before it runs a task, which no task declares, so leave that out of
+`task_bytes` as well as the analysis reservation. Each worker's share must
+hold Hebog's largest task, up to about 1.7 GB on 2,048-pixel tile cores.
+
 ## 2. Put files where workers can reach them
 
 Workers open the input image themselves and write intermediate Zarr planes
@@ -222,14 +269,16 @@ sky model with the island mask; see the
 [Rapthor source-finding contract](../reference/rapthor-source-finding-contract.md#how-hebog-runs-inside-rapthor).
 The [guide to Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
 and its container show how to install and test `source_finder = hebog` on
-Rapthor's current single-task worker layout. It runs the caller-owned ThreadExecutor inside
-the Prefect task, admits memory, and retains the PyBDSF fallback. Set
-`hebog_dual_run = True` to retain both filtered product sets and place their
-comparison in ordinary image diagnostics. The branch is not yet merged
-into Rapthor. The adapter and the branch's parset default to the
+Rapthor's current single-task worker layout. On a step of several cores its
+Prefect task starts worker processes for Hebog's tasks, as above; it divides
+its memory with `hebog.adapters.sector_memory` and retains the PyBDSF
+fallback. Set `hebog_dual_run = True` to retain both filtered product sets
+and place their comparison in ordinary image diagnostics. The branch is not
+yet merged into Rapthor. The adapter and the branch's parset default to the
 `continuum` profile with a zero background, which passes the truth-based
-gate where `compact` does not; it is not yet a qualified Rapthor profile,
-and a distributed Hebog subgraph needs the later worker-layout change.
+gate where `compact` does not; it is not yet a qualified Rapthor profile.
+Running Hebog's tasks on Rapthor's own client needs a later worker-layout
+change.
 
 ## Versioning
 

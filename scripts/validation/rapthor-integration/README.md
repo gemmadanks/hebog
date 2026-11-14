@@ -11,18 +11,22 @@ Testing, trials and benchmarks use the branch; merging it matters only for
 users of released Rapthor.
 
 The branch adds `source_finder = hebog` to Rapthor's existing Prefect filter
-task, using a caller-owned ThreadExecutor on its current one-single-threaded-
-worker-per-node layout. It retains the PyBDSF subprocess for the default
+task on its current one-single-threaded-worker-per-node layout. With more
+than one core the task starts a local Dask cluster of single-threaded worker
+processes for Hebog's tasks, so Rapthor starts its own workers non-daemonic;
+with one core, under the synchronous test runner or on a daemonic worker it
+uses a ThreadExecutor. It retains the PyBDSF subprocess for the default
 backend and typed Hebog refusals, and adds dual-run reporting, memory
-admission, blank/empty paths and retry reuse. It reserves the analysis memory
-for the sources `hebog.expected_source_count` estimates from the detection
-image, and falls back to PyBDSF when the worker cannot hold the analysis and a
-tile task. Its `rapthor[hebog]` extra accepts any Hebog `0.x` release from
-0.23, the first whose `continuum` profile keeps its noise estimate sound in
-crowded fields; Hebog's feature releases also bump the minor version, so a
-narrower range would block them.
-The distributed executor and resource annotations are later work. No LSMTool
-registry entry is needed.
+admission, blank/empty paths and retry reuse. `hebog.adapters.sector_memory`
+divides its memory between the analysis, sized from the sources
+`hebog.expected_source_count` estimates from the detection image, the worker
+processes and the tile tasks; it falls back to PyBDSF when a worker cannot
+hold the analysis and a tile task. Its `rapthor[hebog]` extra accepts any
+Hebog `0.x` release from 0.26, the first with `sector_memory`; Hebog's
+feature releases also bump the minor version, so a narrower range would
+block them.
+Running Hebog's tasks on Rapthor's own client, with resource annotations, is
+later work. No LSMTool registry entry is needed.
 
 The change is GPL-3.0 Rapthor code and stays in Rapthor's repository. It
 contains no copied PyBDSF implementation. The small dummy-position record
@@ -31,8 +35,9 @@ that writer rather than duplicating its output format.
 
 ## Install and test
 
-Install Rapthor at the summary's `rapthor_commit`, with Hebog from PyPI once
-0.23 is released (a wheel built from Hebog's checkout until then):
+Install Rapthor at the summary's `rapthor_commit` once it is pushed, with
+Hebog from PyPI once 0.26 is released (a wheel built from Hebog's checkout
+until then):
 
 ```bash
 python -m pip install "rapthor[hebog] @ git+https://git.astron.nl/RD/rapthor.git@<rapthor_commit>"
