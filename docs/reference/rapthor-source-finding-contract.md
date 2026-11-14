@@ -309,6 +309,16 @@ when the result reports an island, LSMTool's
 writes Hebog's own bundle, with its diagnostics and provenance, in
 `<root>.hebog`.
 
+Rapthor needs to know only the memory its step may use.
+`hebog.adapters.sector_memory(request, config, memory_bytes)` estimates the
+true-sky image's sources at `threshpix`, keeps `hebog.analysis_memory_bytes`
+for them in the process that will call `find_sector_sources`
+(`analysis_bytes`), and leaves the rest for the analysis's tasks
+(`task_bytes`), from which Rapthor builds its executor. Rapthor passes the
+budget less what it and LSMTool already hold in that process. When the
+analysis leaves nothing, it raises `ExecutorAdmissionError`, the typed
+refusal on which Rapthor falls back to PyBDSF.
+
 In dual-run mode Rapthor runs both finders on the sector, each under its
 own root under `<root>.source-finders/`, and calls
 `hebog.adapters.rapthor_comparison.compare_sector_products(result, pybdsf,

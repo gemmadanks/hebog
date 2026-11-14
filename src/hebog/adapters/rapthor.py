@@ -20,6 +20,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass, replace
 from math import isfinite
+from numbers import Integral
 from pathlib import Path
 from time import monotonic
 from typing import Literal
@@ -33,13 +34,18 @@ from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.config import SourceFinderConfig
 from hebog.data_models import SourceFinderRequest, SourceFinderResult
 from hebog.data_models.images import ImageMetadata
-from hebog.executors import Executor
+from hebog.executors import Executor, ExecutorAdmissionError
 from hebog.io import (
     FitsImageSource,
     celestial_wcs_from_metadata,
     read_catalogue_fits_product,
 )
-from hebog.pipeline import InvalidSourceFinderInputError, find_sources
+from hebog.pipeline import (
+    InvalidSourceFinderInputError,
+    analysis_memory_bytes,
+    expected_source_count,
+    find_sources,
+)
 
 _SCHEMA_VERSION = 2
 # PyBDSF's beam area in pixels is 1.1331 times the beam's major axis over
@@ -224,6 +230,66 @@ def pybdsf_minimum_island_pixels(metadata: ImageMetadata) -> int:
         * (metadata.beam.minor_fwhm_degrees / scale_y)
     )
     return max(_PYBDSF_MINIMUM_ISLAND_PIXELS, int(beam_area_pixels / 3.0))
+
+
+@dataclass(frozen=True, slots=True)
+class RapthorSectorMemory:
+    """How one sector's analysis divides the memory Rapthor gives it.
+
+    ``analysis_bytes`` is what the analysis holds in the process that calls
+    :func:`find_sector_sources`, from :func:`hebog.analysis_memory_bytes`
+    for the true-sky image and ``expected_sources``, the
+    :func:`hebog.expected_source_count` estimate at ``threshpix``.
+    ``task_bytes`` is the rest, for the analysis's tasks: a
+    ``ThreadExecutor``'s ``memory_bytes_per_worker``, or the memory the
+    caller shares among the worker processes it starts for the sector.
+    """
+
+    expected_sources: int
+    analysis_bytes: int
+    task_bytes: int
+
+
+def sector_memory(
+    request: RapthorSourceFindingRequest,
+    config: RapthorCompatibilityConfig,
+    memory_bytes: int,
+) -> RapthorSectorMemory:
+    """Divide the memory one sector's analysis may use.
+
+    Rapthor passes the memory its step may still use, after what Rapthor
+    and LSMTool already hold in the process that will call
+    :func:`find_sector_sources`, and builds the executor from
+    ``task_bytes``. The true-sky image is read in bounded blocks to
+    estimate its sources.
+
+    Raises:
+        ValueError: If ``memory_bytes`` is not a positive integer.
+        hebog.executors.ExecutorAdmissionError: If the analysis leaves no
+            memory for its tasks. Rapthor may fall back to PyBDSF.
+        hebog.pipeline.SourceFinderError: If Hebog refuses the true-sky
+            image, as :func:`find_sector_sources` would.
+    """
+    if (
+        isinstance(memory_bytes, bool)
+        or not isinstance(memory_bytes, Integral)
+        or memory_bytes < 1
+    ):
+        raise ValueError("memory_bytes must be a positive integer")
+    image = request.true_sky_image_path
+    expected_sources = expected_source_count(
+        image, detection_threshold_sigma=config.threshpix
+    )
+    analysis_bytes = analysis_memory_bytes(
+        _image_metadata(image).shape_yx, expected_sources=expected_sources
+    )
+    task_bytes = int(memory_bytes) - analysis_bytes
+    if task_bytes < 1:
+        raise ExecutorAdmissionError(
+            f"no memory remains for the sector's tasks: the analysis holds "
+            f"{analysis_bytes} of the {memory_bytes} bytes given"
+        )
+    return RapthorSectorMemory(expected_sources, analysis_bytes, task_bytes)
 
 
 def find_sector_sources(
