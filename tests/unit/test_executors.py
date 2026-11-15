@@ -185,6 +185,9 @@ class _StubClient:
         self._nthreads = nthreads
         self._resources = resources
         self._joined: list[int] = []
+        # The event loop the executor hands its completion stream; the
+        # stub stream needs none.
+        self.loop = None
 
     def add_worker(self, *, nthreads: int) -> None:
         """Let one more worker join, as a scaling cluster would."""
@@ -230,6 +233,45 @@ class _StubClient:
             future = _StubFuture(None, error)
         self.futures.append(future)
         return future
+
+
+class _StubCompletions:
+    """Hand back a stub client's tasks one at a time, as they would settle.
+
+    Tasks settle in submission order, the oldest first, so a stub test
+    sees the window the executor keeps.
+    """
+
+    def __init__(self, client: _StubClient) -> None:
+        """Track the tasks the executor adds."""
+        self._client = client
+        self._futures: list[_StubFuture] = []
+
+    def add(self, future: _StubFuture) -> None:
+        """Track one more submitted task."""
+        self._futures.append(future)
+
+    def __next__(self) -> _StubFuture:
+        """Settle the oldest tracked task and return it."""
+        self._client.events.append("next")
+        future = self._futures.pop(0)
+        future.settle()
+        return future
+
+
+def _patch_completions(
+    monkeypatch: pytest.MonkeyPatch,
+    client: _StubClient,
+    completions: type[_StubCompletions] = _StubCompletions,
+) -> None:
+    """Let the executor take the stub client's tasks as they settle."""
+    from hebog.executors import dask as dask_module  # noqa: PLC0415
+
+    def stream(**keywords: object) -> _StubCompletions:
+        del keywords
+        return completions(client)
+
+    monkeypatch.setattr(dask_module, "as_completed", stream)
 
 
 def _stub_executor(client: _StubClient, **keywords: Any) -> Any:
@@ -436,6 +478,7 @@ def test_dask_executor_bounds_submission(
             future.settle()
 
     monkeypatch.setattr(dask_module, "wait", record_wait)
+    _patch_completions(monkeypatch, client)
     executor = _stub_executor(
         client,
         capacity=ExecutorCapacity(
@@ -577,6 +620,7 @@ def _patch_wait(
             future.settle()
 
     monkeypatch.setattr(dask_module, "wait", record_wait)
+    _patch_completions(monkeypatch, client)
 
 
 def _fail_first_batch(value: int) -> int:
@@ -635,6 +679,7 @@ def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
             raise FuturesCancelledError([])
 
     monkeypatch.setattr(dask_module, "wait", cancel_while_waiting)
+    _patch_completions(monkeypatch, client)
 
     with pytest.raises(RuntimeError, match="batch 0 failed"):
         _stub_bounded_executor(client).map_batches(
@@ -714,22 +759,15 @@ def test_a_dask_call_interrupted_while_waiting_still_waits_for_that_task(
     arrives, so the call waits for it as well as for the others before the
     exception propagates.
     """
-    from hebog.executors import dask as dask_module  # noqa: PLC0415
 
     client = _StubClient()
-    waits: list[int] = []
+    _patch_wait(monkeypatch, client)
 
-    def deadline_on_the_first_wait(
-        futures: Iterable[Any], **keywords: Any
-    ) -> None:
-        del keywords
-        waits.append(len(waits))
-        if len(waits) == 1:
+    class _DeadlineOnTheFirstWait(_StubCompletions):
+        def __next__(self) -> _StubFuture:
             raise _CallerDeadlineError
-        for future in futures:
-            future.settle()
 
-    monkeypatch.setattr(dask_module, "wait", deadline_on_the_first_wait)
+    _patch_completions(monkeypatch, client, _DeadlineOnTheFirstWait)
 
     with pytest.raises(_CallerDeadlineError):
         _stub_bounded_executor(client).map_batches(_square, list(range(8)))

@@ -8,6 +8,7 @@ from typing import Any, TypeVar, cast
 
 from distributed import (
     Client,
+    as_completed,
     get_worker,
     rejoin,
     secede,
@@ -272,6 +273,10 @@ class DaskExecutor:
         # does, still waits for every task below.
         in_flight: dict[Any, int] = {}
         results: dict[int, Output] = {}
+        # Hands back each task as it settles, at a cost per task that does
+        # not grow with the window; a task the client cancels, as it does
+        # when it loses the scheduler, settles too and fails below.
+        completed = as_completed(loop=self._client.loop, raise_errors=False)
         submitted = 0
         try:
             while submitted < len(prepared) or in_flight:
@@ -280,17 +285,10 @@ class DaskExecutor:
                         function, prepared[submitted], resources
                     )
                     in_flight[future] = submitted
+                    completed.add(future)  # pyright: ignore[reportUnknownMemberType]
                     submitted += 1
-                # A task the client cancels, as it does when it loses the
-                # scheduler, has settled too; it fails below as a batch would.
-                with suppress(FuturesCancelledError):
-                    wait(list(in_flight), return_when="FIRST_COMPLETED")
-                finished = [
-                    future
-                    for future in in_flight
-                    if future.status != "pending"
-                ]
-                if any(future.status != "finished" for future in finished):
+                future = cast(Any, next(completed))
+                if future.status != "finished":
                     _wait_for_submitted(in_flight)
                     # Every batch before the failing one was submitted, so
                     # the earliest failure among them is the serial one.
@@ -302,10 +300,7 @@ class DaskExecutor:
                         ),
                         key=in_flight.__getitem__,
                     ).result()
-                for future in finished:
-                    results[in_flight.pop(future)] = cast(
-                        Output, future.result()
-                    )
+                results[in_flight.pop(future)] = cast(Output, future.result())
             return [results[index] for index in range(len(prepared))]
         finally:
             # Nothing more of the plan is submitted, and the call returns only
