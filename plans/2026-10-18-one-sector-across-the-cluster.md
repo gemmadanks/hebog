@@ -5,11 +5,11 @@
 | Field | Value |
 | --- | --- |
 | Work item | Make one Rapthor sector's source finding scale on any Dask cluster |
-| Status | `in progress`: increment 1 released in 0.25.0; the checkpoint taken on 14 November; Rapthor's distributed path next |
+| Status | `in progress`: increment 1 released in 0.25.0; Rapthor's distributed path awaits publication; waiting and sharing under way |
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-11-13 |
+| Last updated | 2026-11-15 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -98,6 +98,7 @@ In short:
 | Whether Rapthor's layout gives Hebog's client several task slots a node (Rapthor's change). | Human | Step 7 | `open` |
 | The dense threshold. | Human | Checkpoint | 10,000 sources, confirmed 14 November |
 | Whether per-source costs join this task. | Human | Checkpoint | No separate work; the driver's per-source work joins waiting and sharing (14 November) |
+| How each generation's completion record is split. | Human | Step 7 | `open`; decision 1 in the implementation plan |
 
 ## Proposed approach
 
@@ -137,7 +138,7 @@ before and after.
 | — | Checkpoint: threshold, targets, increment order, per-source costs | Human | `done` | Decisions recorded in the implementation plan |
 | 5 | Increment 1: core budget and cost model | Agent | `done` | Release 0.25.0; floors re-measured (run `release-0.25.0`) |
 | 6 | Increment 2: Rapthor's distributed path | Agent, human on Rapthor | `in progress` | Adapter and Rapthor-branch tests; integration container summary |
-| 7 | Increment 3: waiting and sharing | Agent | `not started` | As step 5, plus concurrent-analysis and joining-worker tests |
+| 7 | Increment 3: waiting and sharing | Agent | `in progress` | As step 5, plus concurrent-analysis and joining-worker tests |
 | 8 | Increment 4: both branches together | Agent | `not started` | As step 5 |
 | 9 | Re-measure the cells, the local curve and the Dask CPU overhead | Agent | `not started` | Matched reports; scaling profile; progress page |
 | 10 | Review against the success criteria | Human | `not started` | Acceptance |
@@ -180,3 +181,4 @@ before and after.
 | 2026-11-12 | Decision | Rapthor's task runs the analysis on single-threaded Dask worker processes on a cluster it owns, memory actions off, keeping threads for small sectors and tests; 0.25.0's higher worker peak is accepted. | Increment 3 carries it |
 | 2026-11-13 | Progress | 0.25.0 (increment 1) cuts the floors to 132 s on the dense cell and 46 s on the sparse one; the refitted model projects every limit met on one node if `master` uses four cores of a dense sector's node. | Maintainer: the checkpoint; agent: the next increment |
 | 2026-11-14 | Decision | Checkpoint taken: order Rapthor's path, waiting and sharing, both branches; floors of 100 s dense and 40 s sparse; threshold 10,000; no separate per-source work. Rapthor's path uses worker processes whenever the step has more than one core (no small-sector threshold), with Rapthor's workers non-daemonic and Hebog's adapter stating the memory, including 256 MiB a worker process. Declined: Hebog on Rapthor's own cluster, a small-sector thread path, Rapthor counting process memory. | Agent: Rapthor's distributed path |
+| 2026-11-15 | Progress | Rapthor's path is implemented on both branches and passes the integration container; each worker process needs about 2 GB, since Hebog's largest task declares up to 1.7 GB on 2,048-pixel cores. Waiting and sharing: tasks start as any finishes, joining workers widen later rounds, and analyses running as tasks leave their threads while they wait, at a driver cost per task that does not grow with the tasks in flight; products unchanged. The task memory audit on the 3,000² LoTSS-DR3, dense 5,000² ELAIS-N1 and 7,500² LOFAR-HD anchors finds every round at or below 0.80 of its declaration and the analysis at or below 0.74. | Maintainer: publish both branches, the completion-record decision; agent: time the executor changes on a quiet machine |

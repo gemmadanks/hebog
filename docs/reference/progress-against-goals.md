@@ -29,19 +29,21 @@ The largest risks to 1.0.0 are:
 - three steps outside the agent's control: cluster time, Rapthor's worker
   layout and independent reviewers.
 
-No maintainer decision is pending; the plan's
+One maintainer decision is pending, how each generation's completion record
+is split; the plan's
 [decisions pending](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#decisions-pending)
-lists any new one with a recommendation. The next actions, as the plan
+gives the options and a recommendation. The next actions, as the plan
 orders them:
 
-1. **Agent:** Rapthor's distributed path, the next increment of one sector
-   across the cluster: Rapthor's task runs Hebog on Dask worker processes
-   whenever it has more than one core. Waiting and sharing follows, then
-   both branches together, aiming at floors of 100 s on the dense cell and
-   40 s on the sparse one. The first increment, which sizes tiles and task
-   counts from the core budget, is in 0.25.0.
-2. **Human:** push Rapthor's Hebog branch, then approach the independent
-   reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
+1. **Agent:** waiting and sharing, the next increment of one sector across
+   the cluster, then both branches together, aiming at floors of 100 s on
+   the dense cell and 40 s on the sparse one. Rapthor's distributed path,
+   in which Rapthor's task runs Hebog on Dask worker processes whenever it
+   has more than one core, is implemented on both branches. The first
+   increment, which sizes tiles and task counts from the core budget, is in
+   0.25.0.
+2. **Human:** push Rapthor's Hebog branch and release Hebog's adapter
+   change, then approach the independent reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
    report (drafted 20 October).
 3. **Agent:** the deployment envelope, the matched benchmarks, the store and
    planner work, and packaging for the cluster benchmark, where the gate is
