@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from contextlib import suppress
+from collections.abc import Callable, Generator, Iterable
+from contextlib import contextmanager, suppress
 from typing import Any, TypeVar, cast
 
 from distributed import (
     Client,
+    get_worker,
+    rejoin,
+    secede,
     wait,  # pyright: ignore[reportUnknownVariableType]
 )
 from distributed.client import FuturesCancelledError
@@ -42,6 +45,32 @@ def _wait_for_submitted(futures: Iterable[Any]) -> None:
     if pending:
         with suppress(FuturesCancelledError):
             wait(pending)
+
+
+@contextmanager
+def _outside_the_worker_threads(client: Client) -> Generator[None]:
+    """Wait outside the calling task's worker threads if its tasks share them.
+
+    An analysis running as a task on the cluster it submits to would hold
+    a worker thread while its own tasks wait for one, so analyses filling
+    every thread would wait for good. It leaves the thread pool while it
+    waits and rejoins it before it returns. Dask keeps the task's resources
+    meanwhile. On another cluster, such as one the calling task started for
+    Hebog's tasks, the calling task keeps its thread.
+    """
+    try:
+        worker = get_worker()
+    except ValueError:
+        yield
+        return
+    if worker.scheduler.address != getattr(client.scheduler, "address", None):
+        yield
+        return
+    secede()
+    try:
+        yield
+    finally:
+        rejoin()
 
 
 class DaskExecutor:
@@ -227,6 +256,17 @@ class DaskExecutor:
         limit = admitted_tasks_in_flight(capacity, requirement)
         resources = self._task_resources(requirement)
         self._require_a_worker_for(resources)
+        with _outside_the_worker_threads(self._client):
+            return self._map_within(function, prepared, limit, resources)
+
+    def _map_within(
+        self,
+        function: Callable[[Input], Output],
+        prepared: list[Input],
+        limit: int,
+        resources: dict[str, int] | None,
+    ) -> list[Output]:
+        """Run the batches within the in-flight window, in any order."""
         # Each future stays in flight until it has settled, so an exception
         # that reaches the driver while it waits, as a caller's deadline
         # does, still waits for every task below.

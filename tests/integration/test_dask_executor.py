@@ -63,6 +63,82 @@ def test_a_worker_that_joins_takes_the_next_round() -> None:
         assert executor.map_batches(_square, [3, 4]) == [9, 16]
 
 
+def _analysis(values: list[int]) -> list[int]:
+    """Run one analysis's round from a task, on that task's own cluster."""
+    from distributed import (  # noqa: PLC0415
+        get_client,  # pyright: ignore[reportUnknownVariableType]
+    )
+
+    return DaskExecutor(get_client()).map_batches(_square, values)
+
+
+@pytest.mark.integration
+def test_analyses_running_as_tasks_leave_their_threads_to_their_tasks() -> (
+    None
+):
+    """Analyses that fill every worker thread still finish their rounds.
+
+    Each waits on its tasks outside the worker's thread pool, so the tasks
+    get the threads; otherwise both analyses would wait on tasks that
+    never start.
+    """
+    cluster = LocalCluster(
+        n_workers=1,
+        threads_per_worker=2,
+        processes=False,
+        dashboard_address=":0",
+    )
+    with cluster, Client(cluster) as client:
+        analyses = client.map(_analysis, [[1, 2, 3], [4, 5, 6]], pure=False)
+
+        results = [future.result(timeout=30) for future in analyses]
+
+    assert results == [[1, 4, 9], [16, 25, 36]]
+
+
+def _analysis_on(address: str) -> tuple[float, float]:
+    """Run one analysis's round on another cluster; return when it ran."""
+    started = time.monotonic()
+    with Client(address, set_as_default=False) as client:
+        DaskExecutor(client).map_batches(_slow_square, [1, 2])
+    return started, time.monotonic()
+
+
+def _slow_square(value: int) -> int:
+    """Return one square after a short wait."""
+    time.sleep(_TASK_SECONDS)
+    return value**2
+
+
+@pytest.mark.integration
+def test_an_analysis_on_another_cluster_keeps_its_worker_thread() -> None:
+    """A task that runs Hebog on a cluster it started keeps its own slot.
+
+    The node's cores belong to that cluster, so the calling worker must not
+    start another task while Hebog runs, as it would if the task left its
+    thread.
+    """
+    outer = LocalCluster(
+        n_workers=1,
+        threads_per_worker=1,
+        processes=False,
+        dashboard_address=":0",
+    )
+    inner = LocalCluster(
+        n_workers=1,
+        threads_per_worker=2,
+        processes=False,
+        dashboard_address=":0",
+    )
+    with outer, inner, Client(outer) as client:
+        analyses = client.map(
+            _analysis_on, [inner.scheduler_address] * 2, pure=False
+        )
+        intervals = sorted(future.result(timeout=30) for future in analyses)
+
+    assert intervals[0][1] <= intervals[1][0]
+
+
 @pytest.mark.integration
 def test_a_large_test_process_does_not_pause_its_in_process_worker() -> None:
     """A test's worker runs tasks however much the test process holds.

@@ -102,9 +102,9 @@ flowchart TB
 ```
 
 As Rapthor sets it up today, two things go wrong. The waiting filter task
-holds its worker's only thread, so Hebog must step out of the slot
-(`secede`) while it waits, or several sectors could leave no thread free for
-their tile tasks. And Dask counts a DP3 or WSClean command as one task like
+holds its worker's only thread, so Hebog steps out of the slot (`secede`)
+while it waits, or several sectors could leave no thread free for their
+tile tasks; Rapthor must then request no core resource for the task. And Dask counts a DP3 or WSClean command as one task like
 any other, so a command that uses many cores can run beside other commands
 or Hebog's tiles on the same node. Layout 4 removes both.
 
