@@ -13,6 +13,10 @@ from hebog.data_models import (
     ProductChunk,
     ProductGenerationManifest,
 )
+from hebog.data_models.generations import (
+    ProductGenerationIndex,
+    ProductGenerationRow,
+)
 
 
 def _partition() -> PartitionManifest:
@@ -198,3 +202,84 @@ def test_generation_rejects_noncanonical_products_tiles_and_order() -> None:
                 product_names=product_names,
                 chunks=chunks,
             )
+
+
+def test_generation_splits_into_canonical_rows_and_an_index() -> None:
+    """Each row record holds its tiles' chunks for every product, in order."""
+    generation = _generation()
+
+    rows = generation.rows()
+    index = generation.index(f"{row.tile_y_index:064x}" for row in rows)
+
+    assert [row.tile_y_index for row in rows] == [0, 1]
+    assert rows[1].chunks == tuple(
+        chunk
+        for chunk in generation.chunks
+        if chunk.tile_id.startswith("tile-00001-")
+    )
+    assert rows[1].tiles_per_row == 2
+    assert all(
+        ProductGenerationRow.from_json_bytes(row.canonical_json_bytes()) == row
+        for row in rows
+    )
+    assert index.describes(_partition())
+    assert not index.describes(
+        PartitionManifest.create(
+            image_shape_yx=(5, 7),
+            tile_core_shape_yx=(5, 7),
+            halo_yx=(0, 0),
+        )
+    )
+    assert (
+        ProductGenerationIndex.from_json_bytes(index.canonical_json_bytes())
+        == index
+    )
+    with pytest.raises(ValueError, match="canonical"):
+        ProductGenerationIndex.from_json_bytes(
+            index.canonical_json_bytes().replace(b",", b", ")
+        )
+
+
+def test_row_record_rejects_partial_misordered_or_mixed_run_chunks() -> None:
+    """A row record is exactly its own tiles, once each, from one run."""
+    row = _generation().rows()[0]
+    chunks = row.chunks
+    cases = (
+        (chunks[:-1], "whole tile columns"),
+        ((), "whole tile columns"),
+        ((chunks[1], chunks[0], *chunks[2:]), "canonical order"),
+        (_generation().rows()[1].chunks, "canonical order"),
+        (
+            (replace(chunks[0], generation_id="run-002"), *chunks[1:]),
+            "mixed generation",
+        ),
+    )
+
+    for changed, message in cases:
+        with pytest.raises(ValueError, match=message):
+            ProductGenerationRow(
+                generation_id=row.generation_id,
+                tile_y_index=row.tile_y_index,
+                product_names=row.product_names,
+                chunks=changed,
+            )
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"generation_id": ""}, "generation ID"),
+        ({"product_names": ()}, "at least one product"),
+        ({"row_sha256": ()}, "SHA-256"),
+        ({"row_sha256": ("A" * 64,)}, "SHA-256"),
+    ],
+)
+def test_index_rejects_an_empty_identity_or_malformed_digests(
+    changes: dict[str, object],
+    message: str,
+) -> None:
+    """A completion index names its run, its products and every row."""
+    document = _generation().index(("0" * 64, "1" * 64)).model_dump()
+
+    with pytest.raises(ValueError, match=message):
+        ProductGenerationIndex.model_validate({**document, **changes})

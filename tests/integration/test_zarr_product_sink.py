@@ -30,6 +30,7 @@ from hebog.data_models import (
     ProductGenerationManifest,
     TilePartition,
 )
+from hebog.data_models.generations import ProductGenerationIndex
 from hebog.io import (
     InvalidProductChunkError,
     InvalidProductGenerationError,
@@ -88,6 +89,16 @@ def _values_for(tile_index: int) -> npt.NDArray[np.float64]:
     return values
 
 
+def _index_of(
+    generation: ProductGenerationManifest,
+) -> ProductGenerationIndex:
+    """Return the completion index a store publishes for ``generation``."""
+    return generation.index(
+        hashlib.sha256(row.canonical_json_bytes()).hexdigest()
+        for row in generation.rows()
+    )
+
+
 def _write_product(
     sink: ZarrProductSink,
     manifest: PartitionManifest,
@@ -129,7 +140,7 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
     assert array.attrs["hebog_write_empty_chunks"] is True
     assert array.attrs["hebog_generation_id"] == "run-001"
     assert array.attrs["hebog_compression_policy"] == "none"
-    assert group.attrs["hebog_storage_schema_version"] == 3
+    assert group.attrs["hebog_storage_schema_version"] == 4
     assert group.attrs["partition_schema_version"] == 1
     assert group.attrs["partition_origin_yx"] == [0, 0]
     assert group.attrs["generation_id"] == "run-001"
@@ -381,7 +392,8 @@ def test_a_pickled_sink_starts_without_the_handles_it_cached(
 
     copy = pickle.loads(pickle.dumps(sink))
     assert copy._array_cache == {}
-    assert copy._published_generation_cache is None
+    assert copy._published_index_cache is None
+    assert not copy._row_cache
     third = copy.read_completed_window("rms", bounds)
     assert open_count == 1
     assert copy.read_generation() == generation
@@ -420,7 +432,7 @@ def test_read_generation_validates_the_marker_and_reads_no_chunk(
     monkeypatch.setattr(reader, "_read_product_block", count_block)
     monkeypatch.setattr(reader, "_read_values", count_values)
 
-    assert reader.read_generation() == published
+    assert reader.read_generation() == _index_of(published)
     assert chunk_reads == 0
 
     tile = manifest.tiles[0]
@@ -432,7 +444,7 @@ def test_read_generation_validates_the_marker_and_reads_no_chunk(
     payload[-1] ^= 1
     chunk_path.write_bytes(payload)
 
-    assert reader.read_generation() == published
+    assert reader.read_generation() == _index_of(published)
     with pytest.raises(InvalidProductChunkError, match="corrupt"):
         reader.read_completed_window("rms", tile.core_bounds)
     with pytest.raises(InvalidProductChunkError, match="corrupt"):
@@ -838,7 +850,7 @@ def test_publishes_and_reads_one_exact_generation_idempotently(
     )
 
     assert published.generation_id == "run-001"
-    assert sink.read_generation() == published
+    assert sink.read_generation() == _index_of(published)
     assert (
         sink.publish_generation(product_names=("rms",), chunks=records)
         == published
@@ -876,7 +888,7 @@ def test_interrupted_generation_is_not_published_and_can_resume(
         product_names=("rms",),
         chunks=(*records, resumed),
     )
-    assert sink.read_generation() == published
+    assert sink.read_generation() == _index_of(published)
 
 
 def test_generation_validation_rejects_store_corruption_before_publish(
@@ -991,7 +1003,7 @@ def test_completion_marker_is_immutable_and_run_scoped(tmp_path: Path) -> None:
             product_names=("mask",),
             chunks=mask_records,
         )
-    assert sink.read_generation() == first
+    assert sink.read_generation() == _index_of(first)
 
     other_generation = _sink(root, manifest, generation_id="run-002")
     with pytest.raises(InvalidProductChunkError, match="policy"):
@@ -1005,14 +1017,14 @@ def test_completion_marker_is_immutable_and_run_scoped(tmp_path: Path) -> None:
         )
 
 
-def test_read_rejects_a_corrupt_completion_marker(tmp_path: Path) -> None:
+def test_read_rejects_a_corrupt_completion_index(tmp_path: Path) -> None:
     """Completion metadata is validated before any generation is consumed."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
     sink = _sink(root, manifest)
     records = _write_product(sink, manifest, "rms")
     sink.publish_generation(product_names=("rms",), chunks=records)
-    marker = next(root.rglob("completed-generation-v1.json"))
+    marker = root / ".hebog" / "completed-generation-v2.json"
     marker.write_bytes(b"not-json\n")
 
     with pytest.raises(InvalidProductGenerationError, match="invalid"):
@@ -1022,60 +1034,157 @@ def test_read_rejects_a_corrupt_completion_marker(tmp_path: Path) -> None:
 def test_read_rejects_noncanonical_or_wrong_generation_metadata(
     tmp_path: Path,
 ) -> None:
-    """A marker must be canonical and bound to this sink's run and tiling."""
+    """An index must be canonical and bound to this sink's run and tiling."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
     sink = _sink(root, manifest)
     records = _write_product(sink, manifest, "rms")
-    published = sink.publish_generation(
-        product_names=("rms",),
-        chunks=records,
+    index = _index_of(
+        sink.publish_generation(product_names=("rms",), chunks=records)
     )
-    marker = next(root.rglob("completed-generation-v1.json"))
-    pretty = json.dumps(published.model_dump(mode="json"), indent=2)
-    marker.write_text(f"{pretty}\n", encoding="utf-8")
-
-    with pytest.raises(InvalidProductGenerationError, match="canonical"):
-        sink.read_generation()
-
-    other_records = tuple(
-        replace(record, generation_id="run-002") for record in records
-    )
-    other_generation = ProductGenerationManifest.create(
-        generation_id="run-002",
-        partition_manifest=manifest,
-        product_names=("rms",),
-        chunks=other_records,
-    )
-    marker.write_bytes(other_generation.canonical_json_bytes())
-    with pytest.raises(InvalidProductGenerationError, match="generation ID"):
-        sink.read_generation()
-
-    other_partition = PartitionManifest.create(
-        image_shape_yx=manifest.image_shape_yx,
-        tile_core_shape_yx=manifest.image_shape_yx,
-        halo_yx=(0, 0),
-    )
-    other_tile = other_partition.tiles[0]
-    other_partition_generation = ProductGenerationManifest.create(
-        generation_id="run-001",
-        partition_manifest=other_partition,
-        product_names=("rms",),
-        chunks=(
-            ProductChunk(
-                generation_id="run-001",
-                product_name="rms",
-                tile_id=other_tile.tile_id,
-                core_bounds=other_tile.core_bounds,
-                dtype="<f8",
-                shape_yx=other_tile.core_bounds.shape_yx,
-                content_sha256="a" * 64,
-            ),
+    marker = root / ".hebog" / "completed-generation-v2.json"
+    cases = (
+        (
+            json.dumps(index.model_dump(mode="json"), indent=2) + "\n",
+            "canonical",
+        ),
+        (
+            index.model_copy(
+                update={"generation_id": "run-002"}
+            ).canonical_json_bytes(),
+            "generation ID",
+        ),
+        (
+            index.model_copy(
+                update={"tile_core_shape_yx": (5, 7)}
+            ).canonical_json_bytes(),
+            "partition",
+        ),
+        (
+            index.model_copy(
+                update={"row_sha256": index.row_sha256[:1]}
+            ).canonical_json_bytes(),
+            "partition",
         ),
     )
-    marker.write_bytes(other_partition_generation.canonical_json_bytes())
-    with pytest.raises(InvalidProductGenerationError, match="partition"):
-        sink.read_generation()
+
+    for payload, message in cases:
+        if isinstance(payload, str):
+            marker.write_text(payload, encoding="utf-8")
+        else:
+            marker.write_bytes(payload)
+        with pytest.raises(InvalidProductGenerationError, match=message):
+            _sink(root, manifest).read_generation()
+
+
+def test_read_rejects_a_missing_changed_or_foreign_row_record(
+    tmp_path: Path,
+) -> None:
+    """Each row record a reader parses must be the one the index names."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    other = _sink(tmp_path / "other.zarr", manifest, generation_id="run-002")
+    other.publish_generation(
+        product_names=("rms",),
+        chunks=_write_product(other, manifest, "rms"),
+    )
+    row_path = root / ".hebog" / "completed-generation-v2" / "row-00001.json"
+    published_row = row_path.read_bytes()
+    foreign_row = (
+        tmp_path / "other.zarr" / ".hebog" / "completed-generation-v2"
+    ) / "row-00001.json"
+    last_row = manifest.tiles[-1].core_bounds
+
+    for change, message in (
+        (row_path.unlink, "missing"),
+        (
+            lambda: row_path.write_bytes(
+                published_row.replace(b'"tile_y_index":1', b'"tile_y_index":0')
+            ),
+            "index",
+        ),
+        (lambda: row_path.write_bytes(foreign_row.read_bytes()), "index"),
+    ):
+        change()
+        reader = _sink(root, manifest)
+        assert reader.read_generation().product_names == ("rms",)
+        np.testing.assert_array_equal(
+            reader.read_completed_window("rms", manifest.tiles[0].core_bounds),
+            np.full(manifest.tiles[0].core_bounds.shape_yx, 1.0),
+        )
+        with pytest.raises(InvalidProductGenerationError, match=message):
+            reader.read_completed_window("rms", last_row)
+        with pytest.raises(InvalidProductGenerationError, match=message):
+            list(reader.iter_completed_row_blocks("rms", max_block_bytes=1024))
+        row_path.write_bytes(published_row)
+
+
+def test_a_store_from_an_older_hebog_fails_clearly(tmp_path: Path) -> None:
+    """A generation written in an older storage schema is not reused."""
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+    group = zarr.open_group(store=root, mode="a")
+    group.attrs["hebog_storage_schema_version"] = 3
+    (root / ".hebog").mkdir()
+    (root / ".hebog" / "completed-generation-v1.json").write_bytes(b"{}\n")
+
+    with pytest.raises(InvalidProductChunkError, match="storage_schema"):
+        _sink(root, manifest).initialize_product(
+            product_name="rms",
+            dtype=np.dtype("<f8"),
+        )
+    with pytest.raises(InvalidProductGenerationError, match="not published"):
+        _sink(root, manifest).read_generation()
+
+
+def test_a_window_read_parses_only_the_completion_records_of_its_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A task's read cost must not grow with the image.
+
+    Every task that read a window parsed the whole generation's completion
+    record: 15 MB and 0.3 s at 15,402 pixels a side on 128-pixel cores, and
+    about 650 MB and 15 s at 100,000, in memory no task declares.
+    """
+    root = tmp_path / "run.zarr"
+    manifest = PartitionManifest.create(
+        image_shape_yx=(40, 40),
+        tile_core_shape_yx=(4, 4),
+        halo_yx=(0, 0),
+    )
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    record_paths = {
+        path.resolve()
+        for path in (root / ".hebog").rglob("*")
+        if path.is_file()
+    }
+    record_bytes = sum(path.stat().st_size for path in record_paths)
+    reads: list[Path] = []
+    original_get = _local._get
+
+    def recording_get(path: Path, prototype: Any, byte_range: Any) -> Any:
+        reads.append(Path(path).resolve())
+        return original_get(path, prototype, byte_range)
+
+    monkeypatch.setattr(_local, "_get", recording_get)
+    reader = _sink(root, manifest)
+
+    window = reader.read_completed_window("rms", ImageBounds(5, 7, 0, 40))
+
+    bytes_parsed = sum(
+        path.stat().st_size for path in set(reads) & record_paths
+    )
+    assert bytes_parsed < record_bytes / 3
+    expected = np.tile(np.repeat(np.arange(11.0, 21.0), 4), (2, 1))
+    np.testing.assert_array_equal(window, expected)
 
 
 def _counted_store_keys(

@@ -8,7 +8,7 @@ from typing import Protocol
 import numpy as np
 import numpy.typing as npt
 
-from hebog.data_models.generations import ProductGenerationManifest
+from hebog.data_models.generations import ProductGenerationIndex
 from hebog.data_models.images import ImageMetadata
 from hebog.data_models.partitioning import ImageBounds, PartitionManifest
 
@@ -67,8 +67,8 @@ class CompletedProductSource(Protocol):
         """Return the canonical partition the generation was written on."""
         ...
 
-    def read_generation(self) -> ProductGenerationManifest:
-        """Validate and return the published completion record."""
+    def read_generation(self) -> ProductGenerationIndex:
+        """Validate and return the published completion index."""
         ...
 
     def read_completed_window(

@@ -22,7 +22,7 @@ records enforce.
 | `PublicSourceFindingDiagnostics` (the diagnostics product) | 13 | `hebog.data_models.source_finding` |
 | `PublicSourceFindingProvenance`, `ContinuumSourceFindingDiagnostics`, `SourceFindingDiagnostics`, `SourceScaleProvenance` | 4, 2, 1, 1 | `hebog.data_models.source_finding` |
 | `ScaleDetection`, `CrossScaleAssociation` | 1, 3 | `hebog.data_models.multiscale` |
-| `ProductChunk`, Zarr storage schema, generation marker | 2, 3, 1 | `hebog.data_models.products`, `hebog.io.zarr`, `hebog.data_models.generations` |
+| `ProductChunk`, Zarr storage schema, generation row record and index | 2, 4, 2 | `hebog.data_models.products`, `hebog.io.zarr`, `hebog.data_models.generations` |
 | Partition manifest | 1 | `hebog.data_models.partitioning` |
 | Staging owner record | 1 | `hebog.io.staging` |
 | Rapthor adapter records | 2 | `hebog.adapters.rapthor` |
@@ -146,15 +146,19 @@ The rules the sink enforces:
   the same product and tile fails closed.
 - `publish_generation` requires exactly one record for every product and
   tile, rejects missing, duplicate, conflicting, mixed-generation,
-  wrong-owner and inconsistent-dtype records, checksums every chunk and only
-  then conditionally creates the completion marker. Identical publications
-  are idempotent, a different marker cannot replace the winner, and an
-  interrupted run has no marker and resumes by writing its missing chunks.
-- `read_generation` validates the marker without re-reading the chunks; each
-  chunk is validated against its record whenever it is read. A sink caches
-  its array handles and the parsed marker for its lifetime in one process,
-  and a pickled copy starts empty.
-- Storage schema 3 stores numeric planes uncompressed with CRC32C and boolean
+  wrong-owner and inconsistent-dtype records and checksums every chunk. It
+  then conditionally creates one record per row of tiles and, last, the
+  index that marks completion and names each row record's SHA-256.
+  Identical publications are idempotent, a different record cannot replace
+  the winner, and an interrupted run has no index and resumes by writing
+  its missing chunks.
+- `read_generation` validates the index without reading the rows or chunks.
+  A window read parses only the row records it meets, each checked against
+  the index, and validates each chunk against its record, so a task's cost
+  follows the image's side, not its area. A sink caches its array handles,
+  the index and at most four row records in one process, and a pickled copy
+  starts empty.
+- Storage schema 4 stores numeric planes uncompressed with CRC32C and boolean
   masks with Zstandard level 1 plus CRC32C; every chunk also carries its
   logical SHA-256. Bounded consumers reuse at most four validated chunks
   while assembling windows, in a worker-local cache.

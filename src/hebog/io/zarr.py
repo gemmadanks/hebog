@@ -21,7 +21,11 @@ from zarr.core.sync import sync
 from zarr.errors import ArrayNotFoundError, ChunkNotFoundError
 from zarr.storage import LocalStore
 
-from hebog.data_models.generations import ProductGenerationManifest
+from hebog.data_models.generations import (
+    ProductGenerationIndex,
+    ProductGenerationManifest,
+    ProductGenerationRow,
+)
 from hebog.data_models.partitioning import (
     ImageBounds,
     PartitionManifest,
@@ -39,10 +43,14 @@ _IMAGE_DIMENSIONS = 2
 # 1.9 GiB at 15,402 pixels a side.
 _GENERATION_VALIDATION_BLOCK_PIXELS = 2048 * 2048
 _WINDOW_CHUNK_CACHE_SIZE = 4
+# A window meets one to three rows of tiles; a bounded cache keeps a reader
+# that walks a generation row by row from holding every row's records.
+_ROW_RECORD_CACHE_SIZE = 4
 _ZARR_FORMAT = 3
-_COMPLETION_KEY = ".hebog/completed-generation-v1.json"
+_COMPLETION_KEY = ".hebog/completed-generation-v2.json"
+_ROW_RECORD_PREFIX = ".hebog/completed-generation-v2/row-"
 _GROUP_ATTRIBUTES: dict[str, Any] = {
-    "hebog_storage_schema_version": 3,
+    "hebog_storage_schema_version": 4,
     "zarr_format": _ZARR_FORMAT,
 }
 
@@ -76,6 +84,11 @@ class ProductChunkConflictError(ProductChunkError):
 
 class InvalidProductChunkError(ProductChunkError):
     """A Zarr product chunk is missing, corrupt, or inconsistent."""
+
+
+def _row_record_key(tile_y_index: int) -> str:
+    """Return the store key of one row of tiles' completion record."""
+    return f"{_ROW_RECORD_PREFIX}{tile_y_index:05d}.json"
 
 
 class ProductGenerationError(ProductChunkError):
@@ -167,26 +180,27 @@ class ZarrProductSink:
         self._manifest = manifest
         self._generation_id = generation_id
         self._array_cache: dict[str, Any] = {}
-        self._published_generation_cache: ProductGenerationManifest | None = (
-            None
-        )
+        self._published_index_cache: ProductGenerationIndex | None = None
+        self._row_cache: OrderedDict[int, ProductGenerationRow] = OrderedDict()
 
     def __getstate__(self) -> dict[str, Any]:
         """Pickle the plain metadata only; open handles stay in this process.
 
         A sink travels inside executor payloads, so a copy on a worker opens
-        its own array handles and reads the completion marker once, and the
+        its own array handles and reads the completion index once, and the
         pickled bytes never carry a store object. Both are immutable for a
         generation: an array's geometry and policy are fixed when it is
-        created and the marker is published once, so a process validates
+        created and the index is published once, so a process validates
         them when it first opens them and trusts them for the sink's
-        lifetime, while every chunk read is still checked against its
-        record. A change to either on disk is not a supported operation; the
-        next process or task to open the product rejects it.
+        lifetime, while every row record is checked against the index and
+        every chunk read against its record. A change to either on disk is
+        not a supported operation; the next process or task to open the
+        product rejects it.
         """
         state = self.__dict__.copy()
         state["_array_cache"] = {}
-        state["_published_generation_cache"] = None
+        state["_published_index_cache"] = None
+        state["_row_cache"] = OrderedDict()
         return state
 
     @property
@@ -198,6 +212,12 @@ class ZarrProductSink:
     def generation_id(self) -> str:
         """Return the immutable run identity stored with every chunk."""
         return self._generation_id
+
+    @property
+    def _tiles_per_row(self) -> int:
+        """Return the number of tile columns of the zero-origin partition."""
+        core_x = self._manifest.tile_core_shape_yx[1]
+        return (self._manifest.image_shape_yx[1] + core_x - 1) // core_x
 
     def initialize_product(
         self,
@@ -345,13 +365,8 @@ class ZarrProductSink:
             _, tile_y_index_value, tile_x_index_value = tile_id.split("-")
             tile_y_index = int(tile_y_index_value)
             tile_x_index = int(tile_x_index_value)
-            tiles_per_row = (
-                self._manifest.image_shape_yx[1]
-                + self._manifest.tile_core_shape_yx[1]
-                - 1
-            ) // self._manifest.tile_core_shape_yx[1]
             tile = self._manifest.tiles[
-                tile_y_index * tiles_per_row + tile_x_index
+                tile_y_index * self._tiles_per_row + tile_x_index
             ]
         except (IndexError, ValueError) as error:
             raise InvalidProductChunkError(
@@ -543,18 +558,12 @@ class ZarrProductSink:
         self,
         generation: ProductGenerationManifest,
     ) -> None:
-        """Validate identity, geometry, and every referenced store chunk."""
-        self._require_generation_identity(generation)
+        """Validate every chunk a generation built on this sink references."""
         tile_count = len(self._manifest.tiles)
-        tiles_per_row = (
-            self._manifest.image_shape_yx[1]
-            + self._manifest.tile_core_shape_yx[1]
-            - 1
-        ) // self._manifest.tile_core_shape_yx[1]
         core_height, core_width = self._manifest.tile_core_shape_yx
         blocks = _validation_blocks(
             tile_count=tile_count,
-            tiles_per_row=tiles_per_row,
+            tiles_per_row=self._tiles_per_row,
             tiles_per_block=max(
                 1,
                 _GENERATION_VALIDATION_BLOCK_PIXELS
@@ -581,27 +590,18 @@ class ZarrProductSink:
                 "completion manifest references an invalid product chunk"
             ) from error
 
-    def _require_generation_identity(
-        self,
-        generation: ProductGenerationManifest,
-    ) -> None:
-        """Require a published record for this exact run and partition."""
-        if generation.generation_id != self._generation_id:
-            raise InvalidProductGenerationError(
-                "completion manifest has a different generation ID"
-            )
-        if generation.partition_manifest != self._manifest:
-            raise InvalidProductGenerationError(
-                "completion manifest has a different partition manifest"
-            )
-
     def publish_generation(
         self,
         *,
         product_names: Iterable[str],
         chunks: Iterable[ProductChunk],
     ) -> ProductGenerationManifest:
-        """Conditionally publish one exact, fully validated generation."""
+        """Conditionally publish one exact, fully validated generation.
+
+        Every chunk is read and checked first. The row records are written
+        next and the index last, so a store without the index is not
+        published and a retry rewrites nothing that is already there.
+        """
         try:
             generation = ProductGenerationManifest.create(
                 generation_id=self._generation_id,
@@ -614,52 +614,119 @@ class ZarrProductSink:
                 "product chunks do not form a complete generation"
             ) from error
         self._require_generation_chunks(generation)
-        payload = generation.canonical_json_bytes()
-        buffer = default_buffer_prototype().buffer.from_bytes(payload)
+        row_payloads = tuple(
+            row.canonical_json_bytes() for row in generation.rows()
+        )
+        index = generation.index(
+            hashlib.sha256(payload).hexdigest() for payload in row_payloads
+        )
         with LocalStore(self._root) as store:
-            sync(store.set_if_not_exists(_COMPLETION_KEY, buffer))
-            published = store.get_sync(_COMPLETION_KEY)
-        if published is None or published.to_bytes() != payload:
-            raise ProductGenerationConflictError(
-                "a different completion manifest is already published"
+            for tile_y_index, payload in enumerate(row_payloads):
+                self._set_once(store, _row_record_key(tile_y_index), payload)
+            self._set_once(
+                store, _COMPLETION_KEY, index.canonical_json_bytes()
             )
         return generation
 
-    def _read_published_generation(self) -> ProductGenerationManifest:
-        """Read and validate the immutable record without rereading chunks."""
-        if self._published_generation_cache is not None:
-            return self._published_generation_cache
+    @staticmethod
+    def _set_once(store: LocalStore, key: str, payload: bytes) -> None:
+        """Create one immutable record, accepting only identical retries."""
+        buffer = default_buffer_prototype().buffer.from_bytes(payload)
+        sync(store.set_if_not_exists(key, buffer))
+        published = store.get_sync(key)
+        if published is None or published.to_bytes() != payload:
+            raise ProductGenerationConflictError(
+                "a different completion record is already published"
+            )
+
+    def _read_published_index(self) -> ProductGenerationIndex:
+        """Read and validate the immutable index without rereading chunks."""
+        if self._published_index_cache is not None:
+            return self._published_index_cache
         with LocalStore(self._root, read_only=True) as store:
             stored = store.get_sync(_COMPLETION_KEY)
         if stored is None:
             raise InvalidProductGenerationError(
                 "product generation is not published"
             )
-        payload = stored.to_bytes()
         try:
-            generation = ProductGenerationManifest.from_json_bytes(payload)
+            index = ProductGenerationIndex.from_json_bytes(stored.to_bytes())
         except ValueError as error:
             raise InvalidProductGenerationError(
-                f"published completion manifest is invalid: {error}"
+                f"published completion index is invalid: {error}"
             ) from error
-        if generation.canonical_json_bytes() != payload:
+        if index.generation_id != self._generation_id:
             raise InvalidProductGenerationError(
-                "published completion manifest is not canonical"
+                "completion index has a different generation ID"
             )
-        self._require_generation_identity(generation)
-        self._published_generation_cache = generation
-        return generation
+        if not index.describes(self._manifest):
+            raise InvalidProductGenerationError(
+                "completion index has a different partition manifest"
+            )
+        self._published_index_cache = index
+        return index
 
-    def read_generation(self) -> ProductGenerationManifest:
-        """Read and validate the published completion manifest.
+    def _read_row(self, tile_y_index: int) -> ProductGenerationRow:
+        """Read one row of tiles' records, verified against the index."""
+        cached = self._row_cache.get(tile_y_index)
+        if cached is not None:
+            self._row_cache.move_to_end(tile_y_index)
+            return cached
+        index = self._read_published_index()
+        with LocalStore(self._root, read_only=True) as store:
+            stored = store.get_sync(_row_record_key(tile_y_index))
+        if stored is None:
+            raise InvalidProductGenerationError(
+                "completion record of a tile row is missing"
+            )
+        payload = stored.to_bytes()
+        if (
+            hashlib.sha256(payload).hexdigest()
+            != index.row_sha256[tile_y_index]
+        ):
+            raise InvalidProductGenerationError(
+                "completion record of a tile row disagrees with the index"
+            )
+        # The digest binds the bytes the publisher wrote from a validated
+        # generation, so parsing them cannot fail short of a Hebog defect.
+        row = ProductGenerationRow.from_json_bytes(payload)
+        if len(self._row_cache) >= _ROW_RECORD_CACHE_SIZE:
+            self._row_cache.popitem(last=False)
+        self._row_cache[tile_y_index] = row
+        return row
 
-        The marker is parsed, required to be canonical and bound to this
-        sink's run and partition. Its chunks are not re-read: every one was
-        read and checksummed when the generation was published, and each is
-        validated against its record again whenever it is read, so a
-        consumer never pays for a whole generation it does not use.
+    def _chunk_record(
+        self, product_index: int, tile_index: int
+    ) -> ProductChunk:
+        """Return one published chunk record from its row's record."""
+        tiles_per_row = self._tiles_per_row
+        row = self._read_row(tile_index // tiles_per_row)
+        return row.chunks[
+            product_index * tiles_per_row + tile_index % tiles_per_row
+        ]
+
+    def _published_product_index(self, product_name: str) -> int:
+        """Return a published product's position in the index."""
+        validate_product_name(product_name)
+        index = self._read_published_index()
+        if product_name not in index.product_names:
+            raise InvalidProductGenerationError(
+                "published generation does not contain product "
+                f"{product_name!r}"
+            )
+        return index.product_names.index(product_name)
+
+    def read_generation(self) -> ProductGenerationIndex:
+        """Read and validate the published completion index.
+
+        The index is parsed, required to be canonical and bound to this
+        sink's run and partition. Neither the row records nor the chunks are
+        read: every chunk was read and checksummed when the generation was
+        published, each row record is checked against the index's digest
+        when it is read, and each chunk against its record, so a consumer
+        never pays for a whole generation it does not use.
         """
-        return self._read_published_generation()
+        return self._read_published_index()
 
     def read_completed_window(
         self,
@@ -680,19 +747,9 @@ class ZarrProductSink:
             return ()
         for bounds in requested_bounds:
             bounds.require_inside(self._manifest.image_shape_yx)
-        validate_product_name(product_name)
-        generation = self._read_published_generation()
-        if product_name not in generation.product_names:
-            raise InvalidProductGenerationError(
-                "published generation does not contain product "
-                f"{product_name!r}"
-            )
-        product_index = generation.product_names.index(product_name)
-        tile_count = len(self._manifest.tiles)
+        product_index = self._published_product_index(product_name)
         core_y, core_x = self._manifest.tile_core_shape_yx
-        tiles_per_row = (
-            self._manifest.image_shape_yx[1] + core_x - 1
-        ) // core_x
+        tiles_per_row = self._tiles_per_row
         array = self._open_array(product_name)
         cache: OrderedDict[int, npt.NDArray[np.generic]] = OrderedDict()
         windows: list[npt.NDArray[np.generic]] = []
@@ -702,9 +759,7 @@ class ZarrProductSink:
             tile_x_start = bounds.x_start // core_x
             tile_x_stop = (bounds.x_stop - 1) // core_x
             first_tile_index = tile_y_start * tiles_per_row + tile_x_start
-            first_record = generation.chunks[
-                product_index * tile_count + first_tile_index
-            ]
+            first_record = self._chunk_record(product_index, first_tile_index)
             window = np.empty(
                 bounds.shape_yx,
                 dtype=np.dtype(first_record.dtype),
@@ -730,9 +785,7 @@ class ZarrProductSink:
                         for tile_index in missing_indices
                     )
                     missing_records = tuple(
-                        generation.chunks[
-                            product_index * tile_count + tile_index
-                        ]
+                        self._chunk_record(product_index, tile_index)
                         for tile_index in missing_indices
                     )
                     row_values.update(
@@ -751,9 +804,9 @@ class ZarrProductSink:
                         row_values[tile_index] = self._read_values(
                             array=array,
                             tile=self._manifest.tiles[tile_index],
-                            record=generation.chunks[
-                                product_index * tile_count + tile_index
-                            ],
+                            record=self._chunk_record(
+                                product_index, tile_index
+                            ),
                         )
                 for tile_index in tile_indices:
                     values = row_values[tile_index]
@@ -812,23 +865,17 @@ class ZarrProductSink:
         """
         if max_block_bytes < 1:
             raise ValueError("row-block memory budget must be positive")
-        validate_product_name(product_name)
-        generation = self._read_published_generation()
-        if product_name not in generation.product_names:
-            raise InvalidProductGenerationError(
-                "published generation does not contain product "
-                f"{product_name!r}"
-            )
-        records_by_tile = {
-            chunk.tile_id: chunk
-            for chunk in generation.chunks
-            if chunk.product_name == product_name
-        }
-        tile_rows: dict[int, list[TilePartition]] = {}
-        for tile in self._manifest.tiles:
-            tile_rows.setdefault(tile.tile_y_index, []).append(tile)
-        for row_tiles in tile_rows.values():
-            first_record = records_by_tile[row_tiles[0].tile_id]
+        product_index = self._published_product_index(product_name)
+        tiles_per_row = self._tiles_per_row
+        for row_start in range(0, len(self._manifest.tiles), tiles_per_row):
+            row_tiles = self._manifest.tiles[
+                row_start : row_start + tiles_per_row
+            ]
+            row_records = self._read_row(row_tiles[0].tile_y_index).chunks[
+                product_index * tiles_per_row : (product_index + 1)
+                * tiles_per_row
+            ]
+            first_record = row_records[0]
             dtype = np.dtype(first_record.dtype)
             row_height = row_tiles[0].core_bounds.shape_yx[0]
             required_bytes = (
@@ -846,8 +893,8 @@ class ZarrProductSink:
                 (row_height, self._manifest.image_shape_yx[1]),
                 dtype=dtype,
             )
-            for tile in row_tiles:
-                values = self.read_chunk(records_by_tile[tile.tile_id])
+            for tile, record in zip(row_tiles, row_records, strict=True):
+                values = self.read_chunk(record)
                 bounds = tile.core_bounds
                 block[:, bounds.x_start : bounds.x_stop] = values
             block.setflags(write=False)

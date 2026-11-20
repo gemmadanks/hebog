@@ -90,7 +90,9 @@ backend at every size**.
   The versioned completion manifest rejects missing, duplicate, conflicting,
   mixed-run, wrong-owner, and inconsistent-dtype records, then validates every
   chunk before conditionally publishing canonical JSON through the Zarr Store
-  API. Identical completion retries are idempotent; different bytes conflict.
+  API: one record per row of tiles, then an index naming each row record's
+  SHA-256 as the completion marker. Identical completion retries are
+  idempotent; different bytes conflict.
 - Stream final image products from the immutable generation in canonical tile
   rows. Validate each chunk once, assemble at most one full-width tile row,
   and require an explicit row-memory budget. Yield the existing validated
@@ -138,7 +140,8 @@ size-based storage switch.
 ## Confirmation
 
 - Unit tests validate versioned, pickle-safe `ProductChunk` and
-  `ProductGenerationManifest` records and their exact-set invariants.
+  `ProductGenerationManifest` records and their exact-set invariants, and the
+  row records and index a generation is published as.
 - Integration tests cover initialization, aligned and edge writes, NaNs,
   all-fill and missing chunks, CRC32C corruption, logical checksum
   disagreement, retries, invalid geometry and dtype, changed policy, shifted
@@ -149,7 +152,9 @@ size-based storage switch.
   checksummed once when the generation was published, and is validated
   against its record on every read, so consumers do not re-read a whole
   generation (27 September 2026: that re-read was 18% of a profiled 1,024²
-  run).
+  run). A reader parses only the row records its window meets, each checked
+  against the index (15 November 2026: one whole record had reached 15 MB
+  and 0.3 s a task at 15,402² on 128-pixel cores, growing with the area).
 - End-to-end integration tests prove that one-tile and many-tile generations
   stream to identical RMS and binary-mask FITS products within the admitted
   tile-row memory budget.
