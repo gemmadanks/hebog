@@ -32,7 +32,7 @@ scientifically unqualified. The candidate is public composition v23 with
   and three steps outside the agent's control: cluster time, Rapthor's
   worker layout and independent reviewers. See [risks](#risks).
 - **Next action.** Agent: task 72's next increment, waiting and sharing.
-  Human: the completion-record decision (below); push Rapthor's Hebog
+  Human: push Rapthor's Hebog
   branch (task 79) and release the adapter's `sector_memory`, which
   Rapthor's distributed path needs; then approach the reviewers (task 33); file the Astropy report
   (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
@@ -91,21 +91,9 @@ soak; the PyBDSF fallback stays until then.
 
 A decision is listed here with the maintainer's options and the agent's
 recommendation until it is taken, then recorded as a rule in the row it
-affects and in the commit, never in `LOG.md`. The last were taken on
-14 November 2026: task 72's targets, order and executor (below), the dense
-threshold ([performance gates](#performance-and-scale-gates)), and how the
-reviewers and the scaling floor are chosen (tasks 33 and 27).
-
-1. **How each generation's completion record is split** (task 72, waiting
-   and sharing). Every task parses the whole record of each generation it
-   reads, which grows with the pixels: 15 MB and 0.3 s at 15,402² on
-   128-pixel cores, about 650 MB and 15 s at 100,000², in memory no task
-   declares. Options: one record per tile; one per row of tiles, listed with
-   their checksums in a small index that is the completion marker; or the
-   records a batch needs passed in its payload, leaving the store format.
-   *Recommendation:* one record per row of tiles, as completion schema 2:
-   the files grow with the side, not the area, which spares Lustre's
-   metadata servers, and a window reads one to three rows.
+affects and in the commit, never in `LOG.md`. None is pending. The last was
+taken on 20 November 2026: each generation's completion record is split by
+row of tiles (task 72, below).
 
 ## Scope and resource rules
 
@@ -288,8 +276,9 @@ and released in turn, in the order below (decision of 14 November):
   caller.
 - **Waiting and sharing.** The analysis secedes from its worker slot while
   it waits on its tasks; each round's declared memory is re-audited against
-  its measured peak; each completion record is split by tile, so a task
-  reads only its window's entries; several analyses and joining workers run
+  its measured peak; each generation's completion record is one record per
+  row of tiles under a small index that marks completion, so a task reads
+  only its window's rows (decision of 20 November); several analyses and joining workers run
   without deadlock or changed products. The driver's per-source work (the
   catalogue write, reconciliation and catalogue records) is cut here, with
   no separate per-source task (decision of 14 November).

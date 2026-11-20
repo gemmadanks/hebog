@@ -29,11 +29,8 @@ The largest risks to 1.0.0 are:
 - three steps outside the agent's control: cluster time, Rapthor's worker
   layout and independent reviewers.
 
-One maintainer decision is pending, how each generation's completion record
-is split; the plan's
-[decisions pending](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#decisions-pending)
-gives the options and a recommendation. The next actions, as the plan
-orders them:
+No maintainer decision is pending. The next actions, as the plan orders
+them:
 
 1. **Agent:** waiting and sharing, the next increment of one sector across
    the cluster, then both branches together, aiming at floors of 100 s on
