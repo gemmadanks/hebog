@@ -198,8 +198,9 @@ integrated flux above 20σ is 0.999 of the survey's (18 October, run
 The gate compares the source-finding part of Rapthor's `filter_skymodel`
 step, from the task's start to LSMTool's `filter_sources` call, with pinned
 PyBDSF `master`. Matched runs use one x86-64 container under Rosetta, so only
-the ratios are matched: Hebog 0.23.0 (`continuum`, zero background), Rapthor
-`632f6211`, LSMTool `156ae6a`, PyBDSF `master` `c70103b`. The dense cell is a
+the ratios are matched. The 20 to 24 October runs pin Hebog 0.23.0
+(`continuum`, zero background), Rapthor `632f6211`, LSMTool `156ae6a` and
+PyBDSF `master` `c70103b`. The dense cell is a
 deep ELAIS-N1 5,000² window where `master` finds 24,780 sources; the sparse
 cell is a LoTSS-DR3 5,000² window with 2,469.
 
@@ -211,7 +212,7 @@ cell is a LoTSS-DR3 5,000² window with 2,469.
 | Dense cell, single-threaded Dask workers on 1, 2, 4 and 6 cores, two runs each | 1.03, 1.08, 1.07 and 1.00 | 22 to 24 October, runs `step3-sweep-…-<cores>-cores` |
 | Sparse cell, single-threaded Dask workers on 1, 4 and 6 cores, two runs each | 1.65, 1.74 and 1.72 against ≤1.05 (3.42 on the thread path) | 24 October, runs `step4-sweep-…-<cores>-cores` |
 | Source-count ladder, thread path, four cores, two runs each | Sparse sectors 3.14 to 4.85; dense sectors 3.16 (14,126 sources) and 2.28 (24,780) | 20 and 21 October, runs `step3-ladder-<case>` |
-| 10,000² anchor, where `master` finds 9,276 sources, four Dask workers, one run | 1.23 | 16 October, run `screening-10000` |
+| 10,000² anchor, where `master` finds 9,276 sources, four Dask workers, one run | 1.23 | 16 October, run `screening-10000`, Hebog `16228cf1` (the 0.22.0 candidate) |
 
 Brackets are one-sided 95% bounds. Both finders' products repeat byte for
 byte, and Hebog's are identical on every worker count and on the thread path.
@@ -249,7 +250,9 @@ it (13 November, `scripts/benchmark/fit_scaling_model.py` run
 | The dense cell (24,780) | 0.50 | 0.30 (0.53) | 132 s, 218 s (117 s) |
 
 In brackets: if `master` used every core of a dense sector's node. A floor
-target is the largest floor that still meets the limit.
+target is a sufficient bound, not a gate: a floor at or below it meets the
+limit with all of Hebog's task time shared over the node added, and it is
+conservative by 3 to 9 s, so a floor a little above it can still pass.
 
 - On one node 0.25.0 meets every limit, the noise ×4 sector narrowly: its
   floor is 2 s above a target that is conservative by a few seconds. 0.24.0
@@ -266,8 +269,9 @@ target is the largest floor that still meets the limit.
 
 ### Hebog's own speed
 
-Native runs, without PyBDSF. Ratios are medians of five alternating runs a
-side, with 95% bootstrap bounds where given.
+Native runs, without PyBDSF. Ratios between versions or settings are
+medians of five alternating runs a side, with 95% bootstrap bounds where
+given. The stage profile and the whole-sector times are single runs.
 
 | Measurement | Latest | Date and source |
 | --- | --- | --- |
@@ -276,7 +280,7 @@ side, with 95% bootstrap bounds where given.
 | Four Dask workers against Serial | 0.38 at 10,000² (431 s); 0.63 on the 15,402² mosaic; products identical | 5 November, `release-check/0.25.0/matched`; 5 October |
 | Tile cores sized to the task slots (in 0.25.0) | Dense cell 0.916 [0.910, 0.930] on four workers and 0.910 [0.890, 0.962] on six; sparse cell 0.974 and 0.951 | 4 November, runs `stack-*` |
 | Object batches by estimated cost (in 0.25.0) | Dense cell 0.987 [0.975, 0.994] on four workers; longest component-fit task 32.5 to 19.3 s | 4 November, runs `stack-*` |
-| Dense cell, stage profile | 1,176, 681, 447 and 380 s on 1, 2, 4 and 6 Dask workers, a serial share of 18%. Largest stages: component fits, the two background and RMS passes, the multiscale pass | 21 October, `just profile-scaling` run `step3-elais-n1-deep-north-3600-5000` |
+| Dense cell, stage profile, one run a worker count | 1,176, 681, 447 and 380 s on 1, 2, 4 and 6 Dask workers, a serial share of 18%. Largest stages: component fits, the two background and RMS passes, the multiscale pass | 21 October, `just profile-scaling` run `step3-elais-n1-deep-north-3600-5000` |
 | The whole dense 14,175² ELAIS-N1 sector, Serial | 2.0 h at 0.22.0, against 8.5 h on 11 October | 17 October, `lsmtool-check-elais-n1-t022-continuum-2` |
 
 The [performance profile](performance-profile.md) has the stage shares and

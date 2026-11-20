@@ -311,7 +311,9 @@ tests, the quick science check, a quick benchmark on both sides of any
 crossover, a reproduced `just traced-peak` and the task memory audit on the
 tier's anchor. The memory measure is `tracemalloc`'s peak, which is
 deterministic; peak RSS varies with machine load and is reported beside it,
-never as the threshold.
+never as the threshold. Science on the large anchors is checked against the
+LoTSS-DR3 PyBDSF catalogue and maps and the per-facet LOFAR-HD PyBDSF
+catalogues, with global invariants, as in ADR-005.
 
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
@@ -370,7 +372,7 @@ and demand allow.
 | The development machine's RAM, disk and container VM limit local tiers and matched runs. | Matched runs stop at the 10,000² anchor and tiers at 22,500². | The cluster measures the gate. |
 | Uncompressed Zarr intermediates take about 100 bytes a pixel. | A 45,000² run needs about 200 GiB of scratch. | Before 45,000²: compress label planes losslessly and delete each plane after its last reader. |
 | Rapthor and LSMTool change often, and PyBDSF's `master` has moved past the reference. | Adapter, benchmark or reference churn. | Move the Rapthor and LSMTool pins only before task 79's push if the filter step changes, before task 23 and at the freeze, re-running the audits; keep PyBDSF at `c70103b` until the freeze. |
-| The cluster session, the reviewers and Rapthor's merge are not yet scheduled. | 1.0.0 waits on them. | Testing, the trial and the benchmark use the Rapthor branch at a recorded commit; reviewers are approached when the branch is pushed. |
+| The cluster session and the reviewers are not yet scheduled; Rapthor's merge is the maintainer's choice. | 1.0.0 waits on the session and the reviews; until the merge, Rapthor users install Rapthor from the branch. | Testing, the trial and the cluster benchmark use the Rapthor branch at a recorded commit, so none waits on the merge; reviewers are approached when the branch is pushed. |
 | Extended association cannot be made exactly tile-invariant. | A tier stalls or changes science. | Test analytic shells and filaments crossing corners at each tier; escalate any scientific trade-off. |
 | Large public images have minimal or non-standard headers, and no large SKA-Low image exists. | Anchors need explicit metadata; SKA-Low evidence comes after 1.0.0. | Check headers before download; GLEAM-X at the 45,000² release. |
 | The 35-pixel noise window holds few independent samples under a wide beam. | Noise peaks pass as faint sources, and single cases move by chance. | Judge noise changes by whole-map tails against injected noise; beam-scaled windows are deferred. |
