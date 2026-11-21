@@ -81,10 +81,9 @@ outwards to 3σ, and it must cover at least seven pixels.
 [Choose thresholds and a profile](../how-to/configure-a-run.md) explains the
 options.
 
-The output directory must not exist yet. Hebog never overwrites results, and
-the directory appears only when all products are complete. Running the same
-request again returns the products already there without repeating the
-analysis.
+The output directory must not exist yet; Hebog never overwrites results.
+Use the products once `find_sources` returns. Running the same request
+again returns the products already there without repeating the analysis.
 
 ## Look at the products
 

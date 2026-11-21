@@ -2,9 +2,7 @@
 
 Hebog needs Python 3.12, 3.13 or 3.14 on Linux, macOS or Windows.
 
-Install the latest release from [PyPI](https://pypi.org/project/hebog/)
-(releases before 0.22.0 are on
-[GitHub](https://github.com/gemmadanks/hebog/releases) only):
+Install the latest release from [PyPI](https://pypi.org/project/hebog/):
 
 <!-- x-release-please-start-version -->
 

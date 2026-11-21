@@ -47,8 +47,7 @@ telescope, Rapthor, science, performance, scalability and release goals.
 ## Installation
 
 Install the exact version from [PyPI](https://pypi.org/project/hebog/) into
-a Python 3.12 to 3.14 environment (releases before 0.22.0 are on GitHub
-only):
+a Python 3.12 to 3.14 environment:
 
 <!-- x-release-please-start-version -->
 

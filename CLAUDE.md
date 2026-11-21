@@ -107,8 +107,7 @@ a named exemption there.
   Aegean in Podman via `run_notebook_reference.py`) and
   `refresh_public_notebook_hebog.py` (Hebog via `run_notebook_hebog.py`),
   configured by `config/comparisons/notebook-comparison.json`. The quick
-  benchmark is `quick_benchmark.py`. Closed Phase 1–5 campaign and stage
-  benchmark tooling was removed; it remains in Git history at `v0.7.0`.
+  benchmark is `quick_benchmark.py`.
 - `LOG.md` is more than 1 MB. Read or search slices of it (for example, grep
   it, or read the end with an offset). Do not read the whole file.
 - `config/` holds the checked-in dataset, baseline, contract, benchmark,

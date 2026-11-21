@@ -99,8 +99,9 @@ separately:
 
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
 every 50 pixels, shrunk in proportion on an image whose shorter side is
-under 600 pixels so that a window spans at most a quarter of it, and the
-fine RMS grid 35-pixel windows every 7 pixels.
+150 to 599 pixels so that a window spans at most a quarter of it, and the
+fine RMS grid 35-pixel windows every 7 pixels. Below 150 pixels the coarse
+estimate covers the whole image.
 Windows that overlap protected sources are dropped and each gap takes the
 value of its nearest clean window. A window whose clipped spread is no
 greater than single precision's resolution at its brightest valid value
@@ -205,8 +206,10 @@ peak.
 Each component is then fitted with an elliptical Gaussian, initialised from
 image moments and fitted to the original background-subtracted pixels.
 Neighbouring components whose fitting regions touch are fitted jointly. A fit
-is **admitted** only if it converged, stayed within physical bounds, is well
-conditioned, leaves acceptable residuals and has usable uncertainties.
+is **admitted** only if it converged, stayed within physical bounds and is
+well conditioned; a beam-shaped fallback must also leave no significant
+residual. A fit whose formal uncertainties are unavailable is still admitted
+and flagged `uncertainty-unavailable`.
 Depending on the data, the admitted model is a free ellipse or a
 beam-shaped Gaussian. When one or more components of a joint fit cannot
 be fitted with a free shape, for instance because their own pixels lie
@@ -300,6 +303,8 @@ flowchart TD
     start([SourceFinderRequest, configuration, executor])
     config{Configuration valid?}
     destination{Output directory absent?}
+    existing{Holds this request's finished, valid products?}
+    reused([Return the existing products])
     input{FITS readable and metadata supported?}
     reject_config([Reject invalid thresholds or profile])
     reject_destination([Refuse to overwrite caller-owned output])
@@ -308,7 +313,9 @@ flowchart TD
     start --> config
     config -- No --> reject_config
     config -- Yes --> destination
-    destination -- No --> reject_destination
+    destination -- No --> existing
+    existing -- Yes --> reused
+    existing -- No --> reject_destination
     destination -- Yes --> input
     input -- No --> reject_input
     input -- Yes --> partition[Plan deterministic background and detection tile cores]
@@ -340,6 +347,7 @@ flowchart TD
     configured_size{Within caller minimum and optional maximum pixel count?}
     drop_size[Discard component]
     any_component{Any component remains?}
+    no_components[Create empty catalogue and zero mask; keep the measured RMS]
 
     usable -- Yes --> residual
     residual --> filters
@@ -353,7 +361,7 @@ flowchart TD
     boundary --> configured_size
     configured_size -- No --> drop_size
     configured_size -- Yes --> any_component
-    any_component -- No --> empty
+    any_component -- No --> no_components
 
     deblend{Parent is eligible for bounded deblending and has separable peaks?}
     split[Split into deterministic component owners]
@@ -400,6 +408,7 @@ flowchart TD
     source_row --> assemble
     source_absent --> assemble
     empty --> bundle
+    no_components --> bundle
     assemble --> bundle
     bundle --> publish
     publish -- Yes --> success

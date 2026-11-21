@@ -163,7 +163,7 @@ equivalence with another finder, qualification for a survey, support beyond
 the table above, Rapthor integration, a demonstrated speed advantage, or
 compatibility with later releases.
 
-Releases are tagged on GitHub and, from 0.22.0,
+Releases are tagged on GitHub and
 [published to PyPI](../how-to/publish-releases.md), so that Rapthor's
 optional Hebog dependency installs normally. Being on PyPI changes none of
 the above: every `0.x` release is experimental.

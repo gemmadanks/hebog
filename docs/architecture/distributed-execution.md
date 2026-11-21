@@ -263,8 +263,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
   in flight rather than cancelling it.
 - Tasks are idempotent, so a `retry_limit` above zero is safe.
 
-Tasks are **coarse batches** of tiles or objects: an object round puts up to
-256 objects in one task, and a tile round up to four tiles. A tile round's
+Tasks are **coarse batches** of tiles or objects: an object round closes a
+batch at its read budget and at any object or cost limit it sets (256
+objects in most rounds), and a tile round holds up to four tiles. A tile round's
 batch shrinks, down to one tile, until the round holds two batches for each
 of the executor's task slots, so the 25 tiles of a 10,000² image make 13
 tasks on six threads rather than tasks of four; the serial executor keeps

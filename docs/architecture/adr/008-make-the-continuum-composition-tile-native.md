@@ -532,7 +532,7 @@ window, because its median noise has to see all of them.
 
 The rows need no reconciliation at all. `build_hebog_segment_catalogue`
 already measures one label at a time inside the window holding its support
-and its aperture, so `build_segment_row` and `segment_moment_fields` are that
+and its aperture, so `build_segment_row` and `segment_moment` are that
 work taken out of the loop. The one step that crosses a segment's bounds is
 the aperture expansion, and it reaches no further than the reviewed radius:
 every seed that can own a core pixel lies inside the core read plus that
