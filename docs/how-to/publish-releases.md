@@ -33,8 +33,8 @@ TestPyPI only.
 PyPI's instructions cover
 [existing projects](https://docs.pypi.org/trusted-publishers/adding-a-publisher/)
 and [pending publishers](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
-The `testpypi` environment and TestPyPI publisher are no longer used and can
-be deleted.
+An old `testpypi` environment or TestPyPI publisher is unused and can be
+deleted.
 
 ## Publish a release
 
@@ -53,7 +53,7 @@ The PR also moves the install commands in `README.md`, the
 their `x-release-please` markers; never edit those versions by hand.
 
 A release on PyPI is permanent, so make sure the
-[release check](../reference/domain-glossary.md) covers what ships. If it ran on an earlier commit, check that `main` has changed no
+[release check](../reference/domain-glossary.md#validation-and-evidence) covers what ships. If it ran on an earlier commit, check that `main` has changed no
 package code or dependencies since, apart from docstrings and comments:
 
 ```console
@@ -65,8 +65,8 @@ If anything else changed, run the release check again before merging.
 After the merge, Release Please creates the tag and GitHub release; a build
 job checks out the released commit, runs `uv build --no-sources` and keeps
 the wheel and source distribution as the `pypi-distributions` artifact; and
-the `pypi` job uploads that artifact with the PyPA publishing action, its
-metadata checks and default attestations. A build or upload failure leaves
+the `publish-pypi` job uploads that artifact with the PyPA publishing
+action, its metadata checks and default attestations. A build or upload failure leaves
 the GitHub release in place. Check the **publish-pypi** job and the PyPI
 project page afterwards, then install the release into a fresh environment.
 Below 1.0.0, `bump-minor-pre-major` bumps the minor version for features

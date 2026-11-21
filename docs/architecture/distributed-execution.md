@@ -82,9 +82,7 @@ flowchart LR
   the scheduler or gathered on the driver, and no task's arguments grow with
   the image: Dask serializes a task's function with every task, so a partition
   manifest pickles as the four pairs its tiles are planned from and is rebuilt
-  once per worker process. Before that rule, every 128-pixel background cell's
-  task carried a manifest of every cell, and at 10,000² the driver spent more
-  CPU on those tasks than the workers spent computing them.
+  once per worker process.
 
 ## Tiles, cores and halos
 
@@ -283,8 +281,7 @@ share is a batch of its own. Graph size therefore scales
 with the number of tiles and stages, and in an object round with its task
 slots and the reads its objects need, never with pixels. Objects are
 batched a storage core at a time, so at 100,000 pixels a side one object
-round of the 15,402² mosaic's density is about 4,700 tasks rather than the
-156,000 raster order made.
+round of the 15,402² mosaic's density is about 4,700 tasks.
 
 ## Storage
 
@@ -339,8 +336,8 @@ no current worker could run is refused rather than left waiting.
 
 The analysis itself holds Hebog's modules, the records each pass returns
 and the background's noise grids, in the process that calls
-`find_sources`. The records grow with the sources it finds, about 40 KB
-each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
+`find_sources`. The records grow with the sources it finds, budgeted at
+44 KB each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
 LoTSS anchor did. The grids grow with the pixels. Neighbouring local-noise
 tasks read overlapping windows, so their requests copy the same cells,
 about five times the pilot grid in all; they are built and submitted in

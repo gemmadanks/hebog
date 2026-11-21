@@ -153,8 +153,9 @@ yet meet one, the
 names the task that closes the gap.
 
 - Kernels take arrays, immutable configuration and explicit metadata. No
-  Hebog module imports Rapthor, Prefect or LSMTool, and only the executors
-  import a concrete scheduler.
+  Hebog module imports Rapthor, Prefect or LSMTool, and outside the
+  checkout-only `hebog.validation` only the executors import a concrete
+  scheduler.
 - No worker or public record requires a complete large plane, and graph size
   is proportional to tiles and stages, never pixels, RMS windows or islands.
 - Membership, identifiers and values are invariant to tile geometry,

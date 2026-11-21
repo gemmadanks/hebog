@@ -72,8 +72,8 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   immutable config and return arrays or records. They must not know about
   schedulers, I/O, or adapters.
 - `executors/` defines the `Executor` protocol (`base.py`), the
-  `SerialExecutor` reference, and a `DaskExecutor` that wraps a client owned
-  by the caller.
+  `SerialExecutor` reference, a `ThreadExecutor` on one caller-owned pool,
+  and a `DaskExecutor` that wraps a client owned by the caller.
 - `data_models/` contains serializable public records. `config.py` holds the
   immutable `SourceFinderConfig` and the per-stage configs.
 - `io/` holds the image-source and stage-read protocols (`base.py`),
@@ -89,8 +89,9 @@ The public entry point is `hebog.find_sources(request, config, executor)`.
   independent of campaign validation.
 
 Dependencies point inward:
-`adapters → pipeline/public_api → stages → science → algorithms`, with
-`public_api → public_science → science`, `executors` and `io` used by
+`adapters → pipeline → public_api → stages → science → algorithms`, with
+`public_api → public_science → science`, `algorithms` also used by
+`public_api` and `public_science`, `executors` and `io` used by `adapters`,
 `stages` and `public_api`, and `data_models` and `config` shared by all
 layers (ADR-009). `LAYER_IMPORTS` in `tests/unit/test_architecture.py` states
 the allowed imports of every layer as one table; an import outside it needs
@@ -110,11 +111,13 @@ a named exemption there.
   benchmark tooling was removed; it remains in Git history at `v0.7.0`.
 - `LOG.md` is more than 1 MB. Read or search slices of it (for example, grep
   it, or read the end with an offset). Do not read the whole file.
-- `config/` holds the checked-in dataset, baseline, contract, and benchmark
-  configuration that the campaign scripts consume. `benchmark-results/`,
+- `config/` holds the checked-in dataset, baseline, contract, benchmark,
+  check and comparison configuration that the scripts consume. `benchmark-results/`,
   `site/`, `dist/`, and `.coverage` are generated and ignored.
 - `.python-version` pins 3.14, but 3.12 is the floor. Pyright checks against
   3.12, so do not use syntax newer than 3.12.
-- Architecture decisions live in `docs/architecture/adr/` (ADRs 001–008
-  cover uv, the Rapthor contract scope, scheduling ownership, hierarchical
-  tiles, versioned schemas, Zarr, and the tile-native continuum composition).
+- Architecture decisions live in `docs/architecture/adr/` (ADRs 001–010
+  cover ADRs, uv, the Rapthor contract scope, scheduling ownership,
+  hierarchical tiles, versioned schemas, Zarr, the tile-native continuum
+  composition, the science below the stages, and scaling independently of
+  integrations).

@@ -40,7 +40,7 @@ demonstration notebook is
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
 | `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background, and each finder's correctness against known truth ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
-| `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
+| `uv run python scripts/validation/check_lsmtool_filter.py --true-sky … --flat-noise … --output …` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
 Rules the test configuration enforces:
