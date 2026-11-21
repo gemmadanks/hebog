@@ -912,16 +912,30 @@ def _feature_components(
 def _merge_overlapping_groups(
     groups: list[frozenset[int]],
 ) -> tuple[frozenset[int], ...]:
-    """Canonical transitive reconciliation of repeated scale evidence."""
-    reconciled: list[frozenset[int]] = []
-    for group in groups:
-        combined = group
-        for previous in reconciled[:]:
-            if previous & combined:
-                combined |= previous
-                reconciled.remove(previous)
-        reconciled.append(combined)
-    return tuple(sorted(reconciled, key=min))
+    """Canonical transitive reconciliation of repeated scale evidence.
+
+    Groups sharing a label join, transitively: each merged group is one
+    connected component of a graph that links every group's labels. Its cost
+    grows with the labels, where comparing each group with every merged group
+    grew with their square, about ten seconds for a dense 5,000² sector.
+    """
+    if not groups:
+        return ()
+    labels = sorted({member for group in groups for member in group})
+    node = {member: position for position, member in enumerate(labels)}
+    first = [node[min(group)] for group in groups for _ in group]
+    second = [node[member] for group in groups for member in group]
+    graph = coo_matrix(
+        (np.ones(len(first)), (first, second)),
+        shape=(len(labels), len(labels)),
+    )
+    _, components = connected_components(graph, directed=False)
+    merged: dict[int, set[int]] = {}
+    for member, component in zip(labels, components.tolist(), strict=True):
+        merged.setdefault(component, set()).add(member)
+    return tuple(
+        sorted((frozenset(group) for group in merged.values()), key=min)
+    )
 
 
 def _residual_groups_in_feature(  # noqa: PLR0913, PLR0917
