@@ -9,7 +9,7 @@
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-11-20 |
+| Last updated | 2026-11-21 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -78,7 +78,9 @@ In short:
   driver's time plus each round's longest task, now 132 s on the dense cell
   and 46 s on the sparse one. The model projects every limit met on one
   node if `master` uses four cores of a dense sector's node, and the two
-  dense sectors missing 0.50 if it used every core.
+  dense sectors missing 0.50 if it used every core. Rapthor's cluster runs
+  give `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, so
+  the model is fitted again at those settings.
 - **Where the serial work is:** the driver's FITS writes and reconciliation;
   results awaited in submission order; each task parsing the whole
   completion record; the driver re-reading and hashing every chunk it
@@ -88,7 +90,7 @@ In short:
 | Assumption | Evidence | Impact if false | Who verifies |
 | --- | --- | --- | --- |
 | Rosetta slows both finders alike. | Both run in one container; only ratios are compared. | Every projected ratio shifts; the cluster decides. | Human, cluster run |
-| `master` uses four cores of a dense sector's node and every core of a sparse one's. | On the dense cell its fitting takes the same time on four and six cores; on the sparse cell it keeps gaining to six. | On dense sectors the stricter targets in brackets on the progress page apply. | Human, cluster run |
+| `master` runs on Rapthor's `max_threads` cores, 15 in the maintainer's cluster runs. | Those runs pass `--ncores=15` to `filter_skymodel`; the local sweeps reach six cores. | The model's projections move; `master`'s time on 15 cores is measured on a cluster node. | Human, cluster run |
 | Per-task slowdown with more workers is local contention. | Eight local workers swapped 24 GB. | The cost model weights I/O, and the store work (task 25) moves earlier. | Agent |
 
 ## Open questions
@@ -185,3 +187,4 @@ before and after.
 | 2026-11-20 | Decision | Each generation's completion record becomes one record per row of tiles, listed with their SHA-256 in a small index that marks completion, so a task parses only its window's rows; declined: one record per tile, records in task payloads. | Agent: implement it in waiting and sharing |
 | 2026-11-21 | Progress | Timed on a quiet machine, four Dask workers: the executor changes are 0.7 to 2.5% faster on the dense, sparse and 2,048² cells on Rapthor's path, and the per-row completion records 2.1% faster on the 10,000² anchor; products unchanged. Both wait on branches. | Maintainer: publish both branches; agent: the driver's per-source work |
 | 2026-11-21 | Progress | A profile of the driver's serial work on the dense cell found two checks growing with the square of the catalogue, in writing the catalogue and in joining component groups. Both now take linear time: the dense cell is 9.5% faster on Rapthor's path with four Dask workers, the sparse cell unchanged, products identical. This waits on a branch. | Maintainer: publish the branch; agent: the flat-noise estimate beside the true-sky analysis |
+| 2026-11-21 | Decision | Rapthor's cluster runs give `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, with initial images up to 24,130 × 30,564, so the model's four-core projection no longer holds. The PyBDSF reference moves to current `master`, which has gained a process pool and faster RMS and fitting, and Hebog replaces its size limit with tested sizes reaching Rapthor's initial images. | Agent: the PyBDSF references at the new pin, a real Rapthor sector timed against it, then step 9 |
