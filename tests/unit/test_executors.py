@@ -184,6 +184,14 @@ class _StubClient:
         self.submitted_resources: list[dict[str, float] | None] = []
         self._nthreads = nthreads
         self._resources = resources
+        self._joined: list[int] = []
+        # The event loop the executor hands its completion stream; the
+        # stub stream needs none.
+        self.loop = None
+
+    def add_worker(self, *, nthreads: int) -> None:
+        """Let one more worker join, as a scaling cluster would."""
+        self._joined.append(nthreads)
 
     def outstanding(self) -> int:
         """Return how many submitted tasks have not settled."""
@@ -191,18 +199,23 @@ class _StubClient:
 
     def scheduler_info(self) -> dict[str, Any]:
         """Report the budget a caller-owned cluster would report."""
-        return {
-            "workers": {
-                f"tcp://worker-{index}": {
-                    "nthreads": self._nthreads,
-                    "memory_limit": memory_limit,
-                    "resources": resources,
-                }
-                for index, (memory_limit, resources) in enumerate(
-                    zip((2_000, 4_000), self._resources, strict=True), start=1
-                )
+        workers = {
+            f"tcp://worker-{index}": {
+                "nthreads": self._nthreads,
+                "memory_limit": memory_limit,
+                "resources": resources,
             }
+            for index, (memory_limit, resources) in enumerate(
+                zip((2_000, 4_000), self._resources, strict=True), start=1
+            )
         }
+        for index, nthreads in enumerate(self._joined, start=3):
+            workers[f"tcp://worker-{index}"] = {
+                "nthreads": nthreads,
+                "memory_limit": 4_000,
+                "resources": {},
+            }
+        return {"workers": workers}
 
     def submit(
         self,
@@ -222,6 +235,45 @@ class _StubClient:
         return future
 
 
+class _StubCompletions:
+    """Hand back a stub client's tasks one at a time, as they would settle.
+
+    Tasks settle in submission order, the oldest first, so a stub test
+    sees the window the executor keeps.
+    """
+
+    def __init__(self, client: _StubClient) -> None:
+        """Track the tasks the executor adds."""
+        self._client = client
+        self._futures: list[_StubFuture] = []
+
+    def add(self, future: _StubFuture) -> None:
+        """Track one more submitted task."""
+        self._futures.append(future)
+
+    def __next__(self) -> _StubFuture:
+        """Settle the oldest tracked task and return it."""
+        self._client.events.append("next")
+        future = self._futures.pop(0)
+        future.settle()
+        return future
+
+
+def _patch_completions(
+    monkeypatch: pytest.MonkeyPatch,
+    client: _StubClient,
+    completions: type[_StubCompletions] = _StubCompletions,
+) -> None:
+    """Let the executor take the stub client's tasks as they settle."""
+    from hebog.executors import dask as dask_module  # noqa: PLC0415
+
+    def stream(**keywords: object) -> _StubCompletions:
+        del keywords
+        return completions(client)
+
+    monkeypatch.setattr(dask_module, "as_completed", stream)
+
+
 def _stub_executor(client: _StubClient, **keywords: Any) -> Any:
     """Build a Dask executor over the stub without importing a cluster."""
     from hebog.executors import DaskExecutor  # noqa: PLC0415
@@ -237,6 +289,31 @@ def test_dask_executor_reads_the_cluster_budget() -> None:
     assert capacity.threads_per_worker == 4
     assert capacity.maximum_tasks_in_flight == 16
     assert capacity.memory_bytes_per_worker == 2_000
+
+
+def test_dask_executor_reads_a_joining_worker_into_its_budget() -> None:
+    """Workers that join while the analysis runs take its later rounds."""
+    client = _StubClient()
+    executor = _stub_executor(client)
+    assert executor.capacity.worker_count == 2
+
+    client.add_worker(nthreads=4)
+
+    assert executor.capacity.worker_count == 3
+    assert executor.capacity.maximum_tasks_in_flight == 24
+
+
+def test_dask_executor_keeps_a_declared_budget() -> None:
+    """A budget the caller states holds however the cluster changes."""
+    client = _StubClient()
+    declared = ExecutorCapacity(
+        worker_count=1, threads_per_worker=2, maximum_tasks_in_flight=2
+    )
+    executor = _stub_executor(client, capacity=declared)
+
+    client.add_worker(nthreads=4)
+
+    assert executor.capacity == declared
 
 
 _NAMED_RESOURCES = (
@@ -401,6 +478,7 @@ def test_dask_executor_bounds_submission(
             future.settle()
 
     monkeypatch.setattr(dask_module, "wait", record_wait)
+    _patch_completions(monkeypatch, client)
     executor = _stub_executor(
         client,
         capacity=ExecutorCapacity(
@@ -413,7 +491,8 @@ def test_dask_executor_bounds_submission(
     results = executor.map_batches(_square, list(range(9)))
 
     assert results == [value**2 for value in range(9)]
-    assert _peak_in_flight(client.events) <= 3
+    # Each submission joins the tasks still outstanding.
+    assert max(client.outstanding_at_submit) + 1 == 3
 
 
 @pytest.mark.parametrize(
@@ -515,16 +594,6 @@ def test_executors_package_rejects_an_unknown_name() -> None:
         _ = executors_package.ClusterExecutor  # pyright: ignore[reportAttributeAccessIssue]
 
 
-def _peak_in_flight(events: list[str]) -> int:
-    """Return the most tasks outstanding at once in one submission log."""
-    in_flight = 0
-    peak = 0
-    for event in events:
-        in_flight += 1 if event.startswith("submit") else -1
-        peak = max(peak, in_flight)
-    return peak
-
-
 def _stub_bounded_executor(client: _StubClient) -> Any:
     """Build one Dask executor with a small explicit in-flight bound."""
     return _stub_executor(
@@ -551,6 +620,7 @@ def _patch_wait(
             future.settle()
 
     monkeypatch.setattr(dask_module, "wait", record_wait)
+    _patch_completions(monkeypatch, client)
 
 
 def _fail_first_batch(value: int) -> int:
@@ -609,6 +679,7 @@ def test_a_wait_the_client_cancels_keeps_the_failing_batch_error(
             raise FuturesCancelledError([])
 
     monkeypatch.setattr(dask_module, "wait", cancel_while_waiting)
+    _patch_completions(monkeypatch, client)
 
     with pytest.raises(RuntimeError, match="batch 0 failed"):
         _stub_bounded_executor(client).map_batches(
@@ -688,22 +759,15 @@ def test_a_dask_call_interrupted_while_waiting_still_waits_for_that_task(
     arrives, so the call waits for it as well as for the others before the
     exception propagates.
     """
-    from hebog.executors import dask as dask_module  # noqa: PLC0415
 
     client = _StubClient()
-    waits: list[int] = []
+    _patch_wait(monkeypatch, client)
 
-    def deadline_on_the_first_wait(
-        futures: Iterable[Any], **keywords: Any
-    ) -> None:
-        del keywords
-        waits.append(len(waits))
-        if len(waits) == 1:
+    class _DeadlineOnTheFirstWait(_StubCompletions):
+        def __next__(self) -> _StubFuture:
             raise _CallerDeadlineError
-        for future in futures:
-            future.settle()
 
-    monkeypatch.setattr(dask_module, "wait", deadline_on_the_first_wait)
+    _patch_completions(monkeypatch, client, _DeadlineOnTheFirstWait)
 
     with pytest.raises(_CallerDeadlineError):
         _stub_bounded_executor(client).map_batches(_square, list(range(8)))

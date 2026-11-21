@@ -145,14 +145,14 @@ matters most.
 | Read budget | `maximum_batch_read_pixels`: the most pixels one object task may read. An object whose window exceeds it is measured from the cores that hold it instead. |
 | Wide object | An object whose window exceeds the read budget: a filament crossing the image, say. The driver reduces it from the pixels its cores return, the one memory term that grows with an object rather than a tile. |
 | Declared memory | The `TaskRequirement` every round states for its tasks: the measured cost per read pixel times the largest read, with headroom. The executor refuses a task larger than a worker admits and runs only as many at once as fit. |
-| Capacity | `ExecutorCapacity`: the budget the caller admits, as worker count, threads per worker, tasks in flight and memory per worker. A `DaskExecutor` without one reads the cluster's current size. |
+| Capacity | `ExecutorCapacity`: the budget the caller admits, as worker count, threads per worker, tasks in flight and memory per worker. A `DaskExecutor` without one reads the cluster's size for each round. |
 | Resource names | The names of the Dask worker resources, chosen by the caller, under which a `DaskExecutor` requests each task's declared memory and one core, so that Dask places tasks only where that much is free. |
 | Analysis memory | What `find_sources` itself holds in the calling process, growing with the sources found, about 40 KB each, and with the image through the background's noise grids. `hebog.analysis_memory_bytes` states it for the caller to reserve, from the image's shape and the upper estimate of the source count that `hebog.expected_source_count` makes from the image. |
 | Generation | One run's set of intermediate Zarr planes. It is complete only once an immutable marker names exactly one validated chunk for every plane and tile. |
 | Chunk | One stored piece of a Zarr plane, one per tile core. A chunk is a storage unit; a tile is a work unit. |
 | Staging directory | The hidden `.<output name>.<random>` directory beside the output in which a run builds its planes and products. A finished run removes it; a killed run leaves it with an owner record, which the next run to the same output reclaims once the owner has provably stopped. |
 | Atomic publication | Writing the whole bundle into the staging directory, validating it, then moving it into place with one rename, so that a partial result is never visible. |
-| Secede | A Dask worker task stepping out of its thread slot while it waits on other tasks, so that a waiting analysis does not block the tasks it submitted. Planned for Hebog's analysis inside a Rapthor task. |
+| Secede | A Dask worker task stepping out of its thread slot while it waits on other tasks, so that a waiting analysis does not block the tasks it submitted. A `DaskExecutor` does this when the analysis runs as a task on the cluster it submits to. |
 
 ## Rapthor and sky models
 

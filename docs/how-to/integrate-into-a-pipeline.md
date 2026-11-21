@@ -45,7 +45,8 @@ worker processes of its own (see below). Hebog's own tasks never start a
 cluster.
 
 Optionally declare the budget Hebog may use. Without it, `DaskExecutor` reads
-the cluster's current size:
+the cluster's size again for each round, so workers that join while an
+analysis runs take its later rounds:
 
 ```python
 from hebog.executors import ExecutorCapacity
@@ -138,8 +139,15 @@ import hebog
 
 expected = hebog.expected_source_count(image_path, detection_threshold_sigma=5.0)
 reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=expected)
-client.submit(run_finder, request, resources={"memory": reserve, "cores": 1})
+client.submit(run_finder, request, resources={"memory": reserve})
 ```
+
+Request no core for that task. When its `DaskExecutor` submits to the
+cluster the task runs on, the analysis leaves its worker's thread pool
+while it waits on its tasks and rejoins it to continue, so several
+analyses cannot fill every thread and wait for good. Dask keeps a task's
+resources while it waits, so a core it requested would be one its own
+tasks could not use.
 
 With a serial or thread executor the tasks run in the calling process, so
 reserve their admitted memory on top.

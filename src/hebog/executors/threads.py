@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import threading
-from collections import deque
-from collections.abc import Callable, Generator, Iterable
-from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
+from collections.abc import Callable, Iterable
+from concurrent.futures import (
+    FIRST_COMPLETED,
+    CancelledError,
+    Future,
+    ThreadPoolExecutor,
+    wait,
+)
 from types import TracebackType
 from typing import TypeVar
 
@@ -67,9 +72,9 @@ class ThreadExecutor:
 
     The pool exists for the lifetime of this executor, so tasks never create
     a nested pool and no stage starts threads of its own. Batches are
-    submitted in input order within a bounded window and consumed in that
-    same order, which keeps results and the propagated failure identical to
-    the serial reference.
+    submitted in input order within a bounded window, the next whenever any
+    finishes, and results and the propagated failure are those of the serial
+    reference.
     """
 
     def __init__(
@@ -117,34 +122,55 @@ class ThreadExecutor:
         """Return the execution budget admitted by the caller."""
         return self._capacity
 
-    def _results(
+    def map_batches(
         self,
         function: Callable[[Input], Output],
         batches: Iterable[Input],
-        requirement: TaskRequirement | None,
-    ) -> Generator[Output]:
-        """Yield results in input order from a bounded submission window."""
+        *,
+        requirement: TaskRequirement | None = None,
+    ) -> list[Output]:
+        """Apply ``function`` to each batch and return ordered results.
+
+        No more batches are in flight than the admitted window, and each
+        that finishes, whichever it is, makes room for the next. A failure
+        stops submission; once the batches in flight have finished, the
+        failure of the earliest batch is raised, as the serial reference
+        would raise it.
+        """
         self._capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
         limit = admitted_tasks_in_flight(self._capacity, requirement)
         guard = _CallGuard()
-        pending: deque[Future[Output]] = deque()
+        pending: dict[Future[Output], int] = {}
+        results: dict[int, Output] = {}
         submitted = 0
         try:
-            while True:
+            while submitted < len(prepared) or pending:
                 while len(pending) < limit and submitted < len(prepared):
-                    pending.append(
-                        self._pool.submit(
-                            guard.run,
-                            function,
-                            prepared[submitted],
-                            self._retry_limit,
-                        )
+                    future = self._pool.submit(
+                        guard.run,
+                        function,
+                        prepared[submitted],
+                        self._retry_limit,
                     )
+                    pending[future] = submitted
                     submitted += 1
-                if not pending:
-                    return
-                yield pending.popleft().result()
+                finished, _ = wait(pending, return_when=FIRST_COMPLETED)
+                if any(future.exception() is not None for future in finished):
+                    wait(pending)
+                    # Every batch before the failing one was submitted, so
+                    # the earliest failure among them is the serial one.
+                    min(
+                        (
+                            future
+                            for future in pending
+                            if future.exception() is not None
+                        ),
+                        key=pending.__getitem__,
+                    ).result()
+                for future in finished:
+                    results[pending.pop(future)] = future.result()
+            return [results[index] for index in range(len(prepared))]
         finally:
             # A failure or the caller's deadline cancels the batches that
             # have not started, rather than running work whose result nobody
@@ -154,13 +180,3 @@ class ThreadExecutor:
             for future in pending:
                 future.cancel()
             guard.stop()
-
-    def map_batches(
-        self,
-        function: Callable[[Input], Output],
-        batches: Iterable[Input],
-        *,
-        requirement: TaskRequirement | None = None,
-    ) -> list[Output]:
-        """Apply ``function`` to each batch and return ordered results."""
-        return list(self._results(function, batches, requirement))

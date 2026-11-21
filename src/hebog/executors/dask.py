@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from collections import deque
-from collections.abc import Callable, Iterable
-from contextlib import suppress
+from collections.abc import Callable, Generator, Iterable
+from contextlib import contextmanager, suppress
 from typing import Any, TypeVar, cast
 
 from distributed import (
     Client,
+    as_completed,
+    get_worker,
+    rejoin,
+    secede,
     wait,  # pyright: ignore[reportUnknownVariableType]
 )
 from distributed.client import FuturesCancelledError
@@ -45,12 +48,38 @@ def _wait_for_submitted(futures: Iterable[Any]) -> None:
             wait(pending)
 
 
+@contextmanager
+def _outside_the_worker_threads(client: Client) -> Generator[None]:
+    """Wait outside the calling task's worker threads if its tasks share them.
+
+    An analysis running as a task on the cluster it submits to would hold
+    a worker thread while its own tasks wait for one, so analyses filling
+    every thread would wait for good. It leaves the thread pool while it
+    waits and rejoins it before it returns. Dask keeps the task's resources
+    meanwhile. On another cluster, such as one the calling task started for
+    Hebog's tasks, the calling task keeps its thread.
+    """
+    try:
+        worker = get_worker()
+    except ValueError:
+        yield
+        return
+    if worker.scheduler.address != getattr(client.scheduler, "address", None):
+        yield
+        return
+    secede()
+    try:
+        yield
+    finally:
+        rejoin()
+
+
 class DaskExecutor:
     """Submit coarse batches to an existing Dask client.
 
     Hebog never creates, resizes or closes the client. Submission stays
-    within the admitted in-flight bound and results are consumed in input
-    order.
+    within the admitted in-flight bound, a task is submitted whenever one
+    finishes, and results are returned in input order.
 
     ``memory_resource`` and ``core_resource`` name Dask worker resources
     the caller declared, for example with ``dask worker --resources
@@ -87,10 +116,15 @@ class DaskExecutor:
 
     @property
     def capacity(self) -> ExecutorCapacity:
-        """Return the declared budget, or the cluster's current one."""
-        if self._declared_capacity is None:
-            self._declared_capacity = self._cluster_capacity()
-        return self._declared_capacity
+        """Return the declared budget, or the cluster's current one.
+
+        An undeclared budget is read from the cluster each time, so
+        workers that join or leave while an analysis runs change the
+        rounds that follow.
+        """
+        if self._declared_capacity is not None:
+            return self._declared_capacity
+        return self._cluster_capacity()
 
     def _workers(self) -> list[dict[str, Any]]:
         """Return what the caller's cluster reports of each current worker."""
@@ -211,34 +245,63 @@ class DaskExecutor:
     ) -> list[Output]:
         """Submit batches and gather their results in input order.
 
-        No more tasks are in flight than the admitted bound, and the oldest
-        is consumed before another is submitted.
+        No more tasks are in flight than the admitted bound, and each task
+        that finishes, whichever it is, makes room for the next batch. A
+        failure stops submission; once every task in flight has settled,
+        the failure of the earliest batch is raised, as the serial
+        reference would raise it.
         """
-        self.capacity.admit(requirement)
+        capacity = self.capacity
+        capacity.admit(requirement)
         prepared = require_serializable_payloads(function, batches)
-        limit = admitted_tasks_in_flight(self.capacity, requirement)
+        limit = admitted_tasks_in_flight(capacity, requirement)
         resources = self._task_resources(requirement)
         self._require_a_worker_for(resources)
-        in_flight: deque[Any] = deque()
-        results: list[Output] = []
+        with _outside_the_worker_threads(self._client):
+            return self._map_within(function, prepared, limit, resources)
+
+    def _map_within(
+        self,
+        function: Callable[[Input], Output],
+        prepared: list[Input],
+        limit: int,
+        resources: dict[str, int] | None,
+    ) -> list[Output]:
+        """Run the batches within the in-flight window, in any order."""
+        # Each future stays in flight until it has settled, so an exception
+        # that reaches the driver while it waits, as a caller's deadline
+        # does, still waits for every task below.
+        in_flight: dict[Any, int] = {}
+        results: dict[int, Output] = {}
+        # Hands back each task as it settles, at a cost per task that does
+        # not grow with the window; a task the client cancels, as it does
+        # when it loses the scheduler, settles too and fails below.
+        completed = as_completed(loop=self._client.loop, raise_errors=False)
         submitted = 0
         try:
             while submitted < len(prepared) or in_flight:
                 while len(in_flight) < limit and submitted < len(prepared):
-                    in_flight.append(
-                        self._submit(function, prepared[submitted], resources)
+                    future = self._submit(
+                        function, prepared[submitted], resources
                     )
+                    in_flight[future] = submitted
+                    completed.add(future)  # pyright: ignore[reportUnknownMemberType]
                     submitted += 1
-                # The future stays in flight until it has settled, so an
-                # exception that reaches the driver while it waits, as a
-                # caller's deadline does, still waits for this task below.
-                future = in_flight[0]
-                wait([future])
-                # Futures are consumed in input order, so the first failure
-                # observed is the first failing batch.
-                results.append(cast(Output, future.result()))
-                in_flight.popleft()
-            return results
+                future = cast(Any, next(completed))
+                if future.status != "finished":
+                    _wait_for_submitted(in_flight)
+                    # Every batch before the failing one was submitted, so
+                    # the earliest failure among them is the serial one.
+                    min(
+                        (
+                            future
+                            for future in in_flight
+                            if future.status != "finished"
+                        ),
+                        key=in_flight.__getitem__,
+                    ).result()
+                results[in_flight.pop(future)] = cast(Output, future.result())
+            return [results[index] for index in range(len(prepared))]
         finally:
             # Nothing more of the plan is submitted, and the call returns only
             # once no task it submitted can still be running, so none writes

@@ -51,6 +51,8 @@ class _Tracker:
     later_batch_running: threading.Event = field(
         default_factory=threading.Event
     )
+    finished: list[int] = field(default_factory=list[int])
+    started_before_failure: int = 0
 
     def reset(self) -> None:
         """Forget every observation so tests cannot depend on order."""
@@ -62,6 +64,8 @@ class _Tracker:
             self.failing = frozenset()
             self.transient_failures = 0
             self.later_batch_running = threading.Event()
+            self.finished = []
+            self.started_before_failure = 0
 
     def enter(self, value: int) -> int:
         """Record one started call and return its attempt number."""
@@ -122,6 +126,8 @@ def fail_on_selected(value: int) -> int:
     try:
         threading.Event().wait(0.01)
         if value in TRACKER.failing:
+            with TRACKER.lock:
+                TRACKER.started_before_failure = len(TRACKER.started)
             raise ProbeError(f"batch {value} failed")
         return value**2
     finally:
@@ -145,6 +151,25 @@ def fail_first_while_later_batches_run(value: int) -> int:
             raise ProbeError("batch 0 failed")
         TRACKER.later_batch_running.set()
         threading.Event().wait(_OUTLIVING_BATCH_SECONDS)
+        return value**2
+    finally:
+        TRACKER.leave()
+
+
+# Long enough that, should the executor wait on the slow first batch before
+# starting another, the batches behind it cannot all finish first.
+_SLOW_FIRST_BATCH_SECONDS = 1.0
+
+
+def slow_first_square(value: int) -> int:
+    """Return one square; the first batch outlasts all the others."""
+    TRACKER.enter(value)
+    try:
+        threading.Event().wait(
+            _SLOW_FIRST_BATCH_SECONDS if value == 0 else 0.01
+        )
+        with TRACKER.lock:
+            TRACKER.finished.append(value)
         return value**2
     finally:
         TRACKER.leave()
@@ -218,6 +243,12 @@ def dask_executor() -> Generator[Executor, None, None]:
         )
 
 
+_CONCURRENT_EXECUTORS = [
+    pytest.param(thread_executor, id="threads", marks=pytest.mark.contract),
+    pytest.param(dask_executor, id="dask", marks=pytest.mark.integration),
+]
+
+
 @pytest.fixture(
     params=[
         pytest.param(serial_executor, id="serial", marks=pytest.mark.contract),
@@ -243,6 +274,23 @@ def test_executor_preserves_input_order(executor: Executor) -> None:
     results = executor.map_batches(inverted_delay_square, batches)
 
     assert results == [value**2 for value in batches]
+
+
+@pytest.mark.parametrize("factory", _CONCURRENT_EXECUTORS)
+def test_a_slow_batch_does_not_hold_the_others_back(
+    factory: Callable[[], AbstractContextManager[Executor]],
+) -> None:
+    """A free slot takes the next batch, whichever batch freed it.
+
+    The round then lasts about as long as its slowest batch, not that
+    batch plus every batch queued behind it.
+    """
+    batches = list(range(8))
+    with factory() as executor:
+        results = executor.map_batches(slow_first_square, batches)
+
+    assert results == [value**2 for value in batches]
+    assert TRACKER.finished[-1] == 0
 
 
 def test_executor_reports_bounded_capacity(executor: Executor) -> None:
@@ -275,17 +323,20 @@ def test_executor_raises_the_lowest_index_failure(
 def test_executor_stops_submitting_after_a_failure(
     executor: Executor,
 ) -> None:
-    """A failure stops the plan: nothing more is submitted after it."""
+    """A failure stops the plan: nothing more is submitted after it.
+
+    Other batches keep their slots while the failing one is retried, so
+    only those submitted before its last attempt failed may start.
+    """
     TRACKER.failing = frozenset({0})
 
     with pytest.raises(ProbeError, match="batch 0 failed"):
         executor.map_batches(fail_on_selected, list(range(64)))
 
-    assert len(TRACKER.started) <= (
+    assert len(TRACKER.started) - TRACKER.started_before_failure <= (
         executor.capacity.maximum_tasks_in_flight
-        # The failing batch may be retried up to the configured limit.
-        + 1
     )
+    assert len(TRACKER.started) < 64
 
 
 def test_failed_map_returns_only_after_its_running_tasks_finish(
