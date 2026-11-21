@@ -20,6 +20,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass, replace
 from math import isfinite
+from numbers import Integral
 from pathlib import Path
 from time import monotonic
 from typing import Literal
@@ -33,13 +34,18 @@ from hebog.adapters.rapthor_catalogue import write_rapthor_catalogue_fits
 from hebog.config import SourceFinderConfig
 from hebog.data_models import SourceFinderRequest, SourceFinderResult
 from hebog.data_models.images import ImageMetadata
-from hebog.executors import Executor
+from hebog.executors import Executor, ExecutorAdmissionError
 from hebog.io import (
     FitsImageSource,
     celestial_wcs_from_metadata,
     read_catalogue_fits_product,
 )
-from hebog.pipeline import InvalidSourceFinderInputError, find_sources
+from hebog.pipeline import (
+    InvalidSourceFinderInputError,
+    analysis_memory_bytes,
+    expected_source_count,
+    find_sources,
+)
 
 _SCHEMA_VERSION = 2
 # PyBDSF's beam area in pixels is 1.1331 times the beam's major axis over
@@ -48,6 +54,11 @@ _SCHEMA_VERSION = 2
 # that, truncated, and never fewer than six pixels (``islands.py``).
 _PYBDSF_BEAM_AREA_FACTOR = 1.1331
 _PYBDSF_MINIMUM_ISLAND_PIXELS = 6
+# An idle single-threaded Dask worker process holds 181 MiB once Hebog's
+# stages are imported (14 November 2026, four workers, five clusters); no
+# task declares it, so each worker process is allowed this much, with
+# headroom.
+WORKER_PROCESS_BYTES = 256 * 1024**2
 _BLANKED_MESSAGE = "All pixels in the image are blanked."
 # Rows written at once: 128 rows of a 20,000-pixel plane hold 10 MB.
 _BLOCK_ROWS = 128
@@ -224,6 +235,83 @@ def pybdsf_minimum_island_pixels(metadata: ImageMetadata) -> int:
         * (metadata.beam.minor_fwhm_degrees / scale_y)
     )
     return max(_PYBDSF_MINIMUM_ISLAND_PIXELS, int(beam_area_pixels / 3.0))
+
+
+@dataclass(frozen=True, slots=True)
+class RapthorSectorMemory:
+    """How one sector's analysis divides the memory Rapthor gives it.
+
+    ``analysis_bytes`` is what the analysis holds in the process that calls
+    :func:`find_sector_sources`, from :func:`hebog.analysis_memory_bytes`
+    for the true-sky image and ``expected_sources``, the
+    :func:`hebog.expected_source_count` estimate at ``threshpix``.
+    ``worker_process_bytes`` is what the worker processes the caller starts
+    for the sector hold before they run a task, :data:`WORKER_PROCESS_BYTES`
+    each, which no task declares. ``task_bytes`` is the rest, for the
+    analysis's tasks: a ``ThreadExecutor``'s ``memory_bytes_per_worker``, or
+    the memory the caller shares among those worker processes.
+    """
+
+    expected_sources: int
+    analysis_bytes: int
+    task_bytes: int
+    worker_process_bytes: int = 0
+
+
+def sector_memory(
+    request: RapthorSourceFindingRequest,
+    config: RapthorCompatibilityConfig,
+    memory_bytes: int,
+    *,
+    worker_processes: int = 0,
+) -> RapthorSectorMemory:
+    """Divide the memory one sector's analysis may use.
+
+    Rapthor passes the memory its step may still use, after what Rapthor
+    and LSMTool already hold in the process that will call
+    :func:`find_sector_sources`, and the number of worker processes it will
+    start for the sector's tasks (none when they run on threads in that
+    process), and builds the executor from ``task_bytes``. The true-sky
+    image is read in bounded blocks to estimate its sources.
+
+    Raises:
+        ValueError: If ``memory_bytes`` is not a positive integer or
+            ``worker_processes`` is not a non-negative integer.
+        hebog.executors.ExecutorAdmissionError: If the analysis leaves no
+            memory for its tasks. Rapthor may fall back to PyBDSF.
+        hebog.pipeline.SourceFinderError: If Hebog refuses the true-sky
+            image, as :func:`find_sector_sources` would.
+    """
+    if (
+        isinstance(memory_bytes, bool)
+        or not isinstance(memory_bytes, Integral)
+        or memory_bytes < 1
+    ):
+        raise ValueError("memory_bytes must be a positive integer")
+    if (
+        isinstance(worker_processes, bool)
+        or not isinstance(worker_processes, Integral)
+        or worker_processes < 0
+    ):
+        raise ValueError("worker_processes must be a non-negative integer")
+    image = request.true_sky_image_path
+    expected_sources = expected_source_count(
+        image, detection_threshold_sigma=config.threshpix
+    )
+    analysis_bytes = analysis_memory_bytes(
+        _image_metadata(image).shape_yx, expected_sources=expected_sources
+    )
+    worker_process_bytes = int(worker_processes) * WORKER_PROCESS_BYTES
+    task_bytes = int(memory_bytes) - analysis_bytes - worker_process_bytes
+    if task_bytes < 1:
+        raise ExecutorAdmissionError(
+            f"no memory remains for the sector's tasks: the analysis holds "
+            f"{analysis_bytes} and the worker processes "
+            f"{worker_process_bytes} of the {memory_bytes} bytes given"
+        )
+    return RapthorSectorMemory(
+        expected_sources, analysis_bytes, task_bytes, worker_process_bytes
+    )
 
 
 def find_sector_sources(

@@ -126,10 +126,11 @@ PyBDSF step uses. It runs the `continuum` profile with a zero background
 unless asked otherwise: of the four settings, `continuum` passes the
 truth-based gate under either background, and the zero background covers
 more of the true emission and keeps PyBDSF's mean map. [Rapthor's Hebog branch](https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md)
-calls it from the existing Prefect task with a ThreadExecutor on Rapthor's
-current one-single-threaded-worker-per-node layout. It includes memory
-admission, typed PyBDSF fallback and dual-run diagnostics; it is not yet
-merged. Its distributed path is future work.
+calls it from the existing Prefect task on Rapthor's current
+one-single-threaded-worker-per-node layout, on worker processes the task
+starts for a step of several cores. It includes memory admission, typed
+PyBDSF fallback and dual-run diagnostics; it is not yet merged. Running
+Hebog's tasks on Rapthor's own client is future work.
 When no beam Measurement Set is supplied, the branch passes the flat image
 as both inputs, matching LSMTool's detection and RMS convention. Hebog does **not**:
 

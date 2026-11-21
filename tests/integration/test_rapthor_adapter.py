@@ -23,14 +23,21 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy.wcs import WCS
 
-from hebog import SourceFinderConfig, SourceFinderRequest
+from hebog import (
+    SourceFinderConfig,
+    SourceFinderRequest,
+    analysis_memory_bytes,
+    expected_source_count,
+)
 from hebog.adapters import rapthor
 from hebog.adapters.rapthor import (
+    WORKER_PROCESS_BYTES,
     RapthorBlankedImageError,
     RapthorCompatibilityConfig,
     RapthorSourceFindingRequest,
     RapthorSourceFindingResult,
     find_sector_sources,
+    sector_memory,
 )
 from hebog.adapters.rapthor_catalogue import (
     read_rapthor_catalogue_fits,
@@ -44,7 +51,7 @@ from hebog.data_models import (
     PublicSourceFindingDiagnostics,
     SourceFindingDiagnostics,
 )
-from hebog.executors import Executor, SerialExecutor
+from hebog.executors import Executor, ExecutorAdmissionError, SerialExecutor
 from hebog.io import (
     read_catalogue_fits_product,
     read_diagnostics_product,
@@ -406,6 +413,99 @@ def test_a_failure_while_writing_rapthors_files_removes_those_written(
 
     assert not any(path.exists() for path in _rapthor_names(request))
     assert (tmp_path / "pipeline" / "sector_1.hebog").is_dir()
+
+
+def test_a_sectors_memory_reserves_the_analysis_and_leaves_the_rest_for_tasks(
+    tmp_path: Path,
+) -> None:
+    """Rapthor passes its memory budget; Hebog sizes the analysis's share.
+
+    The share is the analysis memory stated for the true-sky image and the
+    sources estimated from it at Rapthor's detection threshold, and the
+    tasks get the rest.
+    """
+    request = _sector(tmp_path)
+    config = RapthorCompatibilityConfig(threshpix=4.0, threshisl=3.0)
+    expected = expected_source_count(
+        request.true_sky_image_path, detection_threshold_sigma=4.0
+    )
+    analysis = analysis_memory_bytes(_SHAPE_YX, expected_sources=expected)
+
+    memory = sector_memory(request, config, 8 * 1024**3)
+
+    assert memory.expected_sources == expected > 0
+    assert memory.analysis_bytes == analysis
+    assert memory.task_bytes == 8 * 1024**3 - analysis
+
+
+def test_each_worker_process_rapthor_starts_is_given_its_own_memory(
+    tmp_path: Path,
+) -> None:
+    """A worker process holds Hebog's modules before it runs any task.
+
+    No task declares that memory, so it comes out of the budget before the
+    tasks share the rest: a stated allowance for each process.
+    """
+    request = _sector(tmp_path)
+    in_process = sector_memory(request, _config(), 8 * 1024**3)
+
+    memory = sector_memory(request, _config(), 8 * 1024**3, worker_processes=4)
+
+    assert WORKER_PROCESS_BYTES == 256 * 1024**2
+    assert memory.worker_process_bytes == 4 * WORKER_PROCESS_BYTES
+    assert in_process.worker_process_bytes == 0
+    assert memory.analysis_bytes == in_process.analysis_bytes
+    assert (
+        memory.task_bytes == in_process.task_bytes - 4 * WORKER_PROCESS_BYTES
+    )
+
+
+def test_a_budget_the_worker_processes_fill_is_refused(
+    tmp_path: Path,
+) -> None:
+    """The processes' own memory counts against the budget too."""
+    request = _sector(tmp_path)
+    analysis = sector_memory(request, _config(), 8 * 1024**3).analysis_bytes
+
+    with pytest.raises(ExecutorAdmissionError, match="no memory remains"):
+        sector_memory(
+            request,
+            _config(),
+            analysis + 2 * WORKER_PROCESS_BYTES,
+            worker_processes=2,
+        )
+
+
+@pytest.mark.parametrize("worker_processes", [-1, True, 1.5])
+def test_a_worker_process_count_is_a_non_negative_integer(
+    tmp_path: Path, worker_processes: int
+) -> None:
+    """A process count that is not a whole number is a caller's error."""
+    with pytest.raises(ValueError, match="worker_processes"):
+        sector_memory(
+            _sector(tmp_path),
+            _config(),
+            8 * 1024**3,
+            worker_processes=worker_processes,
+        )
+
+
+def test_a_budget_the_analysis_fills_is_refused(tmp_path: Path) -> None:
+    """A sector with no memory left for its tasks is refused."""
+    request = _sector(tmp_path)
+    analysis = sector_memory(request, _config(), 8 * 1024**3).analysis_bytes
+
+    with pytest.raises(ExecutorAdmissionError, match="no memory remains"):
+        sector_memory(request, _config(), analysis)
+
+
+@pytest.mark.parametrize("memory_bytes", [0, -1, True, 1.5])
+def test_a_sectors_memory_budget_is_a_positive_number_of_bytes(
+    tmp_path: Path, memory_bytes: int
+) -> None:
+    """A budget that is not a positive integer is a caller's error."""
+    with pytest.raises(ValueError, match="memory_bytes"):
+        sector_memory(_sector(tmp_path), _config(), memory_bytes)
 
 
 def test_a_relative_output_root_names_absolute_products(
