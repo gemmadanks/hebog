@@ -22,8 +22,8 @@ uv sync --all-groups
 just check
 ```
 
-`just --list` shows every recipe and `just ci` runs comprehensive local
-checks; hosted CI also covers the supported platform matrix. The
+`just --list` shows every recipe and `just ci` runs the local equivalent of
+pull-request CI; hosted CI also covers the platform matrix. The
 demonstration notebook is
 `uv run marimo edit notebooks/source_finder_demo.py`; the
 [notebook guide](notebooks.md) covers the rest.
@@ -109,11 +109,9 @@ uv run pytest -n 4 --dist worksteal --splits 4 --group 1 \
   -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" tests
 ```
 
-More shards consume more runner slots, and individual long tests still set
-a lower bound on latency. Compare hosted timings and memory after the first
-runs before increasing worker counts further or changing expensive fixtures.
-Do not move Windows coverage off PRs: it is the supported platform the
-development machine does not exercise.
+More shards consume more runner slots, and a long test still bounds a
+shard's latency. Keep Windows coverage on PRs: it is the supported platform
+the development machine does not exercise.
 
 ## Run the quick science check
 

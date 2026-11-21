@@ -1,13 +1,11 @@
 # Public source-finder outputs
 
-This reference defines the four-file bundle returned by
-`hebog.find_sources()`. It is for astronomers evaluating measurements and for
-developers consuming Hebog from another workflow. For the processing decisions
-that produce these files, see [How Hebog works](../explanation/how-hebog-works.md).
-
-Hebog is experimental and scientifically unqualified. A successful call means
-that Hebog completed and validated its output contract; it does not mean that
-the selected thresholds or algorithms are qualified for a survey.
+This reference defines the bundle `hebog.find_sources()` returns, for
+astronomers evaluating measurements and developers consuming Hebog from
+another workflow. [How Hebog works](../explanation/how-hebog-works.md)
+describes the processing that produces these files. A successful call means
+Hebog completed and validated its output contract, not that the thresholds
+or algorithms are qualified for a survey.
 
 ## Product set at a glance
 
@@ -392,9 +390,9 @@ newline. Schema 13 rejects unknown fields and contains:
 | `supplied_image_metadata` | `null`, or the `SuppliedImageMetadata` values the request supplied for keywords the input header omits: `reference_frequency_hz`, `beam_major_fwhm_degrees`, `beam_minor_fwhm_degrees`, `beam_position_angle_degrees` and `brightness_unit`, each `null` when not supplied. The input SHA-256 alone does not identify a run that used supplied metadata. |
 | `schema_version` | `4` for the nested provenance record. |
 
-Two runs should be treated as the same scientific computation only after the
-relevant identities, software/environment context, and product bytes have been
-compared. The run ID alone is not a science identity.
+Two runs are the same scientific computation only when their identities,
+software environment and product bytes agree; the run ID alone is not a
+science identity.
 
 ### Measurement dispositions
 
@@ -591,9 +589,6 @@ Before using a bundle as scientific evidence:
 6. Treat low-S/N crossings as completeness/reliability changes and stratify
    astrometry, peak flux, integrated flux, and shape residuals by S/N,
    morphology, edge distance, crowding, and invalid-pixel context.
-7. Remember that current successful products are development outputs, not a
-   general qualification claim or a validated replacement for every PyBDSF
-   mode.
 
 ## Integration checklist for developers
 
@@ -611,6 +606,6 @@ Before using a bundle as scientific evidence:
   directory rename is the completeness boundary.
 - Persist the complete result record with workflow provenance. A copied file
   path without its role, schema, byte count, and SHA-256 loses restart safety.
-- Pin an exact Hebog `0.x` version and review schema/release notes before
-  upgrading; the project does not promise backward compatibility between
-  experimental releases.
+- Pin an exact Hebog `0.x` version and review the release notes before
+  upgrading; releases promise no
+  [backward compatibility](release-status.md#compatibility-between-releases).
