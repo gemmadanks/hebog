@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import time
 import tracemalloc
 from dataclasses import fields, replace
 from typing import Any, Literal, cast
@@ -15,6 +16,8 @@ from typing import Any, Literal, cast
 import numpy as np
 import pytest
 from astropy.wcs import WCS
+from hypothesis import given
+from hypothesis import strategies as st
 
 from hebog.algorithms import component_measurement as measurement
 from hebog.algorithms.component_measurement import measure_component_models
@@ -834,6 +837,58 @@ def test_overlapping_models_group_without_double_counting_model_pixels() -> (
             frozenset((3, 4)),
         ]
     ) == (frozenset((1, 2, 3, 4, 5)),)
+
+
+def _reference_merge(
+    groups: list[frozenset[int]],
+) -> tuple[frozenset[int], ...]:
+    """Merge groups by repeated pairwise unions until none overlap."""
+    merged = [set(group) for group in groups]
+    changed = True
+    while changed:
+        changed = False
+        for first in range(len(merged)):
+            for second in range(first + 1, len(merged)):
+                if merged[first] & merged[second]:
+                    merged[first] |= merged.pop(second)
+                    changed = True
+                    break
+            if changed:
+                break
+    return tuple(sorted((frozenset(group) for group in merged), key=min))
+
+
+@given(
+    st.lists(
+        st.frozensets(st.integers(1, 40), min_size=1, max_size=4),
+        max_size=25,
+    )
+)
+def test_merged_groups_are_the_transitive_unions_of_overlaps(
+    groups: list[frozenset[int]],
+) -> None:
+    assert measurement._merge_overlapping_groups(groups) == (
+        _reference_merge(groups)
+    )
+
+
+def test_merging_groups_takes_time_linear_in_the_groups() -> None:
+    """A dense sector has tens of thousands of groups to reconcile.
+
+    Comparing each group with every merged group took about ten seconds on
+    the driver for a 5,000² ELAIS-N1 sector and grows with the square of the
+    groups; 30,000 disjoint pairs then take about 15 s against well under one.
+    """
+    groups = [frozenset((2 * index, 2 * index + 1)) for index in range(30_000)]
+    groups.append(frozenset((1, 2)))
+
+    start = time.perf_counter()
+    merged = measurement._merge_overlapping_groups(groups)
+    elapsed = time.perf_counter() - start
+
+    assert len(merged) == 29_999
+    assert merged[0] == frozenset((0, 1, 2, 3))
+    assert elapsed < 3.0
 
 
 def test_loop_evidence_rejects_unavailable_shapes_and_zero_radius() -> None:
