@@ -2,7 +2,7 @@
 
 How far Hebog is from the 1.0.0 goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-defines. Last updated on **13 November 2026**, after 0.25.0's release check.
+defines. Last updated on **21 November 2026**, after Rapthor's cluster runs.
 Every figure is dated development evidence from the maintainer's machine,
 traceable to its run; none is scientific qualification. User-facing limits
 are in [capability and status](release-status.md).
@@ -14,8 +14,8 @@ are in [capability and status](release-status.md).
 | **Telescopes:** FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR2 and DR3) and SKA-Mid (SDC1) images run, and MeerKAT MIGHTEE images fit the envelope. Beams wider than 10 pixels are refused; real Rapthor images have at most about 7. SKA-Low precursor data (GLEAM-X) needs the later 45,000-pixel tier. | In progress |
 | **Functionality:** a feature-flagged backend for Rapthor's `filter_skymodel` step | All 12 frozen public behaviours are implemented under the Serial, Thread and Dask executors. The Rapthor adapter writes the files Rapthor's step reads, and Rapthor's Hebog branch calls it, with a PyBDSF fallback and dual runs. | On a Rapthor branch; not merged |
 | **Science:** a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF `master` | Rapthor's profile (`continuum` with a zero background) passes the truth-based gate: it loses 0.10% of the real components `master` keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain. | Development evidence only |
-| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. Projected, 0.25.0 on Dask workers meets every limit on one cluster node (0.30 on the dense cell, 0.52 to 1.03 on sparse sectors), provided `master` uses only four cores of a dense sector's node. | Dense gate and parity failing |
-| **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | 22,500² is admitted (19 October). Products are identical across tilings and executors. Nothing has run beyond one machine. | Size met; cluster not run |
+| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
+| **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | Tested to 22,500² (19 October). Products are identical across tilings and executors. Rapthor's initial images, up to 24,130 × 30,564, are tested next, with no size limit beyond what memory and scratch admit. Nothing has run beyond one machine. | Tested to 22,500²; cluster not run |
 | **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.25.0 (9 November) is on PyPI with attestations; its release check left catalogue, RMS and mask unchanged from 0.24.0. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
 
 ## Blockers and next steps
@@ -32,20 +32,17 @@ The largest risks to 1.0.0 are:
 No maintainer decision is pending. The next actions, as the plan orders
 them:
 
-1. **Agent:** waiting and sharing, the next increment of one sector across
-   the cluster, then both branches together, aiming at floors of 100 s on
-   the dense cell and 40 s on the sparse one. Rapthor's distributed path,
-   in which Rapthor's task runs Hebog on Dask worker processes whenever it
-   has more than one core, is implemented on both branches. The first
-   increment, which sizes tiles and task counts from the core budget, is in
-   0.25.0.
-2. **Human:** push Rapthor's Hebog branch and release Hebog's adapter
-   change, then approach the independent reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
-   report (drafted 20 October).
-3. **Agent:** the deployment envelope, the matched benchmarks, the store and
-   planner work, and packaging for the cluster benchmark, where the gate is
-   measured. The varying-PSF measurement waits unless an output is confirmed
-   incorrect.
+1. **Agent:** check and prepare 0.26.0, with the executor, completion-record
+   and catalogue-write speed-ups; move the PyBDSF reference to current
+   `master` and measure again against it; time Hebog and `master` on a real
+   Rapthor sector.
+2. **Human:** release 0.26.0, push Rapthor's Hebog branch and approach the
+   independent reviewers; file the Astropy report (drafted 5 October) and
+   the PyBDSF report (drafted 20 October).
+3. **Agent:** tested sizes in place of the size limit, up to Rapthor's
+   initial images; the matched benchmarks, the store and planner work, and
+   packaging for the cluster benchmark, where the gate is measured. The
+   varying-PSF measurement waits unless an output is confirmed incorrect.
 
 ## Functionality
 
@@ -87,8 +84,10 @@ the agreement check's cases.
 
 ### Gates
 
-The binding reference is pinned PyBDSF `master` (`c70103b`); released 1.14.1
-is checked once before 1.0.0. The limits are the plan's
+The binding reference is pinned PyBDSF `master`: `6ab4b6e` from 21 November,
+when it gained a process pool, faster RMS and fitting and several science
+fixes. The figures below were measured against `c70103b` until they are
+measured again. Released 1.14.1 is checked once before 1.0.0. The limits are the plan's
 [scientific gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#scientific-gates).
 
 | Measurement | Target | Latest | Date and source |
@@ -265,9 +264,10 @@ conservative by 3 to 9 s, so a floor a little above it can still pass.
   node's ratio.
 - Hebog's time on a node grows by 4.0 ms a source natively (6.2 ms at
   0.24.0), within the 4.6 ms target.
-- The local data cannot decide how many cores `master` uses on a cluster
-  node, whether emulation slows both finders alike, or how both scale to
-  Rapthor's 17,000 to 20,000-pixel sectors.
+- Rapthor's cluster runs give `master` 15 cores, not four, on sectors of
+  14,500 to 20,000 pixels a side, nine to sixteen times the cells' area,
+  so the model is fitted again at those settings. The local data cannot
+  decide whether emulation slows both finders alike.
 
 ### Hebog's own speed
 
@@ -296,7 +296,7 @@ memory figures.
 
 | Measurement | Latest | Target |
 | --- | --- | --- |
-| Public envelope | 22,500 pixels a side (19 October) | 22,500² for 1.0.0; 45,000² locally and 90,000² on the cluster later |
+| Largest tested size | 22,500² (19 October), with images over 22,500 pixels a side refused until tested sizes replace the limit | Rapthor's initial images, up to 24,130 × 30,564, for 1.0.0; 45,000² locally and 90,000² on the cluster later |
 | Traced allocation peak, Serial | 1,489 MiB at 10,000², 1,693 MiB at 15,402² (24 October) and 1,873 MiB on the whole 22,500² mosaic (19 October) | Bounded by the tile |
 | Growth beyond one tile | About 3.6 bytes a pixel on the 22,500² mosaic, mostly the background's local-noise requests, now submitted in 64 MiB rounds; the new peak is not yet traced | Bounded before the 45,000² tier |
 | Peak RSS | 10,000² anchor at 0.25.0: Serial 2,973 MiB (0.24.0: 2,855); largest Dask worker 2,283 MiB (0.24.0: 2,040), a trade-off accepted on 12 November. Whole 22,500² mosaic: 4,105 MiB Serial | – |
