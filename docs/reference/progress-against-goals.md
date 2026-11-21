@@ -285,7 +285,7 @@ and the whole 14,175² sector are single runs.
 | Object batches by estimated cost (in 0.25.0) | Dense cell 0.987 [0.975, 0.994] on four workers; longest component-fit task 32.5 to 19.3 s | 4 November, runs `stack-*` |
 | Tasks started as any finishes, joining workers used, threads shared (unreleased) | On Rapthor's path with four Dask workers: dense cell 0.993, sparse cell 0.978, dense 2,048² LOFAR image 0.975; 14 of 15 rounds faster; products identical | 21 November, `one-sector-scaling/any-order` |
 | Completion records read by row of tiles (branch, unmerged) | 10,000² anchor on four Dask workers 0.979, every round faster (429.7 to 420.8 s); a window's records parse in 3.2 ms instead of 311 ms at 15,402² | 21 November, `one-sector-scaling/row-records` |
-| Catalogue write and component-group joins in linear time (branch, unmerged) | On Rapthor's path with four Dask workers: dense cell 0.905, every round faster (378.8 to 343.0 s); sparse cell 0.999; products identical | 21 November, `one-sector-scaling/driver-cuts` |
+| Catalogue write and component-group joins in linear time (unreleased) | On Rapthor's path with four Dask workers: dense cell 0.905, every round faster (378.8 to 343.0 s); sparse cell 0.999; products identical | 21 November, `one-sector-scaling/driver-cuts` |
 | Dense cell, stage profile, one run a worker count | 1,176, 681, 447 and 380 s on 1, 2, 4 and 6 Dask workers, a serial share of 18%. Largest stages: component fits, the two background and RMS passes, the multiscale pass | 21 October, `just profile-scaling` run `step3-elais-n1-deep-north-3600-5000` |
 | The whole dense 14,175² ELAIS-N1 sector, Serial | 2.0 h at 0.22.0, against 8.5 h on 11 October | 17 October, `lsmtool-check-elais-n1-t022-continuum-2` |
 

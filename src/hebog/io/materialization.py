@@ -569,6 +569,20 @@ def _catalogue_hdus(catalogue: SourceCatalogue) -> fits.HDUList:
     )
 
 
+def _table_rows(hdu: Any) -> list[dict[str, Any]]:
+    """Return a table's rows as plain values, reading each column once.
+
+    Astropy's per-row field access costs tens of microseconds a field, which
+    a dense sector's tens of thousands of forty-field rows turn into seconds.
+    """
+    names: list[str] = hdu.columns.names
+    columns = [hdu.data[name].tolist() for name in names]
+    return [
+        dict(zip(names, values, strict=True))
+        for values in zip(*columns, strict=True)
+    ]
+
+
 def _text(value: Any) -> str:
     """Normalize one FITS text cell."""
     if isinstance(value, bytes):
@@ -758,7 +772,7 @@ def read_catalogue_fits_product(
                     local_rms_jy_per_beam=float(row["LOCAL_RMS"]),
                     mean_brightness_jy_per_beam=float(row["MEAN_BRIGHTNESS"]),
                 )
-                for row in hdus[1].data
+                for row in _table_rows(hdus[1])
             )
             sources = tuple(
                 SourceCandidate(
@@ -769,10 +783,10 @@ def read_catalogue_fits_product(
                     ),
                     **_measured_fields(row),
                 )
-                for row in hdus[2].data
+                for row in _table_rows(hdus[2])
             )
             components: list[GaussianComponent] = []
-            for row in hdus[3].data:
+            for row in _table_rows(hdus[3]):
                 fitted_shape = _shape_from_row(row, "FITTED")
                 if fitted_shape is None:
                     raise ValueError(
