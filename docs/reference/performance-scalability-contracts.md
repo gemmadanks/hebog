@@ -43,7 +43,7 @@ gate in this file. The
 applies this rule to both finders in one container.
 The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
 repetition counts, the regression rule and the confidence level from this
-file; its `master` ratio is diagnostic, with no outcome, because the
+file; its `master` ratio is diagnostic, with no pass or fail outcome, because the
 environments are not matched and its cases are not classed.
 
 The warm one-tile framework budgets are 250 ms for configuration, 500 ms for
@@ -87,11 +87,11 @@ worker-local NVMe, and normal-run spill stays below 5% of logical input
 bytes. Qualification records the actual facility topology and never scales
 worker limits past admitted RAM to make a run pass.
 
-Candidate square tile cores are 2,048, 4,096 and 8,192 pixels; an image
-of at most eleven 1,024-pixel cores a side, whose 2,048-pixel tiles would
-leave an executor's task slots waiting, tiles on 1,024-pixel cores. A
-stage halo stays below a quarter of its core, or the stage selects a larger
-core or records a contract change. Batch sizing chooses the largest
+The contract lists candidate square tile cores of 2,048, 4,096 and 8,192
+pixels; the stages use 2,048-pixel cores, halved to 1,024 when the executor
+has more than one task slot, the smaller core is at least ten stage halos
+wide and the image is at most eleven such cores a side. A stage halo stays
+below a quarter of its core, or the stage records a contract change. Batch sizing chooses the largest
 stage-valid batch below the pessimistic memory limit, then reduces batch
 size before the tile core. Resource choices never alter core ownership or
 scientific results.

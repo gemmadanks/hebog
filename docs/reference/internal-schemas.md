@@ -2,8 +2,9 @@
 
 Hebog's internal schemas describe scientific concepts independently of
 PyBDSF, LSMTool, Rapthor, FITS column names or a scheduler. They are
-immutable Pydantic records that reject unknown fields and unsupported
-versions and serialize to canonical JSON. Round-trip and compatibility tests
+immutable records, Pydantic models or frozen dataclasses, that reject
+unsupported versions; the Pydantic models also reject unknown fields and
+serialize to canonical JSON. Round-trip and compatibility tests
 are the evidence for each one. A semantic change bumps the integer version
 and updates this page; stale development products are rejected and
 recreated, never migrated
@@ -102,8 +103,8 @@ input pixels.
 
 `PublicSourceFindingDiagnostics` is the diagnostics product. It records the
 profile and its limitations, population counts, RMS status, exact provenance
-(configuration SHA-256 and composition hash), the deblend-fallback and
-wide-object round counts, and `configuration_qualification`:
+(configuration SHA-256 and composition hash), the deblend-fallback,
+wide-object and bright-region counts, and `configuration_qualification`:
 `development-unqualified` for the 5σ/3σ, seven-pixel configuration without a
 maximum island cut and `custom-unqualified` otherwise. Its canonical
 `measurement_dispositions` list every detected component and source exactly

@@ -40,8 +40,10 @@ looking at results. Manifest schema 2 adds `association_truth_groups`: every
 emitter belongs to one group, `individually-resolvable` or
 `unresolved-blend`, with a frozen centroid and summed brightness that
 validation recomputes, and `association_group_strata` keep unresolved members
-out of individual completeness and flux denominators. New populations must
-be seed-disjoint from every existing manifest.
+out of individual completeness and flux denominators. Schema 3 adds
+`multiscale_truth_groups` and `multiscale_group_strata` for extended truth,
+and a dataset may carry `classification_strata`. New populations must be
+seed-disjoint from every existing manifest.
 
 ## Generator versions
 
