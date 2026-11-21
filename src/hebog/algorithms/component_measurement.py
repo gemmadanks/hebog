@@ -1420,10 +1420,7 @@ def measure_fit_parent_components(  # noqa: PLR0913, PLR0917
         compact,
         moments,
         geometry,
-        replace(
-            fit_config,
-            extension_significance_sigma=fit_config.component_extension_significance_sigma,
-        ),
+        fit_config,
     )
     labelled = tuple(zip(indexes, fitted, strict=True))
     complete = tuple(
