@@ -5,11 +5,11 @@
 | Field | Value |
 | --- | --- |
 | Work item | Make one Rapthor sector's source finding scale on any Dask cluster |
-| Status | `in progress`: increment 1 released in 0.25.0; the checkpoint is with the maintainer |
+| Status | `in progress`: increment 1 released in 0.25.0; Rapthor's distributed path awaits publication; waiting and sharing under way |
 | Human owner | Maintainer |
 | Agent owner | Agent |
 | Created | 2026-10-18 |
-| Last updated | 2026-11-13 |
+| Last updated | 2026-11-20 |
 | Related issue/PR | Task 72 in the [implementation plan](source-finder-implementation.md#one-sector-across-the-cluster) |
 
 ## Outcome and scope
@@ -38,7 +38,7 @@ unchanged.
 ### In scope
 
 The core budget and cost model; the executor's waiting, completion order
-and capacity; the completion record split by tile; the driver's serial
+and capacity; the completion record split by row of tiles; the driver's serial
 work; the flat-noise estimate beside the true-sky analysis; Rapthor's
 distributed path on its Hebog branch; and the documentation ADR-010 calls
 for.
@@ -96,8 +96,9 @@ In short:
 | Question | Owner | Needed by | Status |
 | --- | --- | --- | --- |
 | Whether Rapthor's layout gives Hebog's client several task slots a node (Rapthor's change). | Human | Step 7 | `open` |
-| The dense threshold. | Human | Checkpoint | Provisionally 10,000 sources; decision 3 in the implementation plan |
-| Whether per-source costs join this task. | Human | Checkpoint | `open`; decision 5 in the implementation plan |
+| The dense threshold. | Human | Checkpoint | 10,000 sources, confirmed 14 November |
+| Whether per-source costs join this task. | Human | Checkpoint | No separate work; the driver's per-source work joins waiting and sharing (14 November) |
+| How each generation's completion record is split. | Human | Step 7 | One record per row of tiles under an index that marks completion (20 November) |
 
 ## Proposed approach
 
@@ -134,10 +135,10 @@ before and after.
 | 2 | Build the 5,000² source-count ladder | Agent | `done` | Sector identities; `master`'s source counts |
 | 3 | Measure both finders on the ladder and across cores; profile Hebog's stages | Agent | `done` | Evidence under `benchmark-results/` |
 | 4 | Fit the model, project the ratios and set the targets | Agent | `done` | Progress page (runs `step4-night5-sweeps`, `release-0.25.0`) |
-| — | Checkpoint: threshold, targets, increment order, per-source costs | Human | `not started` | Decisions recorded in the implementation plan |
+| — | Checkpoint: threshold, targets, increment order, per-source costs | Human | `done` | Decisions recorded in the implementation plan |
 | 5 | Increment 1: core budget and cost model | Agent | `done` | Release 0.25.0; floors re-measured (run `release-0.25.0`) |
-| 6 | Increment 2: waiting and sharing | Agent | `not started` | As step 5, plus concurrent-analysis and joining-worker tests |
-| 7 | Increment 3: Rapthor's distributed path | Agent, human on Rapthor | `not started` | Adapter and Rapthor-branch tests; integration container summary |
+| 6 | Increment 2: Rapthor's distributed path | Agent, human on Rapthor | `in progress` | Adapter and Rapthor-branch tests; integration container summary |
+| 7 | Increment 3: waiting and sharing | Agent | `in progress` | As step 5, plus concurrent-analysis and joining-worker tests |
 | 8 | Increment 4: both branches together | Agent | `not started` | As step 5 |
 | 9 | Re-measure the cells, the local curve and the Dask CPU overhead | Agent | `not started` | Matched reports; scaling profile; progress page |
 | 10 | Review against the success criteria | Human | `not started` | Acceptance |
@@ -146,7 +147,6 @@ before and after.
 
 | Trigger | Human decision | Agent action while waiting |
 | --- | --- | --- |
-| The model and targets (now) | Confirm the threshold, targets and increment order; decide on per-source costs | Prepare the increment the recommended order puts next |
 | The dense gate looks out of reach at deployable node counts | Choose CPU work, native code under its gates, or the gate | Report the gap and its causes |
 | Each increment's release | Merge and release | Start the next increment on a stacked branch |
 | Rapthor's layout change | Make it on the Rapthor branch, or ask the agent to prepare it | Use the standalone run as scaling evidence |
@@ -180,3 +180,8 @@ before and after.
 | 2026-10-22 | Decision | The cluster has up to 12 nodes of three kinds, with no local scratch; Hebog runs on every node type without per-node settings. | — |
 | 2026-11-12 | Decision | Rapthor's task runs the analysis on single-threaded Dask worker processes on a cluster it owns, memory actions off, keeping threads for small sectors and tests; 0.25.0's higher worker peak is accepted. | Increment 3 carries it |
 | 2026-11-13 | Progress | 0.25.0 (increment 1) cuts the floors to 132 s on the dense cell and 46 s on the sparse one; the refitted model projects every limit met on one node if `master` uses four cores of a dense sector's node. | Maintainer: the checkpoint; agent: the next increment |
+| 2026-11-14 | Decision | Checkpoint taken: order Rapthor's path, waiting and sharing, both branches; floors of 100 s dense and 40 s sparse; threshold 10,000; no separate per-source work. Rapthor's path uses worker processes whenever the step has more than one core (no small-sector threshold), with Rapthor's workers non-daemonic and Hebog's adapter stating the memory, including 256 MiB a worker process. Declined: Hebog on Rapthor's own cluster, a small-sector thread path, Rapthor counting process memory. | Agent: Rapthor's distributed path |
+| 2026-11-15 | Progress | Rapthor's path is implemented on both branches and passes the integration container; each worker process needs about 2 GB, since Hebog's largest task declares up to 1.7 GB on 2,048-pixel cores. Waiting and sharing: tasks start as any finishes, joining workers widen later rounds, and analyses running as tasks leave their threads while they wait, at a driver cost per task that does not grow with the tasks in flight; products unchanged. The task memory audit on the 3,000² LoTSS-DR3, dense 5,000² ELAIS-N1 and 7,500² LOFAR-HD anchors finds every round at or below 0.80 of its declaration and the analysis at or below 0.74. | Maintainer: publish both branches, the completion-record decision; agent: time the executor changes on a quiet machine |
+| 2026-11-20 | Decision | Each generation's completion record becomes one record per row of tiles, listed with their SHA-256 in a small index that marks completion, so a task parses only its window's rows; declined: one record per tile, records in task payloads. | Agent: implement it in waiting and sharing |
+| 2026-11-21 | Progress | Timed on a quiet machine, four Dask workers: the executor changes are 0.7 to 2.5% faster on the dense, sparse and 2,048² cells on Rapthor's path, and the per-row completion records 2.1% faster on the 10,000² anchor; products unchanged. Both wait on branches. | Maintainer: publish both branches; agent: the driver's per-source work |
+| 2026-11-21 | Progress | A profile of the driver's serial work on the dense cell found two checks growing with the square of the catalogue, in writing the catalogue and in joining component groups. Both now take linear time: the dense cell is 9.5% faster on Rapthor's path with four Dask workers, the sparse cell unchanged, products identical. This waits on a branch. | Maintainer: publish the branch; agent: the flat-noise estimate beside the true-sky analysis |
