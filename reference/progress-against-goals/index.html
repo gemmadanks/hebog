@@ -1,0 +1,3441 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A scalable source finder for radio continuum images">
+      
+      
+      
+        <link rel="canonical" href="https://open-research.gemmadanks.com/hebog/reference/progress-against-goals/">
+      
+      
+        <link rel="prev" href="../../explanation/developer-faq/">
+      
+      
+        <link rel="next" href="../../how-to/integrate-into-a-pipeline/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Progress against goals - Hebog Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#progress-against-goals" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Hebog Documentation" class="md-header__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hebog Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Progress against goals
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../explanation/developer-faq/" class="md-tabs__link">
+          
+  
+  
+  Developer guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tags/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tags
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Hebog Documentation" class="md-nav__button md-logo" aria-label="Hebog Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.929 19.487c0 .035.264.2.592.364 1.578.835 2.55 1.742 2.914 2.75.164.435.171.592.028.92-.178.436-.207.429.95.393 1.043-.035 1.657-.15 1.657-.314 0-.078-.857-.885-1.171-1.093a1.4 1.4 0 0 1-.186-.15 8 8 0 0 0-.321-.257 12 12 0 0 1-.372-.278 6 6 0 0 0-.25-.193l-.45-.35a5 5 0 0 0-.535-.357c-.328-.178-.528-.307-.571-.357-.05-.057-1.036-.593-1.5-.814-.214-.1-.45-.214-.514-.25-.157-.086-.271-.093-.271-.014m-5.75-1.536a5 5 0 0 0-.056.415c-.043.5-.379 1.164-.764 1.52-.465.436-.75.572-.993.48a3.4 3.4 0 0 0-.628-.115c-.357-.043-.486-.022-.657.078-.186.108-.222.179-.222.4 0 .315-.007.307.257.165a1 1 0 0 1 .3-.108c.15 0 .093.143-.093.229-.207.093-.264.271-.278.828-.007.422.121.586.236.286.035-.093.17-.221.3-.293A1.4 1.4 0 0 0 8 21.43c.186-.314.286-.364.286-.15 0 .457.236.479.436.036.121-.243.186-.307.271-.271.236.1.515.114.615.028s.092-.114-.043-.257c-.086-.093-.15-.179-.129-.193.157-.114.5-.193.85-.193.628 0 .714-.107.714-.914 0-.82-.214-1.406-.564-1.556-.179-.072-.236-.079-.257-.008zM22.535 1.062a1.2 1.2 0 0 0-.193.315c-.414.885-1.785 1.72-3.949 2.392-.193.064-.535.164-.75.236-.214.064-.635.2-.928.285-3.635 1.107-4.27 1.678-5.57 4.963-.586 1.472-.893 1.964-1.5 2.364-.507.343-.92.457-2.07.6-1.829.221-2.536.436-3.107.943-.35.3-.464.614-.464 1.242 0 .286-.029.536-.057.557-.036.022-.1.214-.15.436-.072.3-.072.45-.007.643.1.292.378.535.628.535.178 0 .186-.05.05-.371q-.045-.117.136-.307c.157-.157.235-.179.72-.179.558 0 .744-.057 1.008-.3.15-.135.157-.135.357.086.421.464 1.52 1.121 2.892 1.735.65.293 1.057.643 1.364 1.186.207.357.236.457.236.97 0 .836-.3 1.408-.886 1.68-.1.05-.243.113-.307.15-.071.035-.336.063-.593.063H8.93l-.15.336a8 8 0 0 1-.25.528c-.078.158-.078.208 0 .322.093.121.122.107.464-.243.358-.364.579-.471.579-.271 0 .057-.129.2-.279.321-.35.278-.4.478-.235.95.135.385.314.5.357.235.014-.078.121-.235.235-.35.115-.107.208-.242.208-.292s.05-.129.107-.179c.157-.128.221.1.121.457-.064.243-.057.314.036.414.071.079.093.186.064.307-.029.129-.014.179.05.179.1 0 .336-.221.336-.314 0-.029.064-.15.15-.264.15-.215.157-.258.021-1.014-.021-.143-.014-.265.014-.265.15 0 .664.329.693.443.05.186.264.079.264-.136a.8.8 0 0 0-.428-.678c-.236-.1-.279-.257-.086-.314.45-.143.871-.4 1.25-.779.457-.442.535-.535.828-.964.407-.592.786-.857 1.221-.857.6 0 2.485.843 3.942 1.764.679.429 2.007 1.357 2.228 1.557.043.043.286.221.543.407.257.179.7.521.986.764.285.236.542.436.57.436.236 0 .315-.614.108-.8a5 5 0 0 0-.557-.343c-.521-.293-1.528-.971-1.964-1.335-.985-.807-2.242-2.385-3.078-3.864a10 10 0 0 1-.278-.485c-.6-1.05-1.743-2.385-2.05-2.385-.121 0-.121-.008.072-.929.057-.293.142-.792.185-1.107.129-.87.314-1.863.45-2.356.386-1.45 1.207-2.457 2.7-3.3 2.092-1.192 2.927-1.928 3.527-3.12.322-.636.386-.793.579-1.507.1-.364.221-1.25.171-1.25a.4.4 0 0 0-.1.057zM3.496.484C1.839 2.198 1.003 3.926 1.003 5.647c0 .393.029.729.072.75s.071.114.071.2c0 .2.172.693.4 1.157.3.621.736 1.057 1.921 1.914.929.67 1.443 1.428 1.614 2.385l.093.514.257-.107c.65-.279 1.15-.379 2.642-.536.957-.1 1.328-.243 1.771-.678.629-.629.329-1.036-1.635-2.2-2.114-1.257-2.87-1.842-3.692-2.863-.657-.822-.993-1.5-1.157-2.343-.157-.785.057-2.028.536-3.142.135-.328.25-.614.25-.642 0-.15-.236.007-.65.428"/></svg>
+
+    </a>
+    Hebog Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gemmadanks/hebog" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gemmadanks/hebog
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install Hebog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/find-sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial: find sources in a FITS image
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/configure-a-run/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choose thresholds, a profile and an executor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use the notebooks and compare finders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/astronomer-faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ for astronomers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/how-hebog-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Hebog finds sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/source-finder-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hebog and other source finders
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-status/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capability and status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-header-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input header contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../public-products/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Outputs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../domain-glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/developer-faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ for developers and architects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progress against goals
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progress against goals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        At a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blockers-and-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blockers and next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functionality
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#science" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Science
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Science">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapthor-profile-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rapthor-profile agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-science-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick science check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-scientific-defects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open scientific defects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-the-gate-stands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where the gate stands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projection-to-the-clusters-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projection to the cluster's nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hebogs-own-speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hebog's own speed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scalability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scalability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engineering-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keeping-this-page-current" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping this page current
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/integrate-into-a-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrate Hebog into a pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/distributed-execution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Hebog distributes work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/rapthor-execution-layouts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hebog on Rapthor's Dask layouts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/domain-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/quality-attributes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quality attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/native-code-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native-code assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/adr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decision records (ADRs)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contribute to Hebog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/publish-releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internal-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../internal-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internal schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rapthor-source-finding-contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rapthor source-finding contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-scalability-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance and scalability contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Where Hebog spends its time
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataset-manifests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation dataset manifests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scientific-comparison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific comparison reports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evidence-documents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evidence documents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6_9" id="__nav_3_6_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm contracts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_6_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Algorithm contracts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-deblending/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact deblending
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-measurement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact moment measurement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-fitting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact Gaussian fitting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compact-astrometry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compact astrometry and beam deconvolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rapthor-catalogue-view/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rapthor FITS catalogue view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        At a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blockers-and-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blockers and next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functionality
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#science" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Science
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Science">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rapthor-profile-agreement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rapthor-profile agreement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-science-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick science check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-scientific-defects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open scientific defects
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-the-gate-stands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where the gate stands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projection-to-the-clusters-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projection to the cluster's nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hebogs-own-speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hebog's own speed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scalability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scalability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engineering-health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engineering health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keeping-this-page-current" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keeping this page current
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="progress-against-goals">Progress against goals</h1>
+<p>How far Hebog is from the 1.0.0 goal its
+<a href="https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md">implementation plan</a>
+defines. Last updated on <strong>13 November 2026</strong>, after 0.25.0's release check.
+Every figure is dated development evidence from the maintainer's machine,
+traceable to its run; none is scientific qualification. User-facing limits
+are in <a href="../release-status/">capability and status</a>.</p>
+<h2 id="at-a-glance">At a glance</h2>
+<table>
+<thead>
+<tr>
+<th>Goal for 1.0.0</th>
+<th>Where it stands</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Telescopes:</strong> FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid</td>
+<td>The <a href="../input-header-contract/">input header contract</a> is defined and tested. LOFAR (LoTSS-DR2 and DR3) and SKA-Mid (SDC1) images run, and MeerKAT MIGHTEE images fit the envelope. Beams wider than 10 pixels are refused; real Rapthor images have at most about 7. SKA-Low precursor data (GLEAM-X) needs the later 45,000-pixel tier.</td>
+<td>In progress</td>
+</tr>
+<tr>
+<td><strong>Functionality:</strong> a feature-flagged backend for Rapthor's <code>filter_skymodel</code> step</td>
+<td>All 12 frozen public behaviours are implemented under the Serial, Thread and Dask executors. The Rapthor adapter writes the files Rapthor's step reads, and Rapthor's Hebog branch calls it, with a PyBDSF fallback and dual runs.</td>
+<td>On a Rapthor branch; not merged</td>
+</tr>
+<tr>
+<td><strong>Science:</strong> a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF <code>master</code></td>
+<td>Rapthor's profile (<code>continuum</code> with a zero background) passes the truth-based gate: it loses 0.10% of the real components <code>master</code> keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain.</td>
+<td>Development evidence only</td>
+</tr>
+<tr>
+<td><strong>Performance:</strong> the finder part of Rapthor's step at most 0.50 of <code>master</code>'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys</td>
+<td>Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times <code>master</code>'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. Projected, 0.25.0 on Dask workers meets every limit on one cluster node (0.30 on the dense cell, 0.52 to 1.03 on sparse sectors), provided <code>master</code> uses only four cores of a dense sector's node.</td>
+<td>Dense gate and parity failing</td>
+</tr>
+<tr>
+<td><strong>Scalability:</strong> 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products</td>
+<td>22,500² is admitted (19 October). Products are identical across tilings and executors. Nothing has run beyond one machine.</td>
+<td>Size met; cluster not run</td>
+</tr>
+<tr>
+<td><strong>Release:</strong> PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy</td>
+<td>v0.25.0 (9 November) is on PyPI with attestations; its release check left catalogue, RMS and mask unchanged from 0.24.0. CI covers Linux, macOS and Windows on Python 3.12 to 3.14.</td>
+<td>Experimental <code>0.x</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="blockers-and-next-steps">Blockers and next steps</h2>
+<p>The largest risks to 1.0.0 are:</p>
+<ul>
+<li>the performance gap (<a href="#performance">below</a>);</li>
+<li>memory that grows with the image and the sources found;</li>
+<li>the development machine's memory, disk and container VM;</li>
+<li>upstream churn;</li>
+<li>three steps outside the agent's control: cluster time, Rapthor's worker
+  layout and independent reviewers.</li>
+</ul>
+<p>No maintainer decision is pending. The next actions, as the plan orders
+them:</p>
+<ol>
+<li><strong>Agent:</strong> waiting and sharing, the next increment of one sector across
+   the cluster, then both branches together, aiming at floors of 100 s on
+   the dense cell and 40 s on the sparse one. Rapthor's distributed path,
+   in which Rapthor's task runs Hebog on Dask worker processes whenever it
+   has more than one core, is implemented on both branches. The first
+   increment, which sizes tiles and task counts from the core budget, is in
+   0.25.0.</li>
+<li><strong>Human:</strong> push Rapthor's Hebog branch and release Hebog's adapter
+   change, then approach the independent reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
+   report (drafted 20 October).</li>
+<li><strong>Agent:</strong> the deployment envelope, the matched benchmarks, the store and
+   planner work, and packaging for the cluster benchmark, where the gate is
+   measured. The varying-PSF measurement waits unless an output is confirmed
+   incorrect.</li>
+</ol>
+<h2 id="functionality">Functionality</h2>
+<p>The 12 frozen public behaviours in
+<code>config/contracts/phase-0-public-behaviours.json</code> each name the test that
+holds them. An unimplemented one would be a strict xfail, so CI fails the
+day it starts passing.</p>
+<table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A valid request returns versioned catalogue, RMS, mask, diagnostics and timing records</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>An empty image succeeds with zero sources and valid empty products</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Invalid beam, WCS, unit or dimensional metadata fails before any result is written</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Raising a threshold cannot create a source</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Tile shape, worker count, completion order and batch size do not change the products</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>No worker holds a complete large plane, and admitted memory bounds the peak</td>
+<td>Implemented: every task declares its memory and none holds more</td>
+</tr>
+<tr>
+<td>Rapthor adapter products for the true-sky and flat-noise pair</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Retry reuses valid stage products</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Worker loss is retried to the same products</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Rapthor can fall back to pinned PyBDSF behind the feature flag</td>
+<td>Implemented, also when Rapthor's worker cannot hold the analysis</td>
+</tr>
+<tr>
+<td>Dual-run mode keeps products separate and reports differences</td>
+<td>Implemented on Rapthor's Hebog branch</td>
+</tr>
+<tr>
+<td>A cancelled analysis stops its tasks and removes its staging</td>
+<td>Implemented under the Thread and Dask executors</td>
+</tr>
+</tbody>
+</table>
+<p><code>hebog.adapters.find_sector_sources</code> runs one Rapthor sector on the
+caller's executor and writes Rapthor's four files.
+<a href="https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/README.md">Rapthor's Hebog branch</a>
+runs it as a native task on today's worker layout; its distributed path is
+planned. At the pins of 17 October (Rapthor <code>aff26023</code>, LSMTool <code>156ae6a</code>)
+with Hebog 0.22.0 from PyPI, the integration container passes 39 native and
+CLI tests and the broader native suite 94, and Rapthor's own suites pass 662
+(<a href="https://github.com/gemmadanks/hebog/blob/main/scripts/validation/rapthor-integration/integration-summary.json">integration evidence</a>).</p>
+<p>Rapthor's catalogue cuts (<code>DC_Maj</code>, <code>E_RA</code>, <code>E_DEC</code>) pass a <code>continuum</code>
+source of one Gaussian, but a source of several components leaves those
+columns empty, so the cuts drop it: 151 to 168 sources that <code>master</code> keeps on
+the agreement check's cases.</p>
+<h2 id="science">Science</h2>
+<h3 id="gates">Gates</h3>
+<p>The binding reference is pinned PyBDSF <code>master</code> (<code>c70103b</code>); released 1.14.1
+is checked once before 1.0.0. The limits are the plan's
+<a href="https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#scientific-gates">scientific gates</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Target</th>
+<th>Latest</th>
+<th>Date and source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rapthor retained/rejected components</td>
+<td>Real components <code>master</code> keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ <code>master</code>'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1%</td>
+<td><code>continuum</code> passes under either background (0.10 to 0.20% lost, 0.15 to 0.20% false islands). <code>compact</code> with a zero background fails (5.3% lost on extended sources, 3.8% at edges, 1.03% false islands). <a href="#rapthor-profile-agreement">Details below</a></td>
+<td>18 October, <code>just rapthor-agreement</code> run <code>cap3</code></td>
+</tr>
+<tr>
+<td>Reference recovery at SNR ≥10</td>
+<td>≥99%</td>
+<td>1.000 on every generated case with compact truth, 0.998 on the crowded field</td>
+<td>9 October, quick check <code>release-0.19.0-rc2</code></td>
+</tr>
+<tr>
+<td>Isolated SNR ≥10 position, median / p95</td>
+<td>≤0.02 / 0.10 beam</td>
+<td>0.0003 / 0.0005 (<code>continuum</code>), 0.0002 / 0.0006 (<code>compact</code>)</td>
+<td>6 October, equivalence lane</td>
+</tr>
+<tr>
+<td>Isolated SNR ≥10 peak flux, median / p95</td>
+<td>≤2% / 5%</td>
+<td>0.17% / 0.21% (<code>continuum</code>), 0.04% / 0.13% (<code>compact</code>)</td>
+<td>same</td>
+</tr>
+<tr>
+<td>Isolated SNR ≥10 <code>Total_flux</code>, median / p95</td>
+<td>≤5% / 10%</td>
+<td>0.09% / 0.51%</td>
+<td>5 October, equivalence lane</td>
+</tr>
+<tr>
+<td>Component fitted axes, median / p95</td>
+<td>≤5% / 10%</td>
+<td>0.12% / 0.21%</td>
+<td>same</td>
+</tr>
+<tr>
+<td><code>Total_flux</code> bias against <code>master</code>, paired upper 95% bound per stratum</td>
+<td>≤ +1 point in median and p95</td>
+<td>Median −0.1 to 0.0, p95 −3.5 to +0.1 points at SNR 10, 20 and 50</td>
+<td>5 October, <code>m1-flux-calibration.json</code></td>
+</tr>
+<tr>
+<td>Position-uncertainty calibration</td>
+<td>Pull standard deviation 1</td>
+<td>1.015 and 1.006 on beam-correlated noise</td>
+<td>24 September</td>
+</tr>
+<tr>
+<td>Integrated-flux uncertainty calibration</td>
+<td>Pull standard deviation 1</td>
+<td>1.08 on beam-correlated noise; conservative (0.32 to 0.57) on white noise</td>
+<td>5 October</td>
+</tr>
+<tr>
+<td>Source-free RMS difference, median / p95</td>
+<td>≤2% / 5%</td>
+<td>1.95% / <strong>5.46%</strong> (<code>continuum</code>); 1.57% / 3.12% (<code>compact</code>)</td>
+<td>5 October, equivalence lane</td>
+</tr>
+</tbody>
+</table>
+<p>Two differences are bounded in the equivalence lane rather than gated, so a
+change that moves either fails CI and has to be explained:</p>
+<table>
+<thead>
+<tr>
+<th>Known difference</th>
+<th>Measured</th>
+<th>Target</th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>continuum</code> RMS tail</td>
+<td>5.46% at p95</td>
+<td>≤5%</td>
+<td>Local noise on 35-pixel windows scatters more than PyBDSF's 150-pixel box</td>
+</tr>
+<tr>
+<td>Published mask</td>
+<td>Recall 0.927, IoU 0.922; island IoU 0.909 median, 0.857 minimum</td>
+<td>0.99, 0.98; 0.99, 0.95</td>
+<td>The boundary rule trims 13 of the reference's 178 island pixels</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rapthor-profile-agreement">Rapthor-profile agreement</h3>
+<p>Rapthor keeps a sky-model component where the finder's mask is set at its
+position. <code>just rapthor-agreement</code> (run <code>cap3</code>, 18 October) compares each
+finder with known truth and with pinned <code>master</code> over every distinct pixel
+holding a Gaussian centre that <code>master</code> or any Hebog lane fitted: 20,369 on
+the quick check's cases with a <code>master</code> reference, a 3,000² LoTSS-DR3 window
+and the ELAIS-N1 true-sky and apparent images at 2,048². A component is real when
+it lies on the ideal mask of a generated image, or at least 7 times the
+negative-pixel noise above zero on a real one.</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th><code>compact</code>, zero</th>
+<th><code>compact</code>, estimated</th>
+<th><code>continuum</code>, zero (Rapthor's)</th>
+<th><code>continuum</code>, estimated</th>
+<th><code>master</code></th>
+<th>Released 1.14.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Real components <code>master</code> keeps that the finder rejects</td>
+<td>0.84%; extended 5.3%, edge 3.8%</td>
+<td>1.49%; extended 9.0%, edge 4.3%</td>
+<td>0.10%; edge 0.5%</td>
+<td>0.20%; edge 0.5%</td>
+<td>–</td>
+<td>0.03%; extended 0.3%</td>
+</tr>
+<tr>
+<td>Injected sources kept at 6, 7 and 10σ</td>
+<td>76, 91, 100%</td>
+<td>78, 93, 100%</td>
+<td>78, 91, 100%</td>
+<td>77, 93, 100%</td>
+<td>76, 89, 100%</td>
+<td>76, 89, 100%</td>
+</tr>
+<tr>
+<td>Injected flux, median ratio at 10, 20 and 50σ</td>
+<td>0.990, 0.986, 0.989</td>
+<td>0.998, 0.992, 0.993</td>
+<td>0.988, 0.986, 0.989</td>
+<td>1.000, 0.992, 0.992</td>
+<td>0.984, 0.976, 0.985</td>
+<td>0.984, 0.976, 0.985</td>
+</tr>
+<tr>
+<td>Generated: ideal-mask pixels and flux covered</td>
+<td>0.49, 0.58</td>
+<td>0.45, 0.48</td>
+<td>0.94, 0.99</td>
+<td>0.84, 0.96</td>
+<td>0.61, 0.73</td>
+<td>0.77, 0.90</td>
+</tr>
+<tr>
+<td>Negated real images: false islands</td>
+<td>126 of 12,207</td>
+<td>121 of 12,296</td>
+<td>25 of 12,508</td>
+<td>19 of 12,659</td>
+<td>79 of 12,389</td>
+<td>76 of 12,333</td>
+</tr>
+<tr>
+<td>Real images: RMS &gt;20% above, and below, the negative-pixel noise</td>
+<td>22.9%, 2.2%</td>
+<td>22.9%, 2.2%</td>
+<td>11.1%, 6.5%</td>
+<td>11.1%, 6.5%</td>
+<td>30.2%, 1.5%</td>
+<td>30.3%, 1.5%</td>
+</tr>
+<tr>
+<td>Truth-based gate</td>
+<td>Fails</td>
+<td>Fails</td>
+<td>Passes</td>
+<td>Passes</td>
+<td>Reference</td>
+<td>Passes</td>
+</tr>
+<tr>
+<td>Agreement with <code>master</code> (reported, not gated)</td>
+<td>92.2%</td>
+<td>91.0%</td>
+<td>91.4%</td>
+<td>91.1%</td>
+<td>–</td>
+<td>99.3%</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>continuum</code> is the most accurate finder measured. It covers 84 to 94% of
+  the generated emission against <code>master</code>'s 61%, and its RMS reads close to
+  the negative-pixel noise.</li>
+<li><code>compact</code> trims bright emission from large islands and cuts sources at the
+  image edge, and its RMS reads low often enough to find 1.03% false islands.</li>
+<li>The disagreement with <code>master</code> is on real LOFAR fields; the generated
+  cases agree fully but for four. No finder reaches the former 99.5% agreement
+  target, which released PyBDSF misses too, so it was replaced on 16 October
+  by the truth-based gate.</li>
+</ul>
+<h3 id="quick-science-check">Quick science check</h3>
+<p>The everyday regression check: fixed cases, each compared with injected truth
+and with pinned <code>master</code>, which also reports RMS error, mask recall and the
+share of bright emission inside the mask, so a lost source shows even
+without truth. Run <code>minimal-1</code> (18 October); a 22nd case, ELAIS-N1's central
+2,048², has been added since. Completeness and reliability compare source
+rows, so an object that one finder splits into several rows lowers them
+without a source being missed.</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th style="text-align: right;">Hebog sources</th>
+<th style="text-align: right;">Completeness vs truth (SNR ≥10)</th>
+<th style="text-align: right;">Reliability vs truth</th>
+<th style="text-align: right;">Completeness vs <code>master</code></th>
+<th style="text-align: right;">Reliability vs <code>master</code></th>
+<th style="text-align: right;">Mask IoU vs <code>master</code></th>
+<th style="text-align: right;">Bright emission in mask</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>compact-snr-ladder</code></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.949</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>close-blends</code></td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.976</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>extended-gaussians</code></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.923</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>filament-and-ring</code></td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">0.889</td>
+<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>edges-and-corners</code></td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.933</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>negative-background</code></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.541</td>
+<td style="text-align: right;">–</td>
+</tr>
+<tr>
+<td><code>invalid-pixels</code></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.957</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>varying-noise</code></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.500</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.562</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>white-noise-snr-ladder</code></td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.861</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>dense-field</code></td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.967</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.907</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>empty-noise</code></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">–</td>
+</tr>
+<tr>
+<td><code>all-invalid</code></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+</tr>
+<tr>
+<td><code>crowded-field</code></td>
+<td style="text-align: right;">994</td>
+<td style="text-align: right;">0.998</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.985</td>
+<td style="text-align: right;">0.997</td>
+<td style="text-align: right;">0.888</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>wide-extended-source</code></td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0.300</td>
+<td style="text-align: right;">1.000</td>
+<td style="text-align: right;">0.375</td>
+<td style="text-align: right;">0.857</td>
+<td style="text-align: right;">0.482</td>
+<td style="text-align: right;">0.910</td>
+</tr>
+<tr>
+<td><code>crowded-giant-source</code></td>
+<td style="text-align: right;">299</td>
+<td style="text-align: right;">0.941</td>
+<td style="text-align: right;">0.955</td>
+<td style="text-align: right;">0.967</td>
+<td style="text-align: right;">0.970</td>
+<td style="text-align: right;">0.463</td>
+<td style="text-align: right;">0.921</td>
+</tr>
+<tr>
+<td><code>sdc1-b2-1000h-sparse</code></td>
+<td style="text-align: right;">573</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.933</td>
+<td style="text-align: right;">0.972</td>
+<td style="text-align: right;">0.816</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>sdc1-b2-1000h-crowded</code></td>
+<td style="text-align: right;">874</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">no <code>master</code> reference</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>sdc1-b2-1000h-giant-source</code></td>
+<td style="text-align: right;">343</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.669</td>
+<td style="text-align: right;">0.895</td>
+<td style="text-align: right;">0.301</td>
+<td style="text-align: right;">0.443</td>
+</tr>
+<tr>
+<td><code>sdc1-b2-1000h-bright-neighbour</code></td>
+<td style="text-align: right;">225</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.889</td>
+<td style="text-align: right;">0.996</td>
+<td style="text-align: right;">0.756</td>
+<td style="text-align: right;">0.999</td>
+</tr>
+<tr>
+<td><code>lotss-dr3-1312-sparse</code></td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.857</td>
+<td style="text-align: right;">0.915</td>
+<td style="text-align: right;">0.834</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+<tr>
+<td><code>lotss-dr3-1312-dense</code></td>
+<td style="text-align: right;">105</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">–</td>
+<td style="text-align: right;">0.807</td>
+<td style="text-align: right;">0.914</td>
+<td style="text-align: right;">0.793</td>
+<td style="text-align: right;">1.000</td>
+</tr>
+</tbody>
+</table>
+<p>On the whole 22,500² LOFAR-HD ELAIS-N1 mosaic, <code>continuum</code> finds 94.0% of
+the survey catalogue's 5,872 sources within 1.5″, and their median
+integrated flux above 20σ is 0.999 of the survey's (18 October, run
+<code>diagnostic-3</code>).</p>
+<h3 id="open-scientific-defects">Open scientific defects</h3>
+<ul>
+<li><strong>Clipped RMS reads low (kept).</strong> On noise alone it reads 1.6 to 3.9% low.
+  Correcting it lowered completeness on every truth measure without a
+  measurable gain in reliability, so it stays uncorrected (18 October).</li>
+<li><strong>Estimated background beside a giant source.</strong> A crowded field's coarse
+  background can subtract part of a giant source, so the mask loses a few of
+  its components. The zero background Rapthor runs loses none (18 October).</li>
+<li><strong>Fixed meshes (deferred).</strong> Beams wider than 10 pixels are refused;
+  scaling the meshes with the beam would recover them up to 22 pixels, at
+  about 2.5 times the local-noise cost.</li>
+</ul>
+<h2 id="performance">Performance</h2>
+<p>The gate compares the source-finding part of Rapthor's <code>filter_skymodel</code>
+step, from the task's start to LSMTool's <code>filter_sources</code> call, with pinned
+PyBDSF <code>master</code>. Matched runs use one x86-64 container under Rosetta, so only
+the ratios are matched. The 20 to 24 October runs pin Hebog 0.23.0
+(<code>continuum</code>, zero background), Rapthor <code>632f6211</code>, LSMTool <code>156ae6a</code> and
+PyBDSF <code>master</code> <code>c70103b</code>. The dense cell is a
+deep ELAIS-N1 5,000² window where <code>master</code> finds 24,780 sources; the sparse
+cell is a LoTSS-DR3 5,000² window with 2,469.</p>
+<h3 id="where-the-gate-stands">Where the gate stands</h3>
+<table>
+<thead>
+<tr>
+<th>Run</th>
+<th>Hebog / <code>master</code>, finder part</th>
+<th>Date and source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dense cell, Rapthor's thread path, four cores, five measured runs</td>
+<td>2.26 [2.24, 2.28] against ≤0.50; complete step 2.03</td>
+<td>22 October, run <code>step3-gate-elais-n1-deep-north-3600-5000</code></td>
+</tr>
+<tr>
+<td>Dense cell, single-threaded Dask workers on 1, 2, 4 and 6 cores, two runs each</td>
+<td>1.03, 1.08, 1.07 and 1.00</td>
+<td>22 to 24 October, runs <code>step3-sweep-…-&lt;cores&gt;-cores</code></td>
+</tr>
+<tr>
+<td>Sparse cell, single-threaded Dask workers on 1, 4 and 6 cores, two runs each</td>
+<td>1.65, 1.74 and 1.72 against ≤1.05 (3.42 on the thread path)</td>
+<td>24 October, runs <code>step4-sweep-…-&lt;cores&gt;-cores</code></td>
+</tr>
+<tr>
+<td>Source-count ladder, thread path, four cores, two runs each</td>
+<td>Sparse sectors 3.14 to 4.85; dense sectors 3.16 (14,126 sources) and 2.28 (24,780)</td>
+<td>20 and 21 October, runs <code>step3-ladder-&lt;case&gt;</code></td>
+</tr>
+<tr>
+<td>10,000² anchor, where <code>master</code> finds 9,276 sources, four Dask workers, one run</td>
+<td>1.23</td>
+<td>16 October, run <code>screening-10000</code>, Hebog <code>16228cf1</code> (the 0.22.0 candidate)</td>
+</tr>
+</tbody>
+</table>
+<p>Brackets are one-sided 95% bounds. Both finders' products repeat byte for
+byte, and Hebog's are identical on every worker count and on the thread path.
+The thread path is slow because Python's interpreter lock serialises Hebog's
+tasks: on the dense cell four threads finish 1.18 times faster than one,
+while four single-threaded Dask workers finish 2.63 times faster.</p>
+<h3 id="projection-to-the-clusters-nodes">Projection to the cluster's nodes</h3>
+<p>A model fitted to these runs and to native profiles of 0.25.0 projects the
+finder part on one 96-core node, with <code>master</code> on all of it as Rapthor runs
+it (13 November, <code>scripts/benchmark/fit_scaling_model.py</code> run
+<code>release-0.25.0</code>).</p>
+<ul>
+<li><strong>Hebog</strong> takes its driver time plus, for each round of tasks, the larger
+  of its task time shared over the cores and its longest task. On a node it
+  nears its <strong>floor</strong>, driver time plus longest tasks: 132 s on the dense
+  cell and 46 s on the sparse one at 0.25.0, against 190 s and 59 s at
+  0.24.0. The measured floors may read high, by up to about 9 s and 3 s:
+  on four workers some tile rounds run three tiles a task, which a node's
+  task slots would run one at a time. They may read low by the longest
+  tasks of passes the profile merges, such as the two background passes.</li>
+<li><strong><code>master</code></strong> uses at most four cores on dense sectors, as the dense cell's
+  sweep shows, and every core on sparse ones. Container times convert to
+  native ones by Hebog's measured factor of 2.08, assuming emulation slows
+  both finders alike.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Sector (<code>master</code>'s sources)</th>
+<th>Limit</th>
+<th>Hebog / <code>master</code>, one node</th>
+<th>Hebog's floor, native: now, target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LoTSS-DR3 (2,469)</td>
+<td>1.05</td>
+<td>0.83</td>
+<td>46 s, 55 s</td>
+</tr>
+<tr>
+<td>Deep ELAIS-N1, noise ×4 (3,847)</td>
+<td>1.05</td>
+<td>1.03</td>
+<td>47 s, 45 s</td>
+</tr>
+<tr>
+<td>Noise ×3 (5,686)</td>
+<td>1.05</td>
+<td>0.91</td>
+<td>56 s, 61 s</td>
+</tr>
+<tr>
+<td>Noise ×2 (9,744)</td>
+<td>1.05</td>
+<td>0.52</td>
+<td>70 s, 138 s</td>
+</tr>
+<tr>
+<td>Noise ×1.5 (14,126)</td>
+<td>0.50</td>
+<td>0.38 (0.72)</td>
+<td>89 s, 113 s (55 s)</td>
+</tr>
+<tr>
+<td>The dense cell (24,780)</td>
+<td>0.50</td>
+<td>0.30 (0.53)</td>
+<td>132 s, 218 s (117 s)</td>
+</tr>
+</tbody>
+</table>
+<p>In brackets: if <code>master</code> used every core of a dense sector's node. A floor
+target is a sufficient bound, not a gate: a floor at or below it meets the
+limit with all of Hebog's task time shared over the node added, and it is
+conservative by 3 to 9 s, so a floor a little above it can still pass.</p>
+<ul>
+<li>On one node 0.25.0 meets every limit, the noise ×4 sector narrowly: its
+  floor is 2 s above a target that is conservative by a few seconds. 0.24.0
+  missed parity on three of the four sparse sectors (1.06 to 1.26).</li>
+<li>If <code>master</code> used every core of a dense sector's node, the two dense sectors
+  would miss 0.50 (0.53 and 0.72).</li>
+<li>Extra nodes add little at 5,000²: twelve nodes take 0.01 to 0.04 off one
+  node's ratio.</li>
+<li>Hebog's time on a node grows by 4.0 ms a source natively (6.2 ms at
+  0.24.0), within the 4.6 ms target.</li>
+<li>The local data cannot decide how many cores <code>master</code> uses on a cluster
+  node, whether emulation slows both finders alike, or how both scale to
+  Rapthor's 17,000 to 20,000-pixel sectors.</li>
+</ul>
+<h3 id="hebogs-own-speed">Hebog's own speed</h3>
+<p>Native runs, without PyBDSF. Ratios between versions or settings are
+medians of five alternating runs a side, with 95% bootstrap bounds where
+given, and the Serial anchors are medians of five runs. The stage profile
+and the whole 14,175² sector are single runs.</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Latest</th>
+<th>Date and source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.25.0 against 0.24.0, quick benchmark at 1,024²</td>
+<td>1.01, 1.00 and 1.00, every upper bound within the 1.05 regression limit</td>
+<td>5 November, release check <code>release-0.25.0</code></td>
+</tr>
+<tr>
+<td>Serial anchors</td>
+<td>1,137 s at 10,000² (0.24.0: 1,138 s); 3,410 s on the 15,402² mosaic; 4,306 s on the 22,500² LOFAR-HD mosaic</td>
+<td>12 November; 29 September; 19 October, <code>tier-22500-anchor</code></td>
+</tr>
+<tr>
+<td>Four Dask workers against Serial</td>
+<td>0.38 at 10,000² (431 s); 0.63 on the 15,402² mosaic; products identical</td>
+<td>5 November, <code>release-check/0.25.0/matched</code>; 5 October</td>
+</tr>
+<tr>
+<td>Tile cores sized to the task slots (in 0.25.0)</td>
+<td>Dense cell 0.916 [0.910, 0.930] on four workers and 0.910 [0.890, 0.962] on six; sparse cell 0.974 and 0.951</td>
+<td>4 November, runs <code>stack-*</code></td>
+</tr>
+<tr>
+<td>Object batches by estimated cost (in 0.25.0)</td>
+<td>Dense cell 0.987 [0.975, 0.994] on four workers; longest component-fit task 32.5 to 19.3 s</td>
+<td>4 November, runs <code>stack-*</code></td>
+</tr>
+<tr>
+<td>Tasks started as any finishes, joining workers used, threads shared (unreleased)</td>
+<td>On Rapthor's path with four Dask workers: dense cell 0.993, sparse cell 0.978, dense 2,048² LOFAR image 0.975; 14 of 15 rounds faster; products identical</td>
+<td>21 November, <code>one-sector-scaling/any-order</code></td>
+</tr>
+<tr>
+<td>Completion records read by row of tiles (unreleased)</td>
+<td>10,000² anchor on four Dask workers 0.979, every round faster (429.7 to 420.8 s); a window's records parse in 3.2 ms instead of 311 ms at 15,402²</td>
+<td>21 November, <code>one-sector-scaling/row-records</code></td>
+</tr>
+<tr>
+<td>Catalogue write and component-group joins in linear time (unreleased)</td>
+<td>On Rapthor's path with four Dask workers: dense cell 0.905, every round faster (378.8 to 343.0 s); sparse cell 0.999; products identical</td>
+<td>21 November, <code>one-sector-scaling/driver-cuts</code></td>
+</tr>
+<tr>
+<td>Dense cell, stage profile, one run a worker count</td>
+<td>1,176, 681, 447 and 380 s on 1, 2, 4 and 6 Dask workers, a serial share of 18%. Largest stages: component fits, the two background and RMS passes, the multiscale pass</td>
+<td>21 October, <code>just profile-scaling</code> run <code>step3-elais-n1-deep-north-3600-5000</code></td>
+</tr>
+<tr>
+<td>The whole dense 14,175² ELAIS-N1 sector, Serial</td>
+<td>2.0 h at 0.22.0, against 8.5 h on 11 October</td>
+<td>17 October, <code>lsmtool-check-elais-n1-t022-continuum-2</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="../performance-profile/">performance profile</a> has the stage shares and
+memory figures.</p>
+<h2 id="scalability">Scalability</h2>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Latest</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public envelope</td>
+<td>22,500 pixels a side (19 October)</td>
+<td>22,500² for 1.0.0; 45,000² locally and 90,000² on the cluster later</td>
+</tr>
+<tr>
+<td>Traced allocation peak, Serial</td>
+<td>1,489 MiB at 10,000², 1,693 MiB at 15,402² (24 October) and 1,873 MiB on the whole 22,500² mosaic (19 October)</td>
+<td>Bounded by the tile</td>
+</tr>
+<tr>
+<td>Growth beyond one tile</td>
+<td>About 3.6 bytes a pixel on the 22,500² mosaic, mostly the background's local-noise requests, now submitted in 64 MiB rounds; the new peak is not yet traced</td>
+<td>Bounded before the 45,000² tier</td>
+</tr>
+<tr>
+<td>Peak RSS</td>
+<td>10,000² anchor at 0.25.0: Serial 2,973 MiB (0.24.0: 2,855); largest Dask worker 2,283 MiB (0.24.0: 2,040), a trade-off accepted on 12 November. Whole 22,500² mosaic: 4,105 MiB Serial</td>
+<td>–</td>
+</tr>
+<tr>
+<td>Scratch disk</td>
+<td>Up to 49 GiB for the whole 22,500² mosaic, about 100 bytes a pixel of uncompressed Zarr intermediates (19 October)</td>
+<td>Shrunk before the 45,000² tier, which would need about 200 GiB</td>
+</tr>
+<tr>
+<td>Tiling and executor invariance</td>
+<td>Byte-identical products from one tile and the 11×11 grid, and under Serial, Thread and Dask, including the whole 15,402² mosaic</td>
+<td>Exact</td>
+</tr>
+<tr>
+<td>Memory admission</td>
+<td>Every task declares its memory, and on the whole 22,500² mosaic every round's largest task holds at most 0.78 of its declaration (19 October)</td>
+<td>Bounded by the tile</td>
+</tr>
+<tr>
+<td>Analysis memory</td>
+<td>About 142 MiB plus 42 KB a source and a few bytes a pixel, which <code>hebog.analysis_memory_bytes</code> states; every traced run held at most 0.76 of it (19 October). <code>hebog.expected_source_count</code> bounded the published count on all 21 cases it was checked on</td>
+<td>Bounded before the 45,000² tier</td>
+</tr>
+<tr>
+<td>Declared limit</td>
+<td>An object wider than a task's read budget is reduced on the driver; no real LoTSS-DR3 object comes within a factor of ten of the budget</td>
+<td>Deferred until a tier's traced peak shows it</td>
+</tr>
+<tr>
+<td>Beyond one machine</td>
+<td>Not run</td>
+<td>The cluster benchmark</td>
+</tr>
+</tbody>
+</table>
+<h2 id="engineering-health">Engineering health</h2>
+<p>These guard against erosion; they do not establish parity or readiness.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Latest</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Portable suite</td>
+<td>4,105 passed, 97.50% branch-aware coverage against an 80% floor (5 November, <code>just ci</code> in the 0.25.0 release check)</td>
+</tr>
+<tr>
+<td>Equivalence lane</td>
+<td>39 tests, including <code>find_sources</code> against both PyBDSF references under both profiles</td>
+</tr>
+<tr>
+<td>CI matrix</td>
+<td>Linux, macOS and Windows on Python 3.12 to 3.14, plus lowest-dependency and container checks required on <code>main</code></td>
+</tr>
+<tr>
+<td>Architecture</td>
+<td>Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package, and Dask is confined to <code>executors/</code> and the excluded <code>validation/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="keeping-this-page-current">Keeping this page current</h2>
+<p>Update this page in the same change as the plan's summary of how far 1.0.0 is: after
+a release check, a gate run, a new quick-check baseline or a repaired defect.
+Replace stale figures rather than adding to them, and record each figure's
+date and run label; Git history keeps earlier figures. The figures come from
+<code>just quick-science-check</code>, <code>just quick-benchmark</code>, <code>just traced-peak</code> and
+<code>just test-equivalence</code>, described in <a href="../../how-to/">Contribute to Hebog</a>,
+with evidence kept in versioned records or controlled storage.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../explanation/developer-faq/" class="md-footer__link md-footer__link--prev" aria-label="Previous: FAQ for developers and architects">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                FAQ for developers and architects
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../how-to/integrate-into-a-pipeline/" class="md-footer__link md-footer__link--next" aria-label="Next: Integrate Hebog into a pipeline">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Integrate Hebog into a pipeline
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/gemmadanks/hebog" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascript/readthedocs.js"></script>
+      
+    
+  </body>
+</html>
