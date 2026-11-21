@@ -39,8 +39,8 @@ for its checks when `DC_Maj` is under 10 arcsec and both errors are under
 Gaussian's values, so it passes the cuts as a `compact` row does; a source
 of several components has no position error and no deconvolved size, so
 Rapthor leaves it out of those checks. On the agreement check's cases that dropped
-151 to 168 sources pinned PyBDSF `master` keeps; under `compact`, the profile
-Rapthor runs, every source is one Gaussian. A source whose fit is not
+151 to 168 sources pinned PyBDSF `master` keeps; under `compact` every source
+is one Gaussian. A source whose fit is not
 significantly extended publishes `DC_Maj` 0 however wide the fit, so it
 passes the 10-arcsec cut: every profile published about 1,700 such rows
 from fits of 10 arcsec or more, against `master`'s 439, and `compact` with
@@ -67,7 +67,7 @@ The writer uses a same-directory temporary file, validates the closed FITS
 product before publication, adds deterministic FITS checksums, reuses an
 identical destination on retry, and rejects conflicting existing bytes. The
 reader rejects a table whose columns, units or types differ from the schema
-above and translates an unreadable file into the codec's own error.
+above and reports an unreadable file as a `ValueError`.
 
 Per-channel catalogue columns used by later Rapthor flux normalization,
 complete sky-model filtering, and orchestration are not part of this

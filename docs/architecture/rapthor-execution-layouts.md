@@ -16,14 +16,15 @@ in-process on the Dask worker that runs it, then LSMTool's `filter_sources`.
 Hebog never starts a cluster or a process pool. Rapthor starts its workers
 with one thread each, because Prefect cannot run two tasks safely in one
 worker process. A Dask worker runs as many tasks at once as it has threads,
-so a node's cores reach Hebog either as threads inside the filter task, or
-as Dask task slots: more workers, or more threads a worker.
+so a node's cores reach Hebog either as worker processes the filter task
+starts for Hebog's tasks, or as task slots on Rapthor's own cluster: more
+workers, or more threads a worker.
 
 | Layout | Hebog's executor | Cores one sector can use (192-core nodes) | Status |
 | --- | --- | --- | --- |
-| 1. One node, one worker | Thread executor in the task | Up to 192, in one Python process | Rapthor's `local_dask` today |
-| 2. One node, several single-threaded workers | Rapthor's client | One per worker | `local_dask_workers` today, with two problems |
-| 3. Several nodes, one single-threaded worker each | Thread executor in the task | Up to 192, on one node; on the client, one per node | Rapthor's `external_dask` today |
+| 1. One node, one worker | `DaskExecutor` on single-threaded worker processes the task starts, one a core | Up to 192, in separate processes | Rapthor's `local_dask` today |
+| 2. One node, several single-threaded workers | Rapthor's client | One per worker | `local_dask_workers`; running on Rapthor's client is later work and has two problems |
+| 3. Several nodes, one single-threaded worker each | `DaskExecutor` on worker processes the task starts | Up to 192, on one node; on the client, one per node | Rapthor's `external_dask` today |
 | 4. Several workers a node, each with several threads | Rapthor's client | Every core no other task holds, on every node | One way for Rapthor to provide what Hebog needs |
 
 ## What Hebog needs from any cluster
@@ -49,10 +50,13 @@ gives a sector.
 ## 1. One node, one worker
 
 Rapthor's `local_dask` default starts one worker process with one thread.
-Rapthor passes a thread executor, which runs inside the filter task, sized
-to the node's cores. There is no scheduler traffic, which suits small and
-medium images, but every thread shares one Python process, so stages that
-run Python rather than NumPy and SciPy code do not gain from more threads.
+With more than one core, the filter task starts a local Dask cluster of
+single-threaded worker processes, one a core of its request, passes a
+`DaskExecutor` on it and closes it when Hebog returns. Separate processes
+do not share Python's global lock, so on four cores they took about half a
+`ThreadExecutor`'s time. With one core, under Rapthor's synchronous test
+runner, or on a daemonic worker, which cannot start processes, the task
+passes a `ThreadExecutor` instead.
 
 ```mermaid
 flowchart TB
@@ -61,22 +65,22 @@ flowchart TB
         subgraph worker["Worker process (1 thread)"]
             task["Prefect task: filter_skymodel"]
             hebog["Hebog: find_sources"]
-            threads["Thread executor: tile batches on N threads"]
-            task --> hebog --> threads
+            local["Local cluster the task starts:<br/>N single-threaded worker processes"]
+            task --> hebog --> local
         end
         scheduler --> worker
     end
 ```
 
-This is also how Hebog runs standalone on a local machine, with the Serial
-or Thread executor and no Dask at all.
+Standalone on a local machine, Hebog runs the same way with a Serial or
+Thread executor and no Dask at all, or on a local cluster the user starts.
 
 ## 2. One node, several single-threaded workers
 
 With `local_dask_workers` set, Rapthor starts several worker processes of
-one thread each. Rapthor passes its client: the filter task submits
-tile tasks, and Dask places one on each free worker. Separate processes do
-not share Python's global lock.
+one thread each. Were Rapthor to pass its client, the filter task would
+submit tile tasks and Dask would place one on each free worker. Today the
+task starts its own worker processes, as in layout 1.
 
 ```mermaid
 flowchart TB
@@ -101,34 +105,35 @@ flowchart TB
     end
 ```
 
-As Rapthor sets it up today, two things go wrong. The waiting filter task
-holds its worker's only thread, so Hebog steps out of the slot (`secede`)
-while it waits, or several sectors could leave no thread free for their
-tile tasks; Rapthor must then request no core resource for the task. And Dask counts a DP3 or WSClean command as one task like
-any other, so a command that uses many cores can run beside other commands
-or Hebog's tiles on the same node. Layout 4 removes both.
+Two things go wrong on Rapthor's client in this layout. The waiting filter
+task holds its worker's only thread, so Hebog steps out of the slot
+(`secede`) while it waits, or several sectors could leave no thread free
+for their tile tasks; Dask keeps a seceded task's resources, so Rapthor
+must then request no core resource for the task. And Dask counts a DP3 or
+WSClean command as one task like any other, so a command that uses many
+cores can run beside other commands or Hebog's tiles on the same node.
+Layout 4 removes both.
 
 ## 3. Several nodes, one single-threaded worker each
 
 Rapthor's `external_dask` layout runs one single-threaded worker a node.
-Hebog has two choices, and neither uses the cluster:
+Hebog has two choices, and neither uses the whole cluster:
 
 - on Rapthor's client, every node's worker runs one tile at a time, so ten
   nodes run ten tiles in parallel: ten cores of 1,920;
-- with a thread executor inside the filter task, up to 192 threads run on
-  the node that holds the task, in one Python process, while the other
-  nodes run nothing for Hebog.
+- on worker processes the filter task starts, up to 192 run on the node
+  that holds the task, while the other nodes run nothing for Hebog.
 
-Rapthor passes the thread executor here, because one node's threads beat
-one core a node. Once each node has several task slots, as in layout 4,
-Rapthor retires this path and every sector runs on its client.
+The task starts its own worker processes here, because one node's cores
+beat one core a node. Once each node has several task slots, as in layout
+4, Rapthor retires this path and every sector runs on its client.
 
 ```mermaid
 flowchart TB
     scheduler["Dask scheduler"]
     subgraph n1["Node 1"]
         subgraph w1["Worker (1 thread)"]
-            task["Prefect task: filter_skymodel<br/>Hebog thread executor, N threads"]
+            task["Prefect task: filter_skymodel<br/>Hebog on N worker processes the task starts"]
         end
     end
     subgraph n2["Node 2"]
