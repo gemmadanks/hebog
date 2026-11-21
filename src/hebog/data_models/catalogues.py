@@ -375,12 +375,12 @@ class SourceCatalogue(_CatalogueModel):
 
     def _validate_relationships(self) -> None:
         """Require every source and component relationship to resolve."""
-        islands_by_id = {island.island_id: island for island in self.islands}
+        # A set, not the keys of a dict: subtracting a dict's keys from a set
+        # iterates every key, which made this check quadratic in the islands.
+        island_ids = {island.island_id for island in self.islands}
         sources_by_id = {source.source_id: source for source in self.sources}
         for source in self.sources:
-            if {source.island_id, *source.additional_island_ids} - (
-                islands_by_id.keys()
-            ):
+            if {source.island_id, *source.additional_island_ids} - island_ids:
                 raise ValueError("source references an unknown island")
         for component in self.gaussian_components:
             source = sources_by_id.get(component.source_id)

@@ -201,6 +201,23 @@ def test_source_can_explicitly_associate_components_across_islands() -> None:
     assert catalogue.sources[0].additional_island_ids == ("island-00002",)
 
 
+def test_source_additional_islands_must_be_in_the_catalogue() -> None:
+    """An associated island the catalogue does not list fails closed."""
+    document = _document(_source())
+    document["additional_island_ids"] = ("island-00002",)
+
+    with pytest.raises(ValidationError, match="unknown island"):
+        SourceCatalogue.create(
+            catalogue_id="catalogue-cross-island",
+            coordinate_frame="icrs",
+            position_epoch="J2000.0",
+            reference_frequency_hz=150_000_000.0,
+            islands=(_island(),),
+            sources=(SourceCandidate.model_validate(document),),
+            gaussian_components=(_component(),),
+        )
+
+
 @pytest.mark.parametrize("flux", (-0.02, 0.0))
 def test_island_signed_sum_is_not_a_source_flux_admission(flux: float) -> None:
     """A detected support region survives an unmeasurable signed flux."""

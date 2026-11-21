@@ -296,6 +296,67 @@ def test_catalogue_fits_round_trip_preserves_major_only_deconvolution(
         assert np.isnan(row["DECONVOLVED_POSITION_ANGLE"])
 
 
+def test_catalogue_reader_reads_columns_not_row_fields(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reading reads each column once, not every field of every row.
+
+    A dense sector's catalogue holds tens of thousands of rows of about
+    forty fields; reading them field by field took seconds on the driver.
+    """
+    original = _catalogue()
+    island = original.islands[0]
+    source_payload = original.sources[0].model_dump(mode="python")
+    component_payload = original.gaussian_components[0].model_dump(
+        mode="python"
+    )
+    sources = tuple(
+        SourceCandidate.model_validate(
+            source_payload
+            | {
+                "source_id": f"source-{index:05d}",
+                "fitted_shape": _shape() if index % 2 else None,
+                "quality_flags": () if index % 3 else ("deblended",),
+            }
+        )
+        for index in range(1, 6)
+    )
+    components = tuple(
+        GaussianComponent.model_validate(
+            component_payload
+            | {
+                "gaussian_component_id": f"gaussian-component-{index:05d}",
+                "source_id": source.source_id,
+            }
+        )
+        for index, source in enumerate(sources, start=1)
+    )
+    catalogue = SourceCatalogue.create(
+        catalogue_id=original.catalogue_id,
+        coordinate_frame=original.coordinate_frame,
+        position_epoch=original.position_epoch,
+        reference_frequency_hz=original.reference_frequency_hz,
+        islands=(island,),
+        sources=sources,
+        gaussian_components=components,
+    )
+    path = tmp_path / "catalogue.fits"
+    write_catalogue_fits_product(path, catalogue)
+    row_field_reads = 0
+    read_row_field = fits.FITS_record.__getitem__
+
+    def counting_read(record: fits.FITS_record, key: object) -> object:
+        nonlocal row_field_reads
+        row_field_reads += 1
+        return read_row_field(record, key)
+
+    monkeypatch.setattr(fits.FITS_record, "__getitem__", counting_read)
+
+    assert read_catalogue_fits_product(path) == catalogue
+    assert row_field_reads == 0
+
+
 def test_empty_catalogue_is_a_structurally_complete_fits_product(
     tmp_path: Path,
 ) -> None:
