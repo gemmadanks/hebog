@@ -30,7 +30,8 @@ unchanged.
   products across Serial, Thread and Dask, tiling invariance and an
   unchanged quick check.
 - The 10,000² anchor's local Dask curve falls below run `task74-stack`
-  (429 s on six workers).
+  (429 s on six workers), with the serial term at or below the model's
+  target; every driver step has its own timer in the scaling profile.
 - The dense and sparse cells' matched ratios, and the Dask path's CPU
   overhead, are measured again after the last increment.
 

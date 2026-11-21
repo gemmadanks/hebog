@@ -14,7 +14,7 @@ are in [capability and status](release-status.md).
 | **Telescopes:** FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR2 and DR3) and SKA-Mid (SDC1) images run, and MeerKAT MIGHTEE images fit the envelope. Beams wider than 10 pixels are refused; real Rapthor images have at most about 7. SKA-Low precursor data (GLEAM-X) needs the later 45,000-pixel tier. | In progress |
 | **Functionality:** a feature-flagged backend for Rapthor's `filter_skymodel` step | All 12 frozen public behaviours are implemented under the Serial, Thread and Dask executors. The Rapthor adapter writes the files Rapthor's step reads, and Rapthor's Hebog branch calls it, with a PyBDSF fallback and dual runs. | On a Rapthor branch; not merged |
 | **Science:** a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF `master` | Rapthor's profile (`continuum` with a zero background) passes the truth-based gate: it loses 0.10% of the real components `master` keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain. | Development evidence only |
-| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (provisionally 10,000 sources or more) and at most 1.05 on the rest, on one node and across nodes | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. Projected, 0.25.0 on Dask workers meets every limit on one cluster node (0.30 on the dense cell, 0.52 to 1.03 on sparse sectors), provided `master` uses only four cores of a dense sector's node. | Dense gate and parity failing |
+| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (provisionally 10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. Projected, 0.25.0 on Dask workers meets every limit on one cluster node (0.30 on the dense cell, 0.52 to 1.03 on sparse sectors), provided `master` uses only four cores of a dense sector's node. | Dense gate and parity failing |
 | **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | 22,500² is admitted (19 October). Products are identical across tilings and executors. Nothing has run beyond one machine. | Size met; cluster not run |
 | **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.25.0 (9 November) is on PyPI with attestations; its release check left catalogue, RMS and mask unchanged from 0.24.0. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
 
@@ -115,9 +115,10 @@ change that moves either fails CI and has to be explained:
 
 Rapthor keeps a sky-model component where the finder's mask is set at its
 position. `just rapthor-agreement` (run `cap3`, 18 October) compares each
-finder with known truth and with pinned `master` over 20,369 components: the
-quick check's cases with a `master` reference, a 3,000² LoTSS-DR3 window and
-the ELAIS-N1 true-sky and apparent images at 2,048². A component is real when
+finder with known truth and with pinned `master` over every distinct pixel
+holding a Gaussian centre that `master` or any Hebog lane fitted: 20,369 on
+the quick check's cases with a `master` reference, a 3,000² LoTSS-DR3 window
+and the ELAIS-N1 true-sky and apparent images at 2,048². A component is real when
 it lies on the ideal mask of a generated image, or at least 7 times the
 negative-pixel noise above zero on a real one.
 
@@ -271,7 +272,8 @@ conservative by 3 to 9 s, so a floor a little above it can still pass.
 
 Native runs, without PyBDSF. Ratios between versions or settings are
 medians of five alternating runs a side, with 95% bootstrap bounds where
-given. The stage profile and the whole-sector times are single runs.
+given, and the Serial anchors are medians of five runs. The stage profile
+and the whole 14,175² sector are single runs.
 
 | Measurement | Latest | Date and source |
 | --- | --- | --- |

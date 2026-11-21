@@ -171,6 +171,8 @@ sampled, split or moved to a less frequent level, never silently extended:
   check and, for performance changes, the quick benchmark's default tier.
 - **Release check (about 1 hour):** the change check, Serial/Dask agreement
   on the largest anchor that fits (10,000² today) and the installed wheel.
+  The quick benchmark's large tier runs for profiling and before a release
+  that claims a runtime change, never waited on otherwise.
 - **Tier gate (up to a day, unattended):** the
   [envelope gate](#the-deployment-envelope-and-gate) on a new tier's anchor.
 - **1.0.0 qualification (once):** one powered science study, overnight on
