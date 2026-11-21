@@ -7,7 +7,8 @@
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://github.com/gemmadanks/hebog/blob/main/LICENSE)
 
 Hebog is a scalable source finder for radio continuum images. It is
-**experimental**, and runs in a single process or on a Dask cluster. For each FITS image it:
+**experimental**, and runs in a single process or on a Dask cluster you own.
+For each FITS image it:
 
 1. estimates the background and noise;
 2. detects compact and extended emission;
@@ -18,9 +19,9 @@ Hebog is a scalable source finder for radio continuum images. It is
 [How Hebog finds sources](https://open-research.gemmadanks.com/hebog/explanation/how-hebog-works/)
 explains each step with diagrams.
 
-Hebog aims to be a fast, scalable source finder that is easily integrated into
-next generation radio astronomy data processing pipelines such as
-[Rapthor](https://github.com/darafferty/rapthor). It can also be used on its own from Python.
+Hebog is built to be integrated into radio astronomy processing pipelines such
+as [Rapthor](https://github.com/darafferty/rapthor), and runs on its own from
+Python.
 
 ## Status
 
@@ -45,10 +46,9 @@ telescope, Rapthor, science, performance, scalability and release goals.
 
 ## Installation
 
-Hebog is experimental: `0.x` releases can change the API, the outputs and
-the measurements, so pin the exact version. Install it from
-[PyPI](https://pypi.org/project/hebog/) into a Python 3.12 to 3.14
-environment (releases before 0.22.0 are on GitHub only):
+Install the exact version from [PyPI](https://pypi.org/project/hebog/) into
+a Python 3.12 to 3.14 environment (releases before 0.22.0 are on GitHub
+only):
 
 <!-- x-release-please-start-version -->
 
@@ -113,8 +113,10 @@ just --list   # all test, documentation and packaging commands
 ```
 
 Contributions use [Conventional Commits](https://www.conventionalcommits.org/).
-[AGENTS.md](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md) describes
-the project's working rules, test suites and review checklist.
+[AGENTS.md](https://github.com/gemmadanks/hebog/blob/main/AGENTS.md) holds
+the working rules and
+[CODE_REVIEW.md](https://github.com/gemmadanks/hebog/blob/main/CODE_REVIEW.md)
+the review checklist.
 
 ## Citation and licence
 

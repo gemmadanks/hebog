@@ -41,16 +41,15 @@ choice. Hebog measures the one image it is given: it applies no primary-beam
 correction and cannot detect on one image while measuring on another, so
 fluxes from an apparent-sky image stay apparent. A primary-beam-corrected
 image is accepted, but its noise rises towards the edge of the beam; check
-the RMS image there. Hebog does not
-[combine](../reference/release-status.md#integration-status) a corrected
-image with a flat-noise one.
+the RMS image there. Of an optional flat-noise image Hebog publishes
+[only the RMS map](../reference/release-status.md#integration-status).
 
 ### Are 5σ, 3σ and seven pixels defaults?
 
 No. `SourceFinderConfig` has no default detection threshold, island
 threshold or minimum island size; the tutorial's values are an example, not
-a recommendation. Only the profile (`continuum`) and the absent maximum
-island size have defaults. The minimum island size counts pixels, so what it
+a recommendation. Only the profile (`continuum`), the background
+(`estimated`) and the absent maximum island size have defaults. The minimum island size counts pixels, so what it
 means in beams depends on how finely the image samples the beam: a beam
 covers 1.13 FWHM² pixels, so seven pixels is about a quarter of a beam whose
 FWHM spans five. Choose the settings for your data and measure their

@@ -98,7 +98,9 @@ separately:
   a primary-beam-corrected image, is extended.
 
 In the reviewed `continuum` profile the coarse grid uses 150-pixel windows
-every 50 pixels and the fine RMS grid 35-pixel windows every 7 pixels.
+every 50 pixels, shrunk in proportion on an image whose shorter side is
+under 600 pixels so that a window spans at most a quarter of it, and the
+fine RMS grid 35-pixel windows every 7 pixels.
 Windows that overlap protected sources are dropped and each gap takes the
 value of its nearest clean window. A window whose clipped spread is no
 greater than single precision's resolution at its brightest valid value
@@ -147,8 +149,9 @@ protect only the bright source's own emission, so in such a field they
 would read a neighbouring extended source as noise and cut into its side
 nearest the bright source.
 
-Background refinement around bright sources is triggered at 75σ, or at your
-detection threshold if your island threshold is higher than that. This never
+Background refinement around bright sources is triggered at 75σ, or, in the
+`continuum` profile, at your detection threshold if your island threshold
+is 75σ or more. This never
 changes your detection or island thresholds. Noise structure finer than the
 grid is not measured.
 

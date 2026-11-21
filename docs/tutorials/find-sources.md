@@ -1,8 +1,8 @@
 # Find sources in a FITS image
 
 In this tutorial you run Hebog on one radio continuum image and read the
-catalogue it produces. It takes a few minutes and needs only
-[an installed Hebog](index.md) and a FITS image.
+catalogue it produces. It needs [an installed Hebog](index.md) and a FITS
+image.
 
 No image to hand? From a [source checkout](../how-to/index.md#set-up-a-source-checkout),
 `uv run marimo edit notebooks/source_finder_demo.py` generates a small
@@ -24,18 +24,18 @@ Hebog accepts one two-dimensional FITS image. The image needs:
   example with `astropy.nddata.Cutout2D`.
 
 The unit, beam and frequency may instead be supplied with the request when
-the header omits them, as the next section shows. NaN pixels are allowed and
-ignored, as are integer pixels equal to `BLANK` and every pixel of a 3×3
-square of one repeated value, such as zero padding. If anything else is missing, Hebog stops with an error that names
-the problem before writing any output. The
+the header omits them, as the next section shows. NaN pixels are ignored, as
+are integer pixels equal to `BLANK` and every pixel of a 3×3 square of one
+repeated value, such as zero padding. If anything else is missing, Hebog
+stops with an error that names the problem before writing any output. The
 [input header contract](../reference/input-header-contract.md) lists what
 Hebog reads from each keyword and what common imagers write.
 
 ### Supply missing header values
 
-Some published images omit a keyword. LOFAR-HD mosaics carry no reference
-frequency, the SKA Science Data Challenge 1 images have no `BPA`, and SKA SDP
-exports have no `BUNIT`. Supply only what is missing:
+Some published images omit a keyword: LOFAR-HD mosaics carry no reference
+frequency, the SKA Science Data Challenge 1 images no `BPA`, and SKA SDP
+exports no `BUNIT`. Supply only what is missing:
 
 ```python
 supplied = hebog.SuppliedImageMetadata(reference_frequency_hz=144e6)
@@ -130,7 +130,7 @@ Hebog publishes three related populations:
 - a **source** groups one or more components that Hebog considers a single
   object.
 
-Two points often surprise new users:
+Two points to note:
 
 1. **A source has two fluxes.** `INTEGRATED_FLUX` is the sum of the
    source's fitted Gaussian components, the same definition PyBDSF uses.
@@ -155,10 +155,10 @@ thing: Hebog has not yet been qualified for survey use.
 ## If the catalogue is empty
 
 An empty catalogue with `result.rms.scientific_status == "unavailable"` means
-Hebog found no usable noise estimate, which can mean a noiseless simulated
-image. It does **not** mean the sky is empty. Add realistic noise and run
-again: a noiseless image is not always reported this way, and may instead
-be measured against a tiny noise from its sources' far tails.
+Hebog found no usable noise estimate, as on a noiseless simulated image. It
+does **not** mean the sky is empty. Add realistic noise and run again: a
+noiseless image is not always reported this way, and may instead be measured
+against a tiny noise from its sources' far tails.
 
 ## Next steps
 
