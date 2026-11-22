@@ -31,19 +31,17 @@ source-finding part of Rapthor's `filter_skymodel` step from the task's
 start to LSMTool's `filter_sources` call, which the finder controls. The
 upper one-sided 95% bound of the Hebog/PyBDSF median wall-time ratio must
 be at most 0.50 on a dense sector, provisionally one where `master` finds
-at least 10,000 sources, and at most 1.05 on the rest (decision of
-18 October 2026). The record holds both limits and the threshold, and the
+at least 10,000 sources, and at most 1.05 on the rest. The record holds both limits and the threshold, and the
 matched benchmark classes each sector by the sources in `master`'s
 catalogue, which every measured run must agree on. The complete step,
 whose LSMTool filtering is the same for either finder, is reported beside
-it and never gated (decision of
-16 October 2026). Released 1.14.1 is checked once before 1.0.0 and is not a
+it and never gated. Released 1.14.1 is checked once before 1.0.0 and is not a
 gate in this file. The
 [matched benchmark](../how-to/index.md#run-the-matched-filter_skymodel-benchmark)
 applies this rule to both finders in one container.
 The [quick benchmark](../how-to/index.md#run-the-quick-benchmark) reads its
 repetition counts, the regression rule and the confidence level from this
-file; its `master` ratio is diagnostic, with no outcome, because the
+file; its `master` ratio is diagnostic, with no pass or fail outcome, because the
 environments are not matched and its cases are not classed.
 
 The warm one-tile framework budgets are 250 ms for configuration, 500 ms for
@@ -87,11 +85,13 @@ worker-local NVMe, and normal-run spill stays below 5% of logical input
 bytes. Qualification records the actual facility topology and never scales
 worker limits past admitted RAM to make a run pass.
 
-Candidate square tile cores are 2,048, 4,096 and 8,192 pixels; an image
-of at most eleven 1,024-pixel cores a side, whose 2,048-pixel tiles would
-leave an executor's task slots waiting, tiles on 1,024-pixel cores. A
-stage halo stays below a quarter of its core, or the stage selects a larger
-core or records a contract change. Batch sizing chooses the largest
+The contract lists candidate square tile cores of 2,048, 4,096 and 8,192
+pixels; the stages use 2,048-pixel cores, halved to 1,024 only when more
+than one task slot would otherwise lack work, halving adds tiles, the
+smaller core is at least ten stage halos wide and the image is at most
+eleven such cores a side; see
+[Tile cores from the core budget](../architecture/distributed-execution.md#tile-cores-from-the-core-budget). A stage halo stays
+below a quarter of its core, or the stage records a contract change. Batch sizing chooses the largest
 stage-valid batch below the pessimistic memory limit, then reduces batch
 size before the tile core. Resource choices never alter core ownership or
 scientific results.
@@ -102,10 +102,9 @@ Strong-scaling qualification preserves every result at 1, 10, 50, 100 and
 200 nodes, with provisional maximum complete runtimes of 3,600, 600, 180, 120
 and 90 seconds, scheduler overhead at most 10% of the critical path and at
 most 50,000 tasks in the graph. Occupancy and strong/weak efficiency floors
-are recorded per topology in the machine-readable contract. The plan's task
-27 amends this to the development-machine tier and the 1.0.0 cluster
-benchmark of one Rapthor sector at 1, 2, 5 and 10 nodes, keeping the larger
-node counts as design targets.
+are recorded per topology in the machine-readable contract. Qualification
+for 1.0.0 covers the development machine and one Rapthor sector at 1, 2, 5
+and 10 nodes; larger node counts remain design targets.
 Only controlled multi-node evidence in the versioned evidence schema can
 demonstrate these gates.
 

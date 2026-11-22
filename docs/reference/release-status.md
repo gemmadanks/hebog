@@ -1,9 +1,9 @@
 # Capability and status
 
 Hebog is a scalable source finder for radio continuum images. It is
-**experimental**: it runs a complete standalone analysis on the inputs below, but is not
-scientifically qualified for survey use and is not a production Rapthor
-backend.
+**experimental**: it runs a complete standalone analysis on the inputs below,
+but is not scientifically qualified for survey use and is not a production
+Rapthor backend.
 
 This page describes the source checkout, which can be ahead of the latest
 [release](https://github.com/gemmadanks/hebog/releases). Pin an exact `0.x`
@@ -25,19 +25,18 @@ version when results must be repeatable.
 | Execution | `SerialExecutor`, `ThreadExecutor`, or `DaskExecutor` with a client you own. Dask workers need the image and the output directory's parent on shared storage. All must give the same products. On Windows, threads of one process take turns at FFT convolutions, because SciPy's Windows wheels share an unlocked FFT plan cache. |
 | Output | A new directory with `catalogue.fits`, `rms.fits`, `source-mask.fits` and `diagnostics.json`, and `flat-noise-rms.fits` when the request names the sector's flat-noise image. Existing directories are never overwritten. |
 
-Every scientific step runs on bounded tiles through the executor, an image
+Every scientific step runs on bounded tiles through the executor. An image
 larger than 2,048 pixels on either side, or 1,024 when the executor has more
 workers or threads than 2,048-pixel tiles can keep busy, is reconciled across
 several tiles rather than held as one, and the driver holds no image-sized
-plane. The
-size limit rises one tier at a time, as each tier's memory and invariance
-evidence is measured. A serial run of the whole 22,500² LOFAR-HD ELAIS-N1
+plane. The size limit rises one tier at a time, as each tier's memory and
+invariance evidence is measured. A serial run of the whole 22,500² LOFAR-HD ELAIS-N1
 mosaic allocates at most 1.8 GiB, almost all of it what the analysis holds
 between tasks, which grows with the image, and keeps about 50 GiB of
 intermediate planes on disk. Bounding both is planned before much larger
 images are admitted. A four-worker local Dask cluster finishes the 10,000²
-LoTSS-DR3 anchor in about 0.4 of the serial time, with identical products. Threads in one
-process barely speed a run up, because Python's global lock holds them:
+LoTSS-DR3 anchor in about 0.4 of the serial time, with identical products. Threads in
+one process barely speed a run up, because Python's global lock holds them:
 twelve took 0.84 of one thread's time on that anchor. Run in parallel with
 Dask workers in separate processes.
 
@@ -164,7 +163,7 @@ equivalence with another finder, qualification for a survey, support beyond
 the table above, Rapthor integration, a demonstrated speed advantage, or
 compatibility with later releases.
 
-Releases are tagged on GitHub and, from 0.22.0,
+Releases are tagged on GitHub and
 [published to PyPI](../how-to/publish-releases.md), so that Rapthor's
 optional Hebog dependency installs normally. Being on PyPI changes none of
 the above: every `0.x` release is experimental.

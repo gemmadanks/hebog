@@ -14,9 +14,9 @@ checksum; and strict fields that reject unknown data.
 
 ## Benchmark evidence
 
-A benchmark document identifies the measured implementation by version
-and/or 40-character commit, container image digest where available and a
-checksum of the complete installed dependency inventory, with related
+A benchmark document identifies the measured implementation by at least one
+of its version, 40-character commit, container image digest and source-tree
+checksum, and by a checksum of the complete installed dependency inventory, with related
 Rapthor, LSMTool, Hebog or PyBDSF identities recorded separately; the
 environment has its own checksum so runs are never compared on display
 versions alone. Each repetition distinguishes warm-up from measured work and

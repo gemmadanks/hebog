@@ -76,6 +76,10 @@ flowchart TD
 
     adapters --> api --> stages --> science --> algorithms
     api --> public_science --> science
+    api --> algorithms
+    public_science --> algorithms
+    adapters --> io
+    adapters --> executors
     api --> io
     api --> executors
     stages --> executors
@@ -100,8 +104,8 @@ flowchart TD
 which layers each layer may import. An import outside it needs a named
 exemption with its reason, and the test fails when an exemption stops
 matching. The same test keeps Rapthor, Prefect and LSMTool out of the
-package, adapters included, and Dask inside `executors/`, apart from one
-named exemption: the execution profiler's local cluster in
+package, adapters included, and Dask inside `executors/`, apart from the
+named exemptions for the execution profiler's local cluster in
 `hebog.validation`, which wheels exclude.
 [ADR-009](adr/009-place-the-reviewed-science-below-the-stages.md) records
 why `science/` sits below `stages/`.

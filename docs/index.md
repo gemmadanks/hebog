@@ -1,15 +1,15 @@
 # Hebog
 
 Hebog is a scalable source finder for radio continuum images, and it is
-**experimental**. Given a FITS image it estimates the background and noise, detects compact and extended
-emission, fits Gaussians, and publishes a source catalogue, an RMS image, a
-source mask and diagnostics. The same code runs in a single process or across
-a Dask cluster that you already own.
+**experimental**. Given a FITS image it estimates the background and noise,
+detects compact and extended emission, fits Gaussians, and publishes a source
+catalogue, an RMS image, a source mask and diagnostics. The same code runs in
+a single process or on a Dask cluster you own.
 
 !!! warning "Status"
-    Hebog is not yet scientifically qualified and currently accepts images of
-    at most 22,500 pixels per side. Treat its output as measurements to
-    evaluate. See [capability and status](reference/release-status.md).
+    Hebog is not yet scientifically qualified and accepts images of at most
+    22,500 pixels per side. Treat its output as measurements to evaluate. See
+    [capability and status](reference/release-status.md).
 
 ## I am an astronomer
 
@@ -44,8 +44,8 @@ a Dask cluster that you already own.
 
 ## How this documentation is organised
 
-The documentation follows the [Diátaxis](https://diataxis.fr) framework. The
-**User guide** holds the tutorial, how-to guides, explanation and reference an
-astronomer needs. The **Developer guide** holds the same four kinds of page
-for people who integrate or extend Hebog. Significant architecture
-decisions live in [ADRs](architecture/adr/index.md).
+The documentation follows [Diátaxis](https://diataxis.fr). The **User
+guide** holds the tutorial, how-to guides, explanation and reference an
+astronomer needs; the **Developer guide** holds the same four kinds of page
+for people who integrate or extend Hebog. Architecture decisions live in
+[ADRs](architecture/adr/index.md).

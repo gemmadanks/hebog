@@ -19,9 +19,10 @@ result = hebog.find_sources(request, config, executor)
 | `SourceFinderRequest` | Input path, output directory, run identifier | yes |
 | `SourceFinderConfig` | Immutable scientific settings | yes |
 | executor | Where work runs; owned by you | no, create it in the calling process |
-| `SourceFinderResult` | Counts, timing, and four product records with path, size and SHA-256 | yes |
+| `SourceFinderResult` | Counts, timing, and a record of each product's path, size and SHA-256 | yes |
 
-The call reads one FITS image and publishes one directory of four files. It
+The call reads one FITS image, and an optional flat-noise companion, and
+publishes one directory of four files, or five with the companion's RMS. It
 holds no global state, starts no cluster and leaves no open files. Importing
 `hebog` does not import Dask.
 
@@ -126,8 +127,8 @@ dask.config.set(
 
 Reserve memory for the analysis itself too. In the process that calls it,
 `find_sources` holds Hebog's modules, the records every pass keeps for each
-source, about 40 KB each, and the background's noise grids, which grow with
-the pixels. `hebog.analysis_memory_bytes` states how much for the
+source, budgeted at 44 KB each, and the background's noise grids, which grow
+with the pixels. `hebog.analysis_memory_bytes` states how much for the
 image's shape and an upper estimate of the source count, which
 `hebog.expected_source_count` makes from the image at your detection
 threshold, reading it in bounded blocks. A deconvolution model's component
@@ -135,19 +136,30 @@ list is no such estimate: it holds many components for each source. When
 `find_sources` runs inside a Dask task, request it there:
 
 ```python
+from distributed import get_client
+
 import hebog
+from hebog.executors import DaskExecutor
+
+
+def run_on_this_cluster(request, config):
+    executor = DaskExecutor(
+        get_client(), memory_resource="memory", core_resource="cores"
+    )
+    return hebog.find_sources(request, config, executor)
+
 
 expected = hebog.expected_source_count(image_path, detection_threshold_sigma=5.0)
 reserve = hebog.analysis_memory_bytes((20_000, 20_000), expected_sources=expected)
-client.submit(run_finder, request, resources={"memory": reserve})
+client.submit(
+    run_on_this_cluster, request, config, resources={"memory": reserve, "cores": 1}
+)
 ```
 
-Request no core for that task. When its `DaskExecutor` submits to the
-cluster the task runs on, the analysis leaves its worker's thread pool
-while it waits on its tasks and rejoins it to continue, so several
-analyses cannot fill every thread and wait for good. Dask keeps a task's
-resources while it waits, so a core it requested would be one its own
-tasks could not use.
+The analysis leaves its worker's thread pool while it waits on its tasks
+and rejoins it to continue, so several analyses cannot fill every thread
+and wait for good. Dask keeps a task's resources while it waits, so the
+analysis holds its one core and its tasks share the rest.
 
 With a serial or thread executor the tasks run in the calling process, so
 reserve their admitted memory on top.
@@ -172,6 +184,7 @@ from hebog.executors import DaskExecutor
 
 
 def run_finder(request, config, task_bytes, cores):
+    """Analyse one image on worker processes this task starts."""
     share = task_bytes // cores
     memory_off = {
         f"distributed.worker.memory.{name}": False
@@ -284,7 +297,7 @@ fallback. Set `hebog_dual_run = True` to retain both filtered product sets
 and place their comparison in ordinary image diagnostics. The branch is not
 yet merged into Rapthor. The adapter and the branch's parset default to the
 `continuum` profile with a zero background, which passes the truth-based
-gate where `compact` does not; it is not yet a qualified Rapthor profile.
+gate where `compact` does not; it is not a qualified Rapthor profile.
 Running Hebog's tasks on Rapthor's own client needs a later worker-layout
 change.
 
