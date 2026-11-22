@@ -7,7 +7,7 @@ source-finding step, audited at the pinned revisions:
 | --- | --- | --- |
 | Rapthor | `main` at `aff26023` (17 October 2026) | Schedules the step; `master` is the CWL/Toil release line and not a target |
 | LSMTool | `master` at `156ae6a` (v1.9.0 plus 27 commits) | Runs the finder and filters the sky model |
-| PyBDSF | `master` at `c70103b` | The binding scientific and performance reference |
+| PyBDSF | `master` at `6ab4b6e` (21 November 2026) | The binding scientific and performance reference |
 
 The pins move forward only at the checkpoints the plan names. The page fixes what must be tested without requiring
 Hebog to copy PyBDSF internals, and a compatibility observation here is not

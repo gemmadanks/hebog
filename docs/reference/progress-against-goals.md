@@ -76,7 +76,7 @@ CLI tests and the broader native suite 94, and Rapthor's own suites pass 662
 
 Rapthor's catalogue cuts (`DC_Maj`, `E_RA`, `E_DEC`) pass a `continuum`
 source of one Gaussian, but a source of several components leaves those
-columns empty, so the cuts drop it: 151 to 168 sources that `master` keeps on
+columns empty, so the cuts drop it: 150 to 169 sources that `master` keeps on
 the agreement check's cases.
 
 ## Science
@@ -85,14 +85,15 @@ the agreement check's cases.
 
 The binding reference is pinned PyBDSF `master`: `6ab4b6e` from 21 November,
 when it gained a process pool, faster RMS and fitting and several science
-fixes. The figures below were measured against `c70103b` until they are
-measured again. Released 1.14.1 is checked once before 1.0.0. The limits are the plan's
+fixes. The agreement and quick checks use `6ab4b6e`; the equivalence lane's
+frozen catalogues and the flux calibration stay at `c70103b`. Moving the
+reference changed none of Hebog's outputs. Released 1.14.1 is checked once before 1.0.0. The limits are the plan's
 [scientific gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#scientific-gates).
 
 | Measurement | Target | Latest | Date and source |
 | --- | --- | --- | --- |
-| Rapthor retained/rejected components | Real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background (0.10 to 0.20% lost, 0.15 to 0.20% false islands). `compact` with a zero background fails (5.3% lost on extended sources, 3.8% at edges, 1.03% false islands). [Details below](#rapthor-profile-agreement) | 18 October, `just rapthor-agreement` run `cap3` |
-| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated case with compact truth, 0.998 on the crowded field | 9 October, quick check `release-0.19.0-rc2` |
+| Rapthor retained/rejected components | Real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background (0.10 to 0.20% lost, 0.15 to 0.20% false islands). `compact` with a zero background fails (4.5% lost on extended sources, 2.3% at edges, 1.03% false islands). [Details below](#rapthor-profile-agreement) | 22 November, `just rapthor-agreement` run `pybdsf-6ab4b6e` |
+| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated case with compact truth, 0.998 on the crowded field | 22 November, quick check `pybdsf-6ab4b6e` |
 | Isolated SNR ≥10 position, median / p95 | ≤0.02 / 0.10 beam | 0.0003 / 0.0005 (`continuum`), 0.0002 / 0.0006 (`compact`) | 6 October, equivalence lane |
 | Isolated SNR ≥10 peak flux, median / p95 | ≤2% / 5% | 0.17% / 0.21% (`continuum`), 0.04% / 0.13% (`compact`) | same |
 | Isolated SNR ≥10 `Total_flux`, median / p95 | ≤5% / 10% | 0.09% / 0.51% | 5 October, equivalence lane |
@@ -113,9 +114,9 @@ change that moves either fails CI and has to be explained:
 ### Rapthor-profile agreement
 
 Rapthor keeps a sky-model component where the finder's mask is set at its
-position. `just rapthor-agreement` (run `cap3`, 18 October) compares each
+position. `just rapthor-agreement` (run `pybdsf-6ab4b6e`, 22 November) compares each
 finder with known truth and with pinned `master` over every distinct pixel
-holding a Gaussian centre that `master` or any Hebog lane fitted: 20,369 on
+holding a Gaussian centre that `master` or any Hebog lane fitted: 22,712 on
 the quick check's cases with a `master` reference, a 3,000² LoTSS-DR3 window
 and the ELAIS-N1 true-sky and apparent images at 2,048². A component is real when
 it lies on the ideal mask of a generated image, or at least 7 times the
@@ -123,17 +124,17 @@ negative-pixel noise above zero on a real one.
 
 | Measure | `compact`, zero | `compact`, estimated | `continuum`, zero (Rapthor's) | `continuum`, estimated | `master` | Released 1.14.1 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Real components `master` keeps that the finder rejects | 0.84%; extended 5.3%, edge 3.8% | 1.49%; extended 9.0%, edge 4.3% | 0.10%; edge 0.5% | 0.20%; edge 0.5% | – | 0.03%; extended 0.3% |
+| Real components `master` keeps that the finder rejects | 0.73%; extended 4.5%, edge 2.3% | 1.30%; extended 7.7%, edge 3.6% | 0.10%; edge 0.4% | 0.20%; edge 1.3% | – | 0.13%; edge 0.9% |
 | Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 78, 91, 100% | 77, 93, 100% | 76, 89, 100% | 76, 89, 100% |
 | Injected flux, median ratio at 10, 20 and 50σ | 0.990, 0.986, 0.989 | 0.998, 0.992, 0.993 | 0.988, 0.986, 0.989 | 1.000, 0.992, 0.992 | 0.984, 0.976, 0.985 | 0.984, 0.976, 0.985 |
-| Generated: ideal-mask pixels and flux covered | 0.49, 0.58 | 0.45, 0.48 | 0.94, 0.99 | 0.84, 0.96 | 0.61, 0.73 | 0.77, 0.90 |
-| Negated real images: false islands | 126 of 12,207 | 121 of 12,296 | 25 of 12,508 | 19 of 12,659 | 79 of 12,389 | 76 of 12,333 |
-| Real images: RMS >20% above, and below, the negative-pixel noise | 22.9%, 2.2% | 22.9%, 2.2% | 11.1%, 6.5% | 11.1%, 6.5% | 30.2%, 1.5% | 30.3%, 1.5% |
+| Generated: ideal-mask pixels and flux covered | 0.49, 0.58 | 0.45, 0.48 | 0.94, 0.99 | 0.84, 0.96 | 0.60, 0.72 | 0.63, 0.76 |
+| Negated real images: false islands | 126 of 12,207 | 121 of 12,296 | 25 of 12,508 | 19 of 12,659 | 75 of 12,385 | 76 of 12,333 |
+| Real images: RMS >20% above, and below, the negative-pixel noise | 21.5%, 4.3% | 21.5%, 4.3% | 10.5%, 8.9% | 10.5%, 8.9% | 29.2%, 2.9% | 28.6%, 3.0% |
 | Truth-based gate | Fails | Fails | Passes | Passes | Reference | Passes |
-| Agreement with `master` (reported, not gated) | 92.2% | 91.0% | 91.4% | 91.1% | – | 99.3% |
+| Agreement with `master` (reported, not gated) | 92.3% | 91.5% | 91.6% | 91.5% | – | 98.6% |
 
 - `continuum` is the most accurate finder measured. It covers 84 to 94% of
-  the generated emission against `master`'s 61%, and its RMS reads close to
+  the generated emission against `master`'s 60%, and its RMS reads close to
   the negative-pixel noise.
 - `compact` trims bright emission from large islands and cuts sources at the
   image edge, and its RMS reads low often enough to find 1.03% false islands.
@@ -141,15 +142,21 @@ negative-pixel noise above zero on a real one.
   cases agree fully but for four. No finder reaches the former 99.5% agreement
   target, which released PyBDSF misses too, so it was replaced on 16 October
   by the truth-based gate.
+- Against `c70103b` on the same Hebog code, no gate outcome changed.
+  `6ab4b6e` completes the crowded SDC1 case, where `c70103b` failed, which
+  adds 961 components and moves the RMS row; `compact`'s losses fell, and
+  released 1.14.1 now differs more from `master`.
 
 ### Quick science check
 
 The everyday regression check: fixed cases, each compared with injected truth
 and with pinned `master`, which also reports RMS error, mask recall and the
 share of bright emission inside the mask, so a lost source shows even
-without truth. Run `minimal-1` (18 October); a 22nd case, ELAIS-N1's central
-2,048², has been added since. Completeness and reliability compare source
-rows, so an object that one finder splits into several rows lowers them
+without truth. Run `pybdsf-6ab4b6e` (22 November). Against `c70103b`,
+Hebog's columns are unchanged; `master` now completes the crowded SDC1 case
+and agrees far better on `negative-background`, while its agreement on
+`wide-extended-source` and the sparse LoTSS window's flux is lower.
+Completeness and reliability compare source rows, so an object that one finder splits into several rows lowers them
 without a source being missed.
 
 | Case | Hebog sources | Completeness vs truth (SNR ≥10) | Reliability vs truth | Completeness vs `master` | Reliability vs `master` | Mask IoU vs `master` | Bright emission in mask |
@@ -159,22 +166,23 @@ without a source being missed.
 | `extended-gaussians` | 3 | 1.000 | 1.000 | 1.000 | 1.000 | 0.923 | 1.000 |
 | `filament-and-ring` | 9 | 1.000 | 1.000 | 0.500 | 0.889 | 0.955 | 1.000 |
 | `edges-and-corners` | 7 | 1.000 | 1.000 | 1.000 | 1.000 | 0.933 | 1.000 |
-| `negative-background` | 2 | 1.000 | 1.000 | 1.000 | 1.000 | 0.541 | – |
+| `negative-background` | 2 | 1.000 | 1.000 | 1.000 | 1.000 | 0.870 | – |
 | `invalid-pixels` | 3 | 1.000 | 1.000 | 1.000 | 1.000 | 0.957 | 1.000 |
 | `varying-noise` | 4 | 1.000 | 1.000 | 0.500 | 1.000 | 0.562 | 1.000 |
 | `white-noise-snr-ladder` | 6 | 1.000 | 1.000 | 1.000 | 1.000 | 0.861 | 1.000 |
 | `dense-field` | 59 | 1.000 | 1.000 | 0.967 | 1.000 | 0.907 | 1.000 |
 | `empty-noise` | 0 | – | 1.000 | 1.000 | 1.000 | 1.000 | – |
 | `all-invalid` | 0 | – | 1.000 | – | – | – | – |
-| `crowded-field` | 994 | 0.998 | 1.000 | 0.985 | 0.997 | 0.888 | 1.000 |
-| `wide-extended-source` | 7 | 0.300 | 1.000 | 0.375 | 0.857 | 0.482 | 0.910 |
-| `crowded-giant-source` | 299 | 0.941 | 0.955 | 0.967 | 0.970 | 0.463 | 0.921 |
-| `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.972 | 0.816 | 1.000 |
-| `sdc1-b2-1000h-crowded` | 874 | – | – | no `master` reference | – | – | 1.000 |
-| `sdc1-b2-1000h-giant-source` | 343 | – | – | 0.669 | 0.895 | 0.301 | 0.443 |
-| `sdc1-b2-1000h-bright-neighbour` | 225 | – | – | 0.889 | 0.996 | 0.756 | 0.999 |
-| `lotss-dr3-1312-sparse` | 59 | – | – | 0.857 | 0.915 | 0.834 | 1.000 |
-| `lotss-dr3-1312-dense` | 105 | – | – | 0.807 | 0.914 | 0.793 | 1.000 |
+| `crowded-field` | 994 | 0.998 | 1.000 | 0.983 | 0.998 | 0.902 | 1.000 |
+| `wide-extended-source` | 7 | 0.300 | 1.000 | 0.400 | 0.857 | 0.474 | 0.910 |
+| `crowded-giant-source` | 299 | 0.941 | 0.955 | 0.970 | 0.967 | 0.458 | 0.921 |
+| `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.974 | 0.821 | 1.000 |
+| `sdc1-b2-1000h-crowded` | 874 | – | – | 0.919 | 0.976 | 0.861 | 1.000 |
+| `sdc1-b2-1000h-giant-source` | 343 | – | – | 0.688 | 0.889 | 0.295 | 0.443 |
+| `sdc1-b2-1000h-bright-neighbour` | 225 | – | – | 0.888 | 0.991 | 0.758 | 0.999 |
+| `lotss-dr3-1312-sparse` | 59 | – | – | 0.846 | 0.932 | 0.838 | 1.000 |
+| `lotss-dr3-1312-dense` | 105 | – | – | 0.802 | 0.924 | 0.794 | 1.000 |
+| `elais-n1-true-sky-2048` | 6,092 | – | – | 0.897 | 0.938 | 0.828 | 1.000 |
 
 On the whole 22,500² LOFAR-HD ELAIS-N1 mosaic, `continuum` finds 94.0% of
 the survey catalogue's 5,872 sources within 1.5″, and their median

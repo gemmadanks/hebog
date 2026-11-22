@@ -4,7 +4,7 @@ Plan task 23 times Rapthor's complete `filter_skymodel` step with Hebog's
 native task against Rapthor's PyBDSF subprocess, both in one Linux container
 on the same cores. This image is the [Rapthor integration
 image](../../../validation/containers/rapthor/README.md) with pinned PyBDSF
-`master` (`c70103b`, the deployment gate's reference) in place of released
+`master` (`6ab4b6e`, the deployment gate's reference) in place of released
 1.14.1; nothing else in it changes, and `pip check` passes.
 
 PyBDSF publishes no wheel for `master`, and its own wheels build Boost.Python
@@ -31,7 +31,7 @@ cp scripts/benchmark/containers/filter-skymodel/Containerfile \
 curl -L -o "$context/boost_1_91_0.tar.bz2" \
   https://archives.boost.io/release/1.91.0/source/boost_1_91_0.tar.bz2
 git -C <PyBDSF checkout> archive --output="$context/pybdsf.tar" \
-  c70103be3ae9ae9908286f144e6ce956acc0ce5c
+  6ab4b6e1b4bda786523d856790b56110453564c2
 podman build --platform linux/amd64 \
   --build-arg BASE_IMAGE=localhost/hebog-rapthor:<tag> \
   --tag localhost/hebog-filter-benchmark:<tag> \
@@ -41,7 +41,7 @@ podman build --platform linux/amd64 \
 The build checks Boost's published SHA-256
 (`de5e6b0e4913395c6bdfa90537febd9028ea4c0735d2cdb0cd9b45d5f51264f5`), records
 the installed wheel's SHA-256 in `/opt/bdsf-master-wheel.sha256` and checks
-that `import bdsf` reports `1.14.2.dev40+gc70103be3`. Regenerate the lock with
+that `import bdsf` reports `1.14.2.dev231+g6ab4b6e1b`. Regenerate the lock with
 `uv pip compile requirements-pybdsf-master-build.in --python-version 3.12
 --python-platform x86_64-manylinux_2_39 --generate-hashes --no-header
 --annotation-style line -o requirements-pybdsf-master-build.txt`.

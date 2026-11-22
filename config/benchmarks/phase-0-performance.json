@@ -36,7 +36,7 @@
   },
   "pybdsf_master": {
     "bound": "upper-one-sided",
-    "commit_sha": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
+    "commit_sha": "6ab4b6e1b4bda786523d856790b56110453564c2",
     "confidence_level": 0.95,
     "dense_maximum_ratio": 0.5,
     "dense_minimum_sources": 10000,
