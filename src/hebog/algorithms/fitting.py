@@ -914,7 +914,7 @@ def _free_fallback_reason(
     if not _significantly_extended(
         candidate,
         beam_covariance,
-        significance_sigma=config.extension_significance_sigma,
+        significance_sigma=config.component_extension_significance_sigma,
     ):
         return "free-model-not-significantly-extended"
     return None
@@ -1720,7 +1720,7 @@ def _repair_degenerate_components(
         and not _significantly_extended(
             item,
             beam_covariance,
-            significance_sigma=config.extension_significance_sigma,
+            significance_sigma=config.component_extension_significance_sigma,
         )
     )
     if not unresolved:

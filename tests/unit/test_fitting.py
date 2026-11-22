@@ -736,7 +736,6 @@ def _degenerate_neighbour_input(
         maximum_sigma_pixels=30.0,
         maximum_axis_ratio=30.0,
         convergence_tolerance=1e-8,
-        extension_significance_sigma=1.5,
         component_extension_significance_sigma=1.5,
         pixel_support="owned-region",
         model_selection="beam-or-free",
@@ -815,6 +814,35 @@ def test_a_degenerate_component_keeps_its_resolved_neighbour_free(
     assert diagnostics.model_identity == "beam-constrained"
     assert diagnostics.fallback_reason == "free-model-ill-conditioned"
     assert diagnostics.rejected_model_identity == "free-elliptical"
+
+
+def test_the_component_extension_setting_sets_the_extension_test(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The mixture fit judges extension at the component setting alone."""
+    compact, geometry, _ = _degenerate_neighbour_input(_DEGENERATE_DRAWS[0])
+    config = _fit_config(
+        maximum_sigma_pixels=30.0,
+        maximum_axis_ratio=30.0,
+        convergence_tolerance=1e-8,
+        component_extension_significance_sigma=1.5,
+        pixel_support="owned-region",
+        model_selection="beam-or-free",
+    )
+    moments = measure_compact_moments(compact, geometry, _moment_config())[1:]
+    thresholds: list[float] = []
+    original = fitting_algorithm._significantly_extended
+
+    def record(*args: Any, significance_sigma: float) -> bool:
+        thresholds.append(significance_sigma)
+        return original(*args, significance_sigma=significance_sigma)
+
+    monkeypatch.setattr(fitting_algorithm, "_significantly_extended", record)
+
+    fit_compact_gaussian_mixture(compact, moments, geometry, config)
+
+    assert thresholds
+    assert set(thresholds) == {1.5}
 
 
 def _fit_diagnostics(
@@ -3169,7 +3197,6 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         ({"convergence_tolerance": 0.0}, "convergence"),
         ({"maximum_axis_ratio": 1.0}, "axis_ratio"),
         ({"context_margin_pixels": -1}, "context_margin"),
-        ({"extension_significance_sigma": 0.0}, "extension_significance"),
         (
             {"component_extension_significance_sigma": 0.0},
             "component_extension_significance",
@@ -3181,13 +3208,6 @@ def test_underdetermined_measurement_is_not_fitted() -> None:
         (
             {"integrated_flux_bias_correction_sigma": 0.5},
             "integrated_flux_bias_correction_sigma",
-        ),
-        (
-            {
-                "extension_significance_sigma": 2.0,
-                "component_extension_significance_sigma": 3.0,
-            },
-            "cannot exceed extension_significance",
         ),
         (
             {"maximum_information_condition_number": 1.0},

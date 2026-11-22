@@ -419,7 +419,6 @@ class CompactGaussianFitConfig:
     convergence_tolerance: float
     maximum_axis_ratio: float
     context_margin_pixels: int = 8
-    extension_significance_sigma: float = 5.0
     component_extension_significance_sigma: float = 5.0
     integrated_flux_bias_correction_sigma: float = 0.0
     maximum_information_condition_number: float = 1e8
@@ -505,13 +504,13 @@ class CompactGaussianFitConfig:
         ):
             raise ValueError("maximum_gls_pixels must be an integer >= 7")
         if (
-            not isfinite(self.extension_significance_sigma)
-            or self.extension_significance_sigma <= 0
+            not isfinite(self.component_extension_significance_sigma)
+            or self.component_extension_significance_sigma <= 0
         ):
             raise ValueError(
-                "extension_significance_sigma must be finite and positive"
+                "component_extension_significance_sigma must be finite and "
+                "positive"
             )
-        self._validate_component_selection_policy()
         if (
             not isfinite(self.integrated_flux_bias_correction_sigma)
             or not 0.0
@@ -529,23 +528,4 @@ class CompactGaussianFitConfig:
             raise ValueError(
                 "maximum_information_condition_number must be finite and "
                 "greater than one"
-            )
-
-    def _validate_component_selection_policy(self) -> None:
-        """Keep component evidence no stricter than source evidence."""
-        if (
-            not isfinite(self.component_extension_significance_sigma)
-            or self.component_extension_significance_sigma <= 0
-        ):
-            raise ValueError(
-                "component_extension_significance_sigma must be finite and "
-                "positive"
-            )
-        if (
-            self.component_extension_significance_sigma
-            > self.extension_significance_sigma
-        ):
-            raise ValueError(
-                "component_extension_significance_sigma cannot exceed "
-                "extension_significance_sigma"
             )
