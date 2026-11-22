@@ -2,7 +2,7 @@
 
 How far Hebog is from the 1.0.0 goal its
 [implementation plan](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md)
-defines. Last updated on **21 November 2026**, after Rapthor's cluster runs.
+defines. Last updated on **22 November 2026**, after the 0.26.0 release check.
 Every figure is dated development evidence from the maintainer's machine,
 traceable to its run; none is scientific qualification. User-facing limits
 are in [capability and status](release-status.md).
@@ -16,7 +16,7 @@ are in [capability and status](release-status.md).
 | **Science:** a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF `master` | Rapthor's profile (`continuum` with a zero background) passes the truth-based gate: it loses 0.10% of the real components `master` keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain. | Development evidence only |
 | **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
 | **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | Tested to 22,500² (19 October). Products are identical across tilings and executors. Rapthor's initial images, up to 24,130 × 30,564, are tested next, with no size limit beyond what memory and scratch admit. Nothing has run beyond one machine. | Tested to 22,500²; cluster not run |
-| **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.25.0 (9 November) is on PyPI with attestations; its release check left catalogue, RMS and mask unchanged from 0.24.0. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
+| **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.25.0 (9 November) is on PyPI with attestations. The 0.26.0 candidate passed its release check on 22 November with catalogue, RMS and mask unchanged from 0.25.0 and two quick-benchmark cases inconclusive. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
 
 ## Blockers and next steps
 
@@ -32,12 +32,11 @@ The largest risks to 1.0.0 are:
 No maintainer decision is pending. The next actions, as the plan orders
 them:
 
-1. **Agent:** check and prepare 0.26.0, with the executor, completion-record
-   and catalogue-write speed-ups; move the PyBDSF reference to current
-   `master` and measure again against it; time Hebog and `master` on a real
-   Rapthor sector.
-2. **Human:** release 0.26.0, push Rapthor's Hebog branch and approach the
-   independent reviewers; file the Astropy report (drafted 5 October) and
+1. **Agent:** move the PyBDSF reference to current `master` and measure
+   again against it; time Hebog and `master` on a real Rapthor sector.
+2. **Human:** release 0.26.0, with the executor, completion-record and
+   catalogue-write speed-ups, which passed its release check; push Rapthor's
+   Hebog branch and approach the independent reviewers; file the Astropy report (drafted 5 October) and
    the PyBDSF report (drafted 20 October).
 3. **Agent:** tested sizes in place of the size limit, up to Rapthor's
    initial images; the matched benchmarks, the store and planner work, and
@@ -278,9 +277,9 @@ and the whole 14,175² sector are single runs.
 
 | Measurement | Latest | Date and source |
 | --- | --- | --- |
-| 0.25.0 against 0.24.0, quick benchmark at 1,024² | 1.01, 1.00 and 1.00, every upper bound within the 1.05 regression limit | 5 November, release check `release-0.25.0` |
+| 0.26.0 against 0.25.0, quick benchmark at 1,024² | No slowdown beyond the 1.05 regression limit is supported, and on two cases none is excluded. Pooled over every round: `dense-field` 1.044 [1.000, 1.062] (five rounds), LoTSS dense 1.018 [0.993, 1.053] (four), LoTSS sparse 0.984 [0.951, 1.029] (two); median CPU-time ratios 1.016, 1.009 and 1.007 | 22 November, release check `release-0.26.0` and its `-retime-*` runs |
 | Serial anchors | 1,137 s at 10,000² (0.24.0: 1,138 s); 3,410 s on the 15,402² mosaic; 4,306 s on the 22,500² LOFAR-HD mosaic | 12 November; 29 September; 19 October, `tier-22500-anchor` |
-| Four Dask workers against Serial | 0.38 at 10,000² (431 s); 0.63 on the 15,402² mosaic; products identical | 5 November, `release-check/0.25.0/matched`; 5 October |
+| Four Dask workers against Serial | 0.36 at 10,000² at 0.26.0 (408 s against 1,145 s, one run each; 482 s in 0.25.0's release check and 431 s over five matched runs); 0.63 on the 15,402² mosaic; products identical | 22 November, `release-check/0.26.0`; 5 November, `release-check/0.25.0/matched`; 5 October |
 | Tile cores sized to the task slots (in 0.25.0) | Dense cell 0.916 [0.910, 0.930] on four workers and 0.910 [0.890, 0.962] on six; sparse cell 0.974 and 0.951 | 4 November, runs `stack-*` |
 | Object batches by estimated cost (in 0.25.0) | Dense cell 0.987 [0.975, 0.994] on four workers; longest component-fit task 32.5 to 19.3 s | 4 November, runs `stack-*` |
 | Tasks started as any finishes, joining workers used, threads shared (unreleased) | On Rapthor's path with four Dask workers: dense cell 0.993, sparse cell 0.978, dense 2,048² LOFAR image 0.975; 14 of 15 rounds faster; products identical | 21 November, `one-sector-scaling/any-order` |
@@ -299,7 +298,7 @@ memory figures.
 | Largest tested size | 22,500² (19 October), with images over 22,500 pixels a side refused until tested sizes replace the limit | Rapthor's initial images, up to 24,130 × 30,564, for 1.0.0; 45,000² locally and 90,000² on the cluster later |
 | Traced allocation peak, Serial | 1,489 MiB at 10,000², 1,693 MiB at 15,402² (24 October) and 1,873 MiB on the whole 22,500² mosaic (19 October) | Bounded by the tile |
 | Growth beyond one tile | About 3.6 bytes a pixel on the 22,500² mosaic, mostly the background's local-noise requests, now submitted in 64 MiB rounds; the new peak is not yet traced | Bounded before the 45,000² tier |
-| Peak RSS | 10,000² anchor at 0.25.0: Serial 2,973 MiB (0.24.0: 2,855); largest Dask worker 2,283 MiB (0.24.0: 2,040), a trade-off accepted on 12 November. Whole 22,500² mosaic: 4,105 MiB Serial | – |
+| Peak RSS | 10,000² anchor at 0.26.0, one run each: Serial 2,859 MiB and largest Dask worker 1,957 MiB (0.25.0's release check: 2,994 and 1,871). Over five matched runs at 0.25.0 the largest Dask worker reached 2,283 MiB (0.24.0: 2,040), a trade-off accepted on 12 November. Whole 22,500² mosaic: 4,105 MiB Serial | – |
 | Scratch disk | Up to 49 GiB for the whole 22,500² mosaic, about 100 bytes a pixel of uncompressed Zarr intermediates (19 October) | Shrunk before the 45,000² tier, which would need about 200 GiB |
 | Tiling and executor invariance | Byte-identical products from one tile and the 11×11 grid, and under Serial, Thread and Dask, including the whole 15,402² mosaic | Exact |
 | Memory admission | Every task declares its memory, and on the whole 22,500² mosaic every round's largest task holds at most 0.78 of its declaration (19 October) | Bounded by the tile |
@@ -313,7 +312,7 @@ These guard against erosion; they do not establish parity or readiness.
 
 | Check | Latest |
 | --- | --- |
-| Portable suite | 4,105 passed, 97.50% branch-aware coverage against an 80% floor (5 November, `just ci` in the 0.25.0 release check) |
+| Portable suite | 4,136 passed, 97.52% branch-aware coverage against an 80% floor (22 November, `just ci` in the 0.26.0 release check) |
 | Equivalence lane | 39 tests, including `find_sources` against both PyBDSF references under both profiles |
 | CI matrix | Linux, macOS and Windows on Python 3.12 to 3.14, plus lowest-dependency and container checks required on `main` |
 | Architecture | Every layer's allowed imports are one tested table; Rapthor, Prefect and LSMTool are absent from the package, and Dask is confined to `executors/` and the excluded `validation/` |
