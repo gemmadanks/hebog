@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.0](https://github.com/gemmadanks/hebog/compare/v0.25.0...v0.26.0) (2026-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* CompactGaussianFitConfig no longer accepts extension_significance_sigma. Set component_extension_significance_sigma instead.
+
+### 🚀 Features
+
+* let Rapthor run Hebog on worker processes within its memory budget ([#215](https://github.com/gemmadanks/hebog/issues/215)) ([ed7f903](https://github.com/gemmadanks/hebog/commit/ed7f903fda3e5663be84faf5a4f1892cdebb41a9))
+
+
+### ⚡ Performance
+
+* finish dense sectors sooner ([#216](https://github.com/gemmadanks/hebog/issues/216)) ([069cc7e](https://github.com/gemmadanks/hebog/commit/069cc7e169b33830b59312f176b1779d486278be))
+* keep every worker busy while a sector's sources are found ([#217](https://github.com/gemmadanks/hebog/issues/217)) ([95198d5](https://github.com/gemmadanks/hebog/commit/95198d5e054de81820f0f036eaf7b6483f870a67))
+* read only the completion records a task's window needs ([#218](https://github.com/gemmadanks/hebog/issues/218)) ([a8734cb](https://github.com/gemmadanks/hebog/commit/a8734cb320cc9a89fd498ed4d9d42b444e876088))
+
+
+### 🧹 Refactoring
+
+* remove the compact fit's extension significance setting ([#221](https://github.com/gemmadanks/hebog/issues/221)) ([d83a115](https://github.com/gemmadanks/hebog/commit/d83a115a86bb2780382c8e66859658f72d18150c))
+
+
+### 📚 Documentation
+
+* condense progress and plan pages ([#213](https://github.com/gemmadanks/hebog/issues/213)) ([bc209c1](https://github.com/gemmadanks/hebog/commit/bc209c1c685bd98aced5b3fca04d30825753ed4f))
+* make the progress page shorter and easier to read ([bc209c1](https://github.com/gemmadanks/hebog/commit/bc209c1c685bd98aced5b3fca04d30825753ed4f))
+* plan to test Rapthor's largest images and measure against current PyBDSF ([#219](https://github.com/gemmadanks/hebog/issues/219)) ([a2fc1c4](https://github.com/gemmadanks/hebog/commit/a2fc1c4f10d8a9b23c719420ea387f90a952c3e7))
+* record 0.25.0's shorter floors and the refitted speed projections ([#212](https://github.com/gemmadanks/hebog/issues/212)) ([ee83a67](https://github.com/gemmadanks/hebog/commit/ee83a67c1d5ae3e421cf63920ae4fec3f8a241e0))
+* record the decisions and timings for speeding up one sector ([#214](https://github.com/gemmadanks/hebog/issues/214)) ([154f6c5](https://github.com/gemmadanks/hebog/commit/154f6c568316e65d4bbe7a530cde15f6c1a7380d))
+* tell Dask users to turn off worker memory pausing ([#210](https://github.com/gemmadanks/hebog/issues/210)) ([9657511](https://github.com/gemmadanks/hebog/commit/9657511b577c4be0a53374c0196e002814d6323b))
+* update docs ([#220](https://github.com/gemmadanks/hebog/issues/220)) ([10a65ea](https://github.com/gemmadanks/hebog/commit/10a65eaa4e86be64bac6b537a99d183fcd9735d6))
+
 ## [0.25.0](https://github.com/gemmadanks/hebog/compare/v0.24.0...v0.25.0) (2026-11-06)
 
 
