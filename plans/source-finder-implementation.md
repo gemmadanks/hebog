@@ -31,10 +31,11 @@ scientifically unqualified. The candidate is public composition v23 with
   and the sources found; the development machine's limits; upstream churn;
   and three steps outside the agent's control: cluster time, Rapthor's
   worker layout and independent reviewers. See [risks](#risks).
-- **Next action.** Agent: the 0.26.0 release check; then task 82, a
-  benchmark on a real Rapthor sector, and task 72's re-measure. Human:
-  release 0.26.0, push Rapthor's Hebog branch (task 79) and approach the
-  reviewers (task 33); file the Astropy report
+- **Next action.** Agent: task 82, a benchmark on a real Rapthor sector,
+  and task 72's re-measure. Human: release 0.26.0, which passed its release
+  check on 22 November with two quick-benchmark cases inconclusive; push
+  Rapthor's Hebog branch (task 79) and approach the reviewers (task 33);
+  file the Astropy report
   (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
   report (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`).
 - **Deferred** until the integration and scaling work is complete, unless
@@ -153,8 +154,10 @@ sampled, split or moved to a less frequent level, never silently extended:
 
 - **Change check (about 15 minutes):** relevant tests, the quick science
   check and, for performance changes, the quick benchmark's default tier.
-- **Release check (about 1 hour):** the change check, Serial/Dask agreement
-  on the largest anchor that fits (10,000² today) and the installed wheel.
+- **Release check (about 1.5 hours):** the change check, Serial/Dask
+  agreement on the largest anchor that fits (10,000² today), the installed
+  wheel and a refresh of the comparison notebook's Hebog results for the
+  maintainer to inspect.
   The quick benchmark's large tier runs for profiling and before a release
   that claims a runtime change, never waited on otherwise.
 - **Size gate (up to a day, unattended):** the

@@ -179,10 +179,10 @@ matters most.
 | --- | --- |
 | Injected truth | Generated images whose sources' positions, fluxes and shapes are known, so that completeness, reliability and errors can be measured against an answer. |
 | Completeness, reliability | The fraction of true sources recovered, and the fraction of reported detections that are true, for a stated population and matching rule. |
-| Quick science check | `just quick-science-check`: 18 fixed cases compared with injected truth and pinned PyBDSF `master`, run on every scientific change. A regression detector, not qualification. See [the contribution guide](../how-to/index.md#run-the-quick-science-check). |
+| Quick science check | `just quick-science-check`: 22 fixed cases compared with injected truth and pinned PyBDSF `master`, run on every scientific change. A regression detector, not qualification. See [the contribution guide](../how-to/index.md#run-the-quick-science-check). |
 | Quick benchmark | `just quick-benchmark`: five timed repetitions of the public finder per case, compared with the previous release and with PyBDSF `master`. |
 | Traced peak | `just traced-peak`: `tracemalloc`'s peak allocation in a fresh process, the figure memory gates use. Peak RSS is reported beside it as an envelope only. |
-| Release check | The sequence of quick check, quick benchmark and traced peak run on a release candidate, whose results the [progress page](progress-against-goals.md) summarises. |
+| Release check | The checks run on a release candidate: `just ci`, the quick check, the quick benchmark against the previous release, Serial and Dask agreement on the largest anchor that fits, and a refresh of the comparison notebook's Hebog results. The [progress page](progress-against-goals.md) summarises them. |
 | Equivalence lane | `just test-equivalence`: `find_sources` and its stages against frozen PyBDSF products, run in CI. |
 | Contract test | A test in `tests/contract/` of a public behaviour, run through every executor. An unimplemented behaviour is a strict expected failure. |
 | Acceptance test | A Given/When/Then test in `tests/acceptance/` of a Rapthor-facing scenario. |
