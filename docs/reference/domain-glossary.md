@@ -84,7 +84,7 @@ matters most.
 | Fit parent | A group of components whose fitting regions touch, fitted jointly so that a neighbour's light is modelled rather than absorbed. A chain of more than sixteen components, or wider than the read budget, is fitted island by island instead. |
 | Joint fit | One least-squares solve for every component of a fit parent at once, flagged `joint-gaussian-fit`. |
 | Free model, beam-constrained model | The two Gaussian models a fit chooses between: a free ellipse, or one whose axes and angle are fixed to the restoring beam. A component takes the beam when its free fit is not significantly extended, reaches a bound or is ill conditioned. |
-| Admitted fit | A fit that converged, stayed within its bounds, is well conditioned, leaves acceptable residuals and has usable uncertainties. Only admitted fits become Gaussian rows; a rejected fit keeps the detection and records why. |
+| Admitted fit | A fit that converged, stayed within its bounds and is well conditioned, and, for a beam-shaped fallback, leaves no significant residual. Only admitted fits become Gaussian rows; a rejected fit keeps the detection and records why. |
 | Fit at bound | A fit whose solution reached a configured limit on position, size or amplitude, flagged `fit-at-bound`; the component then takes the beam. |
 | Well conditioned | A fit whose parameters the data can tell apart. A component that owns a few pixels along a line cannot fix its own width, so the fit is ill conditioned until that component takes the beam. |
 | Residual feature | Positive emission left after subtracting a fit's Gaussians, grown from a detection-threshold seed and touching the fitted support. It makes a fit `fit-model-inadequate`, or joins components into one source. |
@@ -131,7 +131,7 @@ matters most.
 | Driver | The process that called `find_sources`. It plans tiles, submits tasks, reduces their small results and writes the products; it holds no image-sized array. |
 | Worker | A process or thread that runs tasks: a Dask worker, a thread of the pool, or the calling thread itself under the serial executor. |
 | Task | One call of a function on one batch, submitted to the executor. Its arguments and result are small serializable records, never arrays the size of the image. |
-| Batch | The unit of work one task receives: several tiles, or up to 256 objects whose reads fit a budget. Batching keeps the number of tasks proportional to tiles and objects, not pixels. |
+| Batch | The unit of work one task receives: several tiles, or objects within the round's read, cost and object limits. Batching keeps the number of tasks proportional to tiles and objects, not pixels. |
 | Tile | One rectangle of the image's grid, the unit of tiled work. Background and RMS use 128-pixel tile cores; every other stage uses 2,048-pixel cores, or 1,024-pixel cores when the executor has more task slots than those tiles can keep busy, so an image up to 1,024 pixels is always one tile there. |
 | Core | The pixels one tile owns and writes. Cores do not overlap and cover the image exactly once. |
 | Filter block | A fixed square, placed from the image origin, on which the matched filter is evaluated with its own padding. Its responses hold the same bits whichever tile evaluates it, because an FFT's rounding depends on its shape. |

@@ -3,8 +3,8 @@
 The comparison oracle in `hebog.validation.comparison` is independent of the
 PyBDSF product readers and of Hebog's algorithms, so catalogue, RMS and mask
 equivalence are testable before any frozen external product counts as
-evidence. The frozen PyBDSF products under `config/baselines/` and every
-Hebog comparison use the same typed reports; stratification by source class
+evidence. The frozen PyBDSF products, whose manifest is under
+`config/baselines/`, and every Hebog comparison use the same typed reports; stratification by source class
 is layered on top and never changes these calculations.
 
 ## Catalogue matching
@@ -31,12 +31,14 @@ less than that, which covers coincident rows and rounding. Ties are resolved
 deterministically for a given input order, and right ascension wraps at 360°.
 
 The report gives separations in beam FWHM and flux differences as signed
-fractions of the reference, with median and 95th-percentile summaries.
+fractions of the reference, summarised by the median and 95th percentile of
+their absolute values.
 Completeness is matched/reference and reliability matched/candidate; an empty
 denominator counts as `1.0`, so two empty catalogues agree and a
 candidate-only catalogue has zero reliability. Match-only metrics are `None`
-without pairs. For matched rows it adds signed fitted and deconvolved axis
-differences (the worse of major and minor per row), shortest position-angle
+without pairs. For matched rows it adds signed fitted and deconvolved major-
+and minor-axis differences (summarised by the worse of the two per row),
+shortest position-angle
 differences modulo 180°, classification accuracy, component-count agreement
 and exact and Jaccard quality-flag agreement, keeping fitted and deconvolved
 angles separate. The caller supplies the minimum reference axis ratio for

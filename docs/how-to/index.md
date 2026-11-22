@@ -22,8 +22,8 @@ uv sync --all-groups
 just check
 ```
 
-`just --list` shows every recipe and `just ci` runs comprehensive local
-checks; hosted CI also covers the supported platform matrix. The
+`just --list` shows every recipe and `just ci` runs the local equivalent of
+pull-request CI; hosted CI also covers the platform matrix. The
 demonstration notebook is
 `uv run marimo edit notebooks/source_finder_demo.py`; the
 [notebook guide](notebooks.md) covers the rest.
@@ -40,7 +40,7 @@ demonstration notebook is
 | `just test-benchmark` | The quick-benchmark and traced-peak smoke tests, which CI runs on code-changing pull requests | Changes to the benchmark tooling |
 | `just test-qualification`, `just test-scalability` | Controlled lanes that need approved data or hardware | Only when the plan names them |
 | `just rapthor-agreement` | Rapthor's retained/rejected agreement with pinned `master` for each Hebog profile and background, and each finder's correctness against known truth ([below](#measure-rapthor-profile-agreement)) | Science changes and pin moves that can change what Rapthor keeps |
-| `uv run python scripts/validation/check_lsmtool_filter.py` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
+| `uv run python scripts/validation/check_lsmtool_filter.py --true-sky … --flat-noise … --output …` | Pinned LSMTool's `filter_sources` in its container (`scripts/validation/containers/lsmtool`) on the Rapthor adapter's products under the Serial, Thread and Dask executors | Changes to the adapter's products or the LSMTool pin |
 | `just pre-commit` | Every hook, slow ones included | Before staging a commit |
 
 Rules the test configuration enforces:
@@ -109,11 +109,9 @@ uv run pytest -n 4 --dist worksteal --splits 4 --group 1 \
   -m "not slow and not equivalence and not acceptance and not qualification and not benchmark and not scalability and not requires_data" tests
 ```
 
-More shards consume more runner slots, and individual long tests still set
-a lower bound on latency. Compare hosted timings and memory after the first
-runs before increasing worker counts further or changing expensive fixtures.
-Do not move Windows coverage off PRs: it is the supported platform the
-development machine does not exercise.
+More shards consume more runner slots, and a long test still bounds a
+shard's latency. Keep Windows coverage on PRs: it is the supported platform
+the development machine does not exercise.
 
 ## Run the quick science check
 

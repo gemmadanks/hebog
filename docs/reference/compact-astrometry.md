@@ -51,7 +51,8 @@ Rapthor consumes whenever it is identifiable. A noisy fit with flux
 uncertainty but no usable shape covariance has an unavailable deconvolution
 rather than a falsely precise ellipse.
 
-The threshold is explicit configuration. The equivalence contract gates
+The threshold is fixed at five sigma in the astrometry kernel. The
+equivalence contract gates
 point-source specificity and recall for clearly resolved truth, selected from
 injected truth before fitting as a fitted-to-beam area ratio of at least 3 at
 SNR of at least 25; less decisive extension is a predeclared report-only

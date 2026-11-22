@@ -1,10 +1,9 @@
 # Use the notebooks and refresh comparisons
 
-Run these commands from the repository root after `uv sync --all-groups`.
-Marimo, plotting libraries and Hebog are included in that environment. No
-individual notebook run needs to be frozen or reproduce a previous result.
-Change parameters and explore; the finder remains experimental and its
-[current limits](../reference/release-status.md) still apply.
+Run these commands from the repository root after `uv sync --all-groups`,
+which installs Marimo and the plotting libraries. No notebook run needs to
+reproduce a previous result: change parameters and explore. The finder's
+[limits](../reference/release-status.md) still apply.
 
 ## Choose a notebook
 
@@ -55,12 +54,11 @@ uv run python scripts/benchmark/download_notebook_data.py --dataset hydra-deep-i
 uv run python scripts/benchmark/download_notebook_data.py --dataset sdc1-image
 ```
 
-The optional SDC1 image alone is approximately 4 GiB, and the Hydra archive
-approximately 9.3 GiB. The raw-data downloader does not fetch those by default.
-The comparison setup below does fetch the SDC1 image. The downloader also
-lists the public beam, truth and submission files for SDC1 and the Hydra
-archive. Source URLs and advisory sizes come from
-`config/comparisons/notebook-comparison.json`.
+The optional SDC1 image is about 4 GiB and the Hydra archive about 9.3 GiB;
+neither is fetched by default, though the comparison setup below fetches the
+SDC1 image. The downloader also lists the public beam, truth and submission
+files for SDC1 and the Hydra archive. Source URLs and advisory sizes come
+from `config/comparisons/notebook-comparison.json`.
 
 Downloads stream to disk. Existing non-empty files are reused, with basic
 FITS checks for image files. `--overwrite` fetches a fresh copy and replaces
@@ -104,12 +102,10 @@ uv run python scripts/benchmark/prepare_notebook_comparison.py --build-images
 The build downloads published PyBDSF 1.14.1 and AegeanTools 2.3.5 packages,
 checks their hashes, and uses the checked-in Containerfiles and requirements
 in `scripts/benchmark/containers/reference-finders/`. Only the released PyBDSF
-target is built; no PyBDSF `master` wheel is needed. Container layers and build
-caches can require several GB in addition to input images and native finder
-products. These are exploratory runtimes: actual image IDs, dependencies and
-scientific options are recorded, without requiring a historical campaign
-environment hash. The optional build
-step requires network access. Finder execution disables container networking
+target is built; no PyBDSF `master` wheel is needed. Container layers and
+build caches can take several GB beyond the input images and finder
+products. Image IDs, dependencies and scientific options are recorded. The
+build needs network access; finder execution disables container networking
 and image pulling.
 
 If the default images are already built, omit `--build-images`. To use other
@@ -128,14 +124,12 @@ The default selection preserves the previous comparison:
 - **LoTSS:** the 90-arcminute wide field, 3C 295 and M51.
 
 The cases, download URLs and reference-finder options are checked in at
-`config/comparisons/notebook-comparison.json`. The SDC1 cutouts retain their
-75-pixel halos and core-only comparison products. LoTSS inputs use the
-celestial-WCS and frequency normalization of the earlier comparison. This
-creates fresh diagnostic results rather than reproducing old evidence hashes.
-It downloads six distinct images, including the roughly 4 GiB SDC1 image, and
-reuses that image for all eight cutouts. The Hydra archive,
-SDC1 submissions, truth catalogue and primary-beam map are unnecessary for
-these saved-product overlays and are not downloaded.
+`config/comparisons/notebook-comparison.json`. The SDC1 cutouts keep their
+75-pixel halos and core-only comparison products, and LoTSS inputs the
+celestial-WCS and frequency normalization of the saved comparison. The setup
+downloads six distinct images, including the roughly 4 GiB SDC1 image, which
+all eight cutouts share; the Hydra archive, SDC1 submissions, truth catalogue
+and primary-beam map are not needed and not downloaded.
 
 Runs are serial, with two cores per finder by default. Use repeated `--dataset`
 options with case IDs listed by `--help` or `--dry-run` to select a subset;
@@ -288,10 +282,11 @@ looks for a sibling `hebog-refreshes/` directory.
 
 The refresh's preflight records the checkout, source-tree (every file of
 `src/hebog`), runner and configuration identities and checks the input and
-reference records; it is not a scientific qualification or a guarantee that every numerical fit will
-succeed. Each Hebog result also records its scientific-composition digest. Saved comparisons distinguish sources from Gaussian components and
-retain explicit unavailable measurements. Finder agreement is diagnostic,
-not ground truth, and these runs make no qualified performance claim.
+reference records; it is not a scientific qualification. Each Hebog result
+also records its scientific-composition digest. Saved comparisons
+distinguish sources from Gaussian components and retain explicit unavailable
+measurements. Finder agreement is diagnostic, not ground truth, and these
+runs make no qualified performance claim.
 
 ## Check notebook execution
 

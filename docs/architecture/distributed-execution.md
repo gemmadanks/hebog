@@ -82,9 +82,7 @@ flowchart LR
   the scheduler or gathered on the driver, and no task's arguments grow with
   the image: Dask serializes a task's function with every task, so a partition
   manifest pickles as the four pairs its tiles are planned from and is rebuilt
-  once per worker process. Before that rule, every 128-pixel background cell's
-  task carried a manifest of every cell, and at 10,000² the driver spent more
-  CPU on those tasks than the workers spent computing them.
+  once per worker process.
 
 ## Tiles, cores and halos
 
@@ -265,8 +263,9 @@ All executors obey the same rules, so a defect shows up on a laptop under
   in flight rather than cancelling it.
 - Tasks are idempotent, so a `retry_limit` above zero is safe.
 
-Tasks are **coarse batches** of tiles or objects: an object round puts up to
-256 objects in one task, and a tile round up to four tiles. A tile round's
+Tasks are **coarse batches** of tiles or objects: an object round closes a
+batch at its read budget and at any object or cost limit it sets (256
+objects in most rounds), and a tile round holds up to four tiles. A tile round's
 batch shrinks, down to one tile, until the round holds two batches for each
 of the executor's task slots, so the 25 tiles of a 10,000² image make 13
 tasks on six threads rather than tasks of four; the serial executor keeps
@@ -283,8 +282,7 @@ share is a batch of its own. Graph size therefore scales
 with the number of tiles and stages, and in an object round with its task
 slots and the reads its objects need, never with pixels. Objects are
 batched a storage core at a time, so at 100,000 pixels a side one object
-round of the 15,402² mosaic's density is about 4,700 tasks rather than the
-156,000 raster order made.
+round of the 15,402² mosaic's density is about 4,700 tasks.
 
 ## Storage
 
@@ -339,8 +337,8 @@ no current worker could run is refused rather than left waiting.
 
 The analysis itself holds Hebog's modules, the records each pass returns
 and the background's noise grids, in the process that calls
-`find_sources`. The records grow with the sources it finds, about 40 KB
-each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
+`find_sources`. The records grow with the sources it finds, budgeted at
+44 KB each: the dense ELAIS-N1 central 5,000² held three times what the 10,000²
 LoTSS anchor did. The grids grow with the pixels. Neighbouring local-noise
 tasks read overlapping windows, so their requests copy the same cells,
 about five times the pilot grid in all; they are built and submitted in

@@ -77,16 +77,17 @@ values are never encoded as zero.
 
 ### Model selection
 
-Under `beam-or-free`, a five-sigma log-area test selects clear extension
-directly; otherwise the nested candidates are compared by BIC with the
-number of independent samples appropriate to their residual model. A free
-candidate that pins a bound or is ill conditioned yields to the beam model,
-or the fit fails; in a joint fit only the components responsible yield, as
-described below. Gaussian publication applies a second whole-model test: a
-free component rejected at the five-sigma boundary is still published when
-its log-area extension exceeds 1.5 standard errors, otherwise the complete
-beam ellipse is published, so axes, angle, centroid and total always come
-from one selected fit and a free axis is never mixed with a beam angle. The
+Under `beam-or-free`, a converged, valid and well-conditioned free model
+whose log-area extension exceeds the component extension significance (1.5
+standard errors in the reviewed profile) is selected directly; otherwise the
+nested candidates are compared by BIC with the number of independent samples
+appropriate to their residual model. A free candidate that did not converge,
+pins a bound or is ill conditioned yields to the beam model, or the fit
+fails; in a joint fit only the components responsible yield, as described
+below. A free model whose only fault is insignificant extension is kept when
+the BIC prefers it or the beam model fails; otherwise the complete beam
+ellipse is published, so axes, angle, centroid and total always come from
+one selected fit and a free axis is never mixed with a beam angle. The
 selected and rejected models, bound distances, condition number and fallback
 reason stay in the diagnostics.
 

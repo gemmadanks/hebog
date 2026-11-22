@@ -86,7 +86,7 @@ LSMTool's; the rest are LSMTool's.
 | Source count | `img.nsrc` | `SourceFinderResult.source_count` | Implemented |
 | All pixels blanked | `RuntimeError("All pixels in the image are blanked.")` from `collapse.py` | `find_sources` publishes an empty catalogue, an all-NaN RMS and a zero mask; the adapter then raises `RapthorBlankedImageError`, a `RuntimeError` carrying PyBDSF's message, for an image of either branch with no pixel to measure. Hebog also counts a pixel inside a 3×3 square of one value as blank, as imagers fill blanked regions, so an image of one value is blanked too | Implemented; Rapthor's existing handler writes its empty products |
 | Reference frequency | The frequency axis at the image plane, then `RESTFREQ`, then a `FREQ` keyword | The frequency axis at the image plane, then `RESTFRQ`, then `RESTFREQ`; a supplied value when the header has none | Implemented. Hebog also reads the standard `RESTFRQ`, which PyBDSF ignores, and refuses rather than reads a non-standard `FREQ` keyword |
-| `ncores` | Fitting processes | The cores the Dask worker declares, used by the thread executor or by each Dask task's threads (see below) | Planned with the distributed path |
+| `ncores` | Fitting processes | The filter task's core request: with more than one core, that many single-threaded worker processes under a `DaskExecutor`; with one, a `ThreadExecutor` (see below) | Implemented on Rapthor's Hebog branch; Rapthor's own client is later work |
 
 `RapthorCompatibilityConfig` holds what the finder honours, under Rapthor's
 names: `threshpix` and `threshisl`, and Hebog's `profile` and `background`,

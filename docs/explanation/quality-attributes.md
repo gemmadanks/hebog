@@ -37,10 +37,9 @@ in Dask; a caller requesting `DaskExecutor` loads it deliberately.
   ambient clients, boolean mode flags or broad exception handlers.
 - **Comments explain assumptions, not syntax:** units, tolerances, shapes,
   halos and trade-offs.
-- **Abstractions wait for variation.** An executor, image-source,
-  product-sink or compatibility protocol exists because a second
-  implementation does; a plugin system, registry or service locator for a
-  hypothetical workflow does not.
+- **Abstractions wait for variation.** The executor and image-source
+  protocols exist because a second implementation does; a plugin system,
+  registry or service locator for a hypothetical workflow does not.
 - **No compatibility shims before 1.0.** `0.x` releases change contracts
   directly and document the break; stale products fail clearly rather than
   being migrated.
@@ -65,7 +64,7 @@ compiled extension.
 | Zero type diagnostics over `src/` and `tests/` | Pyright strict |
 | Normal, boundary and failure tests, written test-first where practical | Review against `CODE_REVIEW.md` |
 | At least 80% branch-aware coverage, without weakened assertions or exclusions | `just coverage` and Codecov |
-| One contract suite for every executor, store and adapter | `tests/contract/` and the shared executor fixtures |
+| One contract suite for every executor | `tests/contract/test_executor_contract.py` |
 | Allowed imports stated as one table; Rapthor, Prefect and LSMTool absent; Dask inside `executors/` but for named exemptions; no import-time I/O | `tests/unit/test_architecture.py` |
 | Documentation current for public behaviour, configuration and schema changes | Strict MkDocs build |
 

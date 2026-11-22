@@ -27,10 +27,11 @@ completeness at the cost of reliability. The same values are used throughout
 background protection, direct and multiscale detection, and the final size
 filter.
 
-A threshold may be any finite positive number and a pixel count any
-positive integer, NumPy scalars included. Each is held as the Python `float` or `int` it equals, so
-`SourceFinderConfig(5, 3, 10)` and `SourceFinderConfig(5.0, 3.0, 10)` are one
-configuration with one identity in the diagnostics.
+A threshold may be any finite positive number and a pixel count any positive
+integer, NumPy scalars included. Each is held as the Python `float` or `int`
+it equals, so `SourceFinderConfig(5, 3, 10)` and
+`SourceFinderConfig(5.0, 3.0, 10)` are one configuration with one identity in
+the diagnostics.
 
 Keep the estimated background unless you need PyBDSF's zero mean map: on
 injected truth it recovers sources on a real background offset far better,
@@ -81,20 +82,15 @@ with Client("tcp://scheduler:8786") as client:
 
 Hebog never starts a cluster for you. On a multi-node cluster, the image and
 the parent of the output directory must be on storage that every worker sees
-at the same absolute path. Today's limit is 22,500 pixels per side. Background
-and RMS estimation tiles at every size, but every other stage uses 2,048-pixel
-cores, or 1,024-pixel cores when the executor has more workers or threads
-than those tiles can keep busy, so an image up to 1,024 pixels gives those
-stages a single tile and little to parallelise; above that they tile too.
-On the development
-machine a four-worker local Dask cluster finished the 10,000² LoTSS-DR3
-anchor in about 0.4 of the serial executor's time, with identical products,
-but twelve threads of a `ThreadExecutor` took 0.84 of one thread's time,
-because Python's global lock holds them: for speed, use Dask workers in
-separate processes.
-[Progress against goals](../reference/progress-against-goals.md#performance)
-has the dated figures.
-[Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) has the
+at the same absolute path. Background and RMS estimation tiles at every size;
+every other stage uses 2,048-pixel cores, or 1,024-pixel cores when the
+executor has more workers or threads than those tiles can keep busy, so an
+image up to 1,024 pixels gives those stages a single tile and little to
+parallelise. Threads barely speed a run up, because Python's global lock holds
+them: for speed, use Dask workers in separate processes.
+[Capability and status](../reference/release-status.md) has the measured
+speed-ups and
+[Integrate Hebog into a pipeline](integrate-into-a-pipeline.md) the
 details.
 
 On Windows, threads in one process take turns at the FFT convolutions of the
@@ -115,9 +111,9 @@ use Dask workers in separate processes rather than threads.
   published without analysing the image again, when the run ID, the input
   bytes, the configuration and the Hebog science are the same.
 - Any other existing output directory raises
-  `hebog.SourceFinderOutputExistsError`. Remove or rename it yourself, or choose another directory; Hebog never
-  deletes your files, only the staging directories its own stopped runs
-  left.
+  `hebog.SourceFinderOutputExistsError`. Remove or rename it, or choose
+  another directory; Hebog deletes only the staging directories its own
+  stopped runs left.
 - To repeat a result exactly, pin the Hebog version and compare
   `diagnostics.provenance`, which records checksums of the input, the
   configuration and the implementation.
