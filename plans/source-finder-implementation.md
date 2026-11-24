@@ -23,7 +23,7 @@ scientifically unqualified. The candidate is public composition v23 with
 | Telescopes | LOFAR and SKA-Mid images run under the input header contract | Validation in the parity study (task 29); a varying PSF measured and documented (task 15) |
 | Functionality | Complete in Hebog; Rapthor's Hebog branch runs it on today's worker layout | Push the branch (task 79); its distributed path (task 72); the operational trial (task 32) |
 | Science | Rapthor's profile passes the truth-based gate on development evidence | The candidate freeze (task 28); the powered parity study (task 29); the released-PyBDSF check (task 31) |
-| Performance | Measured, every sector fails its limit. The projection that 0.25.0 meets every limit on one node assumed `master` on four cores of a dense sector's node and sectors like the 5,000² ladder; Rapthor runs it on 15 cores, on sectors of 14,500 to 20,000 pixels a side | Measuring again against current `master` (task 82); task 72's re-measure and a model refitted to Rapthor's settings; matched benchmarks (task 23); the cluster run that measures the gate (task 30) |
+| Performance | Measured, every sector fails its limit. The projection that 0.25.0 meets every limit on one node assumed `master` on four cores of a dense sector's node and sectors like the 5,000² ladder; Rapthor runs it on 15 cores, on sectors of 14,500 to 20,000 pixels a side | The Dask and sparse cells against current `master` `6ab4b6e` and matched benchmarks (task 23); task 72's re-measure and a model refitted to Rapthor's settings; the cluster run that measures the gate (task 30) |
 | Scalability | Tested to 22,500², with products invariant across tilings and executors; nothing has run beyond one machine | Tested sizes in place of a size limit, up to Rapthor's initial images (task 22); planner bounds (task 24); the store (task 25); the cluster benchmark (tasks 27 and 30) |
 | Release | On PyPI; CI on Linux, macOS and Windows | Independent acceptance (task 33); 1.0.0 (task 34) |
 
@@ -31,11 +31,10 @@ scientifically unqualified. The candidate is public composition v23 with
   and the sources found; the development machine's limits; upstream churn;
   and three steps outside the agent's control: cluster time, Rapthor's
   worker layout and independent reviewers. See [risks](#risks).
-- **Next action.** Agent: task 82, a benchmark on a real Rapthor sector,
-  and task 72's re-measure. Human: release 0.26.0, which passed its release
-  check on 22 November with two quick-benchmark cases inconclusive; push
-  Rapthor's Hebog branch (task 79) and approach the reviewers (task 33);
-  file the Astropy report
+- **Next action.** Agent: a benchmark on a real Rapthor sector, the Dask
+  and sparse cells against `6ab4b6e` (task 23) and task 72's re-measure.
+  Human: push Rapthor's Hebog branch (task 79) and approach the reviewers
+  (task 33); file the Astropy report
   (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
   report (`benchmark-results/upstream/pybdsf-moment-fallback-index.md`).
 - **Deferred** until the integration and scaling work is complete, unless
@@ -98,7 +97,7 @@ recommendation until it is taken, then recorded as a rule in the row it
 affects and in the commit, never in `LOG.md`. None is pending. The last
 were taken on 21 November 2026: Hebog sets no size limit and states the
 sizes tested, which for 1.0.0 include Rapthor's initial images (task 22);
-and the PyBDSF reference moves to current `master` (task 82).
+and the PyBDSF reference moves to current `master`.
 
 ## Scope and resource rules
 
@@ -323,8 +322,7 @@ against the PyBDSF sky model Rapthor made of it.
 | # | Owner | Task | Done when |
 | --- | --- | --- | --- |
 | 22 | Agent proposes, human approves | Replace the size limit with tested sizes. | The pixel-count refusal is gone unless an audit of 32-bit labels and indices and the planner finds a technical limit, which is then stated; a run is refused before it starts when its admitted memory or its work directory's free space cannot hold it, so Rapthor falls back to PyBDSF; with the Zarr intermediates shrunk, the size gate passes on a Rapthor initial image of at least 24,130 × 30,564 from the maintainer's examples; the status page and release notes state the sizes tested. |
-| 23 | Agent | Run matched `filter_skymodel` benchmarks and optimize the finder part towards the gate. | On every cell the container VM holds, dense and sparse, the finder part's CPU and wall ratios against cores are recorded (`scripts/benchmark/measure_filter_skymodel.py`: one warm-up and five measured runs of each finder, alternating, in fresh containers); the largest constant factors the profile names are cut; memory, Hebog-curve non-regression and the quick check pass. The gate itself is decided on the cluster (task 30). |
-| 82 | Agent | Move the PyBDSF reference to `master` at `6ab4b6e`. | The matched containers, the quick check's and agreement check's `master` references and the cached reference timings are rebuilt at `6ab4b6e`; the science fixes since `c70103b` are reviewed for the fields Rapthor consumes; the scientific gates, the Rapthor-profile agreement and the dense and sparse cells' ratios are measured again, with every moved result reported. |
+| 23 | Agent | Run matched `filter_skymodel` benchmarks and optimize the finder part towards the gate. | On every cell the container VM holds, dense and sparse, against `6ab4b6e`, the finder part's CPU and wall ratios against cores are recorded (`scripts/benchmark/measure_filter_skymodel.py`: one warm-up and five measured runs of each finder, alternating, in fresh containers); the largest constant factors the profile names are cut; memory, Hebog-curve non-regression and the quick check pass. The gate itself is decided on the cluster (task 30). |
 
 ### Scale beyond one machine
 
@@ -369,7 +367,7 @@ and demand allow.
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Hebog's finder part is about `master`'s time on the dense cell on Dask workers, where the gate needs half, and about 1.7 times it on the sparse cell. Rapthor gives `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, larger than the local cells, where Hebog's per-pixel cost weighs most, and `master` has gained a process pool and faster RMS and fitting since `c70103b`. | The cluster gate fails on dense sectors, or sparse sectors stay slower than `master`. | Task 82 measures against current `master`; a real Rapthor sector and the cluster session refit the model at Rapthor's settings; task 72's increments raise occupancy and cut serial work; task 23 cuts the largest constant factors; native code only through its gates; report the gap honestly at each milestone. |
+| Hebog's finder part is about 1.6 times `master` `6ab4b6e`'s time on the dense cell on Rapthor's thread path, was about `c70103b`'s on Dask workers, where the gate needs half, and about 1.7 times it on the sparse cell. Rapthor gives `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, larger than the local cells, where Hebog's per-pixel cost weighs most. `6ab4b6e` is faster than `c70103b` on small images but slower on the dense cell, so the dense ratio fell without Hebog changing. | The cluster gate fails on dense sectors, or sparse sectors stay slower than `master`. | Task 23 measures the Dask and sparse cells against `6ab4b6e` and cuts the largest constant factors; a real Rapthor sector and the cluster session refit the model at Rapthor's settings; task 72's increments raise occupancy and cut serial work; native code only through its gates; report the gap honestly at each milestone. |
 | Hebog's mask makes Rapthor keep different components from `master`'s on deep LOFAR fields. | The truth-based gate fails where Hebog loses real sources. | `just rapthor-agreement` measures every lane against truth at each pin move and science change. |
 | One sector's speed-up is capped by serial work, memory per core, rounds of few tasks, the interpreter lock, or deadlock between concurrent sectors. | Cluster cores go unused and the gate is missed on occupancy. | Task 72's increments; the cluster benchmark reports where one sector stops scaling. |
 | Scaling inside Rapthor needs Rapthor to change its worker layout. | Rapthor's cluster run uses one core a node. | The standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
