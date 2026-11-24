@@ -1,10 +1,10 @@
 # Matched filter_skymodel benchmark image (plan task 23): the Rapthor
 # integration image (../../../validation/containers/rapthor) with pinned
-# PyBDSF master c70103b in place of released 1.14.1, so Hebog's native task
+# PyBDSF master 6ab4b6e in place of released 1.14.1, so Hebog's native task
 # and Rapthor's PyBDSF subprocess run in one environment on the same cores.
 #
 # The context holds this file, the build lock, the Boost 1.91.0 source
-# tarball and pybdsf.tar, a git archive of PyBDSF at c70103b. PyBDSF's own
+# tarball and pybdsf.tar, a git archive of PyBDSF at 6ab4b6e. PyBDSF's own
 # wheels build Boost.Python against the NumPy they run with; Ubuntu's
 # Boost.Python is built against NumPy 1, and the image runs NumPy 2, so the
 # builder does the same.
@@ -36,7 +36,7 @@ RUN uv pip install --python /opt/lsmtool/bin/python --require-hashes \
     && BOOST_ROOT=/opt/boost \
        CXXFLAGS="-I/opt/boost/include -L/opt/boost/lib" \
        LD_LIBRARY_PATH=/opt/boost/lib \
-       SETUPTOOLS_SCM_PRETEND_VERSION=1.14.2.dev40+gc70103be3 \
+       SETUPTOOLS_SCM_PRETEND_VERSION=1.14.2.dev231+g6ab4b6e1b \
        /opt/lsmtool/bin/python setup.py bdist_wheel --dist-dir /wheels
 
 FROM ${BASE_IMAGE}
@@ -48,10 +48,10 @@ COPY --from=builder /opt/boost/lib/libboost_python312.so.1.91.0 \
 COPY --from=builder /wheels/ /tmp/wheels/
 RUN ldconfig \
     && uv pip install --python /opt/lsmtool/bin/python --no-deps --reinstall \
-        /tmp/wheels/bdsf-1.14.2.dev40+gc70103be3-*.whl \
-    && python -c "import importlib.metadata as m, bdsf; assert m.version('bdsf') == '1.14.2.dev40+gc70103be3'" \
+        /tmp/wheels/bdsf-1.14.2.dev231+g6ab4b6e1b-*.whl \
+    && python -c "import importlib.metadata as m, bdsf; assert m.version('bdsf') == '1.14.2.dev231+g6ab4b6e1b'" \
     && python -m pip check \
     && sha256sum /tmp/wheels/*.whl > /opt/bdsf-master-wheel.sha256 \
     && rm -rf /tmp/wheels
 LABEL org.hebog.purpose="filter-skymodel-benchmark" \
-      org.hebog.pybdsf-revision="c70103be3ae9ae9908286f144e6ce956acc0ce5c"
+      org.hebog.pybdsf-revision="6ab4b6e1b4bda786523d856790b56110453564c2"

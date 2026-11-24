@@ -21,13 +21,13 @@ the checksum before installation.
 | Artifact | SHA-256 |
 | --- | --- |
 | `bdsf-1.14.1.tar.gz` | `8d5113fecca19bb9f02a1a3e17aeb8f2d22c712cac9504e44271c4071f5434d2` |
-| `bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl` | `2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d` |
+| `bdsf-1.14.2.dev231+g6ab4b6e1b-cp312-cp312-linux_aarch64.whl` | `266b59110f7dd8dfac8e1d3d0be9bb5c9a06fb87ffbd5e48ca7bc757044d2667` |
 | `aegeantools-2.3.5-py3-none-any.whl` | `dda95cb525e229b60bc357d3e5fc454cac20f364ee8aa10b730c2f7223da428d` |
 
 The notebook setup downloads the two published packages from PyPI and checks
 their hashes. The `master` wheel is produced by
-`scripts/benchmark/build_pybdsf_master_wheel.py`; it is needed only for the
-`master` target.
+`scripts/benchmark/build_pybdsf_master_wheel.py` in this file's
+`wheel-builder` target; it is needed only for the `master` target.
 
 ## Manual build
 
@@ -39,7 +39,7 @@ podman build --target released --file Containerfile.pybdsf \
 podman build --file Containerfile.aegean \
   --tag localhost/hebog-notebook-aegean:2.3.5 .
 podman build --target master --file Containerfile.pybdsf \
-  --tag localhost/hebog-pybdsf-master:c70103be3 .
+  --tag localhost/hebog-pybdsf-master:6ab4b6e1b .
 ```
 
 Ubuntu package repositories and OCI layer timestamps are not

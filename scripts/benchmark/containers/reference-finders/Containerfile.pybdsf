@@ -60,14 +60,14 @@ LABEL org.hebog.purpose="reference-finder" \
 
 FROM runtime-base AS master
 
-COPY bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl /tmp/
-RUN test "$(sha256sum /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl | cut -d ' ' -f 1)" = \
-        "2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d" \
+COPY bdsf-1.14.2.dev231+g6ab4b6e1b-cp312-cp312-linux_aarch64.whl /tmp/
+RUN test "$(sha256sum /tmp/bdsf-1.14.2.dev231+g6ab4b6e1b-cp312-cp312-linux_aarch64.whl | cut -d ' ' -f 1)" = \
+        "266b59110f7dd8dfac8e1d3d0be9bb5c9a06fb87ffbd5e48ca7bc757044d2667" \
     && python -m pip install --no-cache-dir --no-deps \
-        /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl \
-    && python -c "import importlib.metadata as m; assert m.version('bdsf') == '1.14.2.dev40+gc70103be3'" \
-    && rm /tmp/bdsf-1.14.2.dev40+gc70103be3-cp312-cp312-linux_aarch64.whl
+        /tmp/bdsf-1.14.2.dev231+g6ab4b6e1b-cp312-cp312-linux_aarch64.whl \
+    && python -c "import importlib.metadata as m; assert m.version('bdsf') == '1.14.2.dev231+g6ab4b6e1b'" \
+    && rm /tmp/bdsf-1.14.2.dev231+g6ab4b6e1b-cp312-cp312-linux_aarch64.whl
 LABEL org.hebog.purpose="reference-finder" \
-      org.hebog.reference="pybdsf-master-c70103be3" \
-      org.hebog.source-revision="c70103be3ae9ae9908286f144e6ce956acc0ce5c" \
-      org.hebog.wheel-sha256="2f1fdfbecd39de93bad53e2a85258959e5114e1f049787ac15c763e8fc8f4d8d"
+      org.hebog.reference="pybdsf-master-6ab4b6e1b" \
+      org.hebog.source-revision="6ab4b6e1b4bda786523d856790b56110453564c2" \
+      org.hebog.wheel-sha256="266b59110f7dd8dfac8e1d3d0be9bb5c9a06fb87ffbd5e48ca7bc757044d2667"

@@ -7,7 +7,7 @@ import hashlib
 import subprocess
 from pathlib import Path
 
-_MASTER_COMMIT = "c70103be3ae9ae9908286f144e6ce956acc0ce5c"
+_MASTER_COMMIT = "6ab4b6e1b4bda786523d856790b56110453564c2"
 _BUILD_COMMAND = (
     "cp -a /source /tmp/PyBDSF && "
     "cd /tmp/PyBDSF && "
@@ -27,6 +27,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--expected-sha256", required=True)
     parser.add_argument("--expected-commit", default=_MASTER_COMMIT)
+    # The build image has no Git, so setuptools-scm takes the version from
+    # `python -m setuptools_scm` run in the checkout on the host.
+    parser.add_argument("--version", required=True)
     return parser.parse_args()
 
 
@@ -75,6 +78,8 @@ def main() -> None:
             "podman",
             "run",
             "--rm",
+            "-e",
+            f"SETUPTOOLS_SCM_PRETEND_VERSION={args.version}",
             "-v",
             f"{args.pybdsf_repo.resolve()}:/source:ro",
             "-v",

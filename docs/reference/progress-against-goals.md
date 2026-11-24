@@ -14,9 +14,9 @@ are in [capability and status](release-status.md).
 | **Telescopes:** FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR2 and DR3) and SKA-Mid (SDC1) images run, and MeerKAT MIGHTEE images fit the envelope. Beams wider than 10 pixels are refused; real Rapthor images have at most about 7. SKA-Low precursor data (GLEAM-X) needs the later 45,000-pixel tier. | In progress |
 | **Functionality:** a feature-flagged backend for Rapthor's `filter_skymodel` step | All 12 frozen public behaviours are implemented under the Serial, Thread and Dask executors. The Rapthor adapter writes the files Rapthor's step reads, and Rapthor's Hebog branch calls it, with a PyBDSF fallback and dual runs. | On a Rapthor branch; not merged |
 | **Science:** a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF `master` | Rapthor's profile (`continuum` with a zero background) passes the truth-based gate: it loses 0.10% of the real components `master` keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain. | Development evidence only |
-| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 2.26 times `master`'s time on the dense cell; on single-threaded Dask workers about 1.07 on the dense cell and 1.74 on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
+| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 1.59 times `master` `6ab4b6e`'s time on the dense cell, down from 2.26 against `c70103b` because `6ab4b6e` is slower there; against `c70103b` on single-threaded Dask workers, about 1.07 on the dense cell and 1.74 on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
 | **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | Tested to 22,500² (19 October). Products are identical across tilings and executors. Rapthor's initial images, up to 24,130 × 30,564, are tested next, with no size limit beyond what memory and scratch admit. Nothing has run beyond one machine. | Tested to 22,500²; cluster not run |
-| **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.25.0 (9 November) is on PyPI with attestations. The 0.26.0 candidate passed its release check on 22 November with catalogue, RMS and mask unchanged from 0.25.0 and two quick-benchmark cases inconclusive. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
+| **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.26.0 (22 November) is on PyPI with attestations; its release check found catalogue, RMS and mask unchanged from 0.25.0, with two quick-benchmark cases inconclusive. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
 
 ## Blockers and next steps
 
@@ -32,12 +32,12 @@ The largest risks to 1.0.0 are:
 No maintainer decision is pending. The next actions, as the plan orders
 them:
 
-1. **Agent:** move the PyBDSF reference to current `master` and measure
-   again against it; time Hebog and `master` on a real Rapthor sector.
-2. **Human:** release 0.26.0, with the executor, completion-record and
-   catalogue-write speed-ups, which passed its release check; push Rapthor's
-   Hebog branch and approach the independent reviewers; file the Astropy report (drafted 5 October) and
-   the PyBDSF report (drafted 20 October).
+1. **Agent:** measure the dense cell on Dask workers and the sparse cell
+   against `6ab4b6e`, with one pair on the October image to separate the
+   machine from the code; time Hebog and `master` on a real Rapthor sector.
+2. **Human:** push Rapthor's Hebog branch and approach the independent
+   reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
+   report (drafted 20 October).
 3. **Agent:** tested sizes in place of the size limit, up to Rapthor's
    initial images; the matched benchmarks, the store and planner work, and
    packaging for the cluster benchmark, where the gate is measured. The
@@ -76,7 +76,7 @@ CLI tests and the broader native suite 94, and Rapthor's own suites pass 662
 
 Rapthor's catalogue cuts (`DC_Maj`, `E_RA`, `E_DEC`) pass a `continuum`
 source of one Gaussian, but a source of several components leaves those
-columns empty, so the cuts drop it: 151 to 168 sources that `master` keeps on
+columns empty, so the cuts drop it: 150 to 169 sources that `master` keeps on
 the agreement check's cases.
 
 ## Science
@@ -85,14 +85,15 @@ the agreement check's cases.
 
 The binding reference is pinned PyBDSF `master`: `6ab4b6e` from 21 November,
 when it gained a process pool, faster RMS and fitting and several science
-fixes. The figures below were measured against `c70103b` until they are
-measured again. Released 1.14.1 is checked once before 1.0.0. The limits are the plan's
+fixes. The agreement and quick checks use `6ab4b6e`; the equivalence lane's
+frozen catalogues and the flux calibration stay at `c70103b`. Moving the
+reference changed none of Hebog's outputs. Released 1.14.1 is checked once before 1.0.0. The limits are the plan's
 [scientific gates](https://github.com/gemmadanks/hebog/blob/main/plans/source-finder-implementation.md#scientific-gates).
 
 | Measurement | Target | Latest | Date and source |
 | --- | --- | --- | --- |
-| Rapthor retained/rejected components | Real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background (0.10 to 0.20% lost, 0.15 to 0.20% false islands). `compact` with a zero background fails (5.3% lost on extended sources, 3.8% at edges, 1.03% false islands). [Details below](#rapthor-profile-agreement) | 18 October, `just rapthor-agreement` run `cap3` |
-| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated case with compact truth, 0.998 on the crowded field | 9 October, quick check `release-0.19.0-rc2` |
+| Rapthor retained/rejected components | Real components `master` keeps lost ≤1% overall and ≤2% per stratum; injected sources kept ≥ `master`'s share less 5 points from 6σ, all from 10σ; false islands on negated images ≤1% | `continuum` passes under either background (0.10 to 0.20% lost, 0.15 to 0.20% false islands). `compact` with a zero background fails (4.5% lost on extended sources, 2.3% at edges, 1.03% false islands). [Details below](#rapthor-profile-agreement) | 22 November, `just rapthor-agreement` run `pybdsf-6ab4b6e` |
+| Reference recovery at SNR ≥10 | ≥99% | 1.000 on every generated case with compact truth, 0.998 on the crowded field | 22 November, quick check `pybdsf-6ab4b6e` |
 | Isolated SNR ≥10 position, median / p95 | ≤0.02 / 0.10 beam | 0.0003 / 0.0005 (`continuum`), 0.0002 / 0.0006 (`compact`) | 6 October, equivalence lane |
 | Isolated SNR ≥10 peak flux, median / p95 | ≤2% / 5% | 0.17% / 0.21% (`continuum`), 0.04% / 0.13% (`compact`) | same |
 | Isolated SNR ≥10 `Total_flux`, median / p95 | ≤5% / 10% | 0.09% / 0.51% | 5 October, equivalence lane |
@@ -113,9 +114,9 @@ change that moves either fails CI and has to be explained:
 ### Rapthor-profile agreement
 
 Rapthor keeps a sky-model component where the finder's mask is set at its
-position. `just rapthor-agreement` (run `cap3`, 18 October) compares each
+position. `just rapthor-agreement` (run `pybdsf-6ab4b6e`, 22 November) compares each
 finder with known truth and with pinned `master` over every distinct pixel
-holding a Gaussian centre that `master` or any Hebog lane fitted: 20,369 on
+holding a Gaussian centre that `master` or any Hebog lane fitted: 22,712 on
 the quick check's cases with a `master` reference, a 3,000² LoTSS-DR3 window
 and the ELAIS-N1 true-sky and apparent images at 2,048². A component is real when
 it lies on the ideal mask of a generated image, or at least 7 times the
@@ -123,17 +124,17 @@ negative-pixel noise above zero on a real one.
 
 | Measure | `compact`, zero | `compact`, estimated | `continuum`, zero (Rapthor's) | `continuum`, estimated | `master` | Released 1.14.1 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Real components `master` keeps that the finder rejects | 0.84%; extended 5.3%, edge 3.8% | 1.49%; extended 9.0%, edge 4.3% | 0.10%; edge 0.5% | 0.20%; edge 0.5% | – | 0.03%; extended 0.3% |
+| Real components `master` keeps that the finder rejects | 0.73%; extended 4.5%, edge 2.3% | 1.30%; extended 7.7%, edge 3.6% | 0.10%; edge 0.4% | 0.20%; edge 1.3% | – | 0.13%; edge 0.9% |
 | Injected sources kept at 6, 7 and 10σ | 76, 91, 100% | 78, 93, 100% | 78, 91, 100% | 77, 93, 100% | 76, 89, 100% | 76, 89, 100% |
 | Injected flux, median ratio at 10, 20 and 50σ | 0.990, 0.986, 0.989 | 0.998, 0.992, 0.993 | 0.988, 0.986, 0.989 | 1.000, 0.992, 0.992 | 0.984, 0.976, 0.985 | 0.984, 0.976, 0.985 |
-| Generated: ideal-mask pixels and flux covered | 0.49, 0.58 | 0.45, 0.48 | 0.94, 0.99 | 0.84, 0.96 | 0.61, 0.73 | 0.77, 0.90 |
-| Negated real images: false islands | 126 of 12,207 | 121 of 12,296 | 25 of 12,508 | 19 of 12,659 | 79 of 12,389 | 76 of 12,333 |
-| Real images: RMS >20% above, and below, the negative-pixel noise | 22.9%, 2.2% | 22.9%, 2.2% | 11.1%, 6.5% | 11.1%, 6.5% | 30.2%, 1.5% | 30.3%, 1.5% |
+| Generated: ideal-mask pixels and flux covered | 0.49, 0.58 | 0.45, 0.48 | 0.94, 0.99 | 0.84, 0.96 | 0.60, 0.72 | 0.63, 0.76 |
+| Negated real images: false islands | 126 of 12,207 | 121 of 12,296 | 25 of 12,508 | 19 of 12,659 | 75 of 12,385 | 76 of 12,333 |
+| Real images: RMS >20% above, and below, the negative-pixel noise | 21.5%, 4.3% | 21.5%, 4.3% | 10.5%, 8.9% | 10.5%, 8.9% | 29.2%, 2.9% | 28.6%, 3.0% |
 | Truth-based gate | Fails | Fails | Passes | Passes | Reference | Passes |
-| Agreement with `master` (reported, not gated) | 92.2% | 91.0% | 91.4% | 91.1% | – | 99.3% |
+| Agreement with `master` (reported, not gated) | 92.3% | 91.5% | 91.6% | 91.5% | – | 98.6% |
 
 - `continuum` is the most accurate finder measured. It covers 84 to 94% of
-  the generated emission against `master`'s 61%, and its RMS reads close to
+  the generated emission against `master`'s 60%, and its RMS reads close to
   the negative-pixel noise.
 - `compact` trims bright emission from large islands and cuts sources at the
   image edge, and its RMS reads low often enough to find 1.03% false islands.
@@ -141,15 +142,21 @@ negative-pixel noise above zero on a real one.
   cases agree fully but for four. No finder reaches the former 99.5% agreement
   target, which released PyBDSF misses too, so it was replaced on 16 October
   by the truth-based gate.
+- Against `c70103b` on the same Hebog code, no gate outcome changed.
+  `6ab4b6e` completes the crowded SDC1 case, where `c70103b` failed, which
+  adds 961 components and moves the RMS row; `compact`'s losses fell, and
+  released 1.14.1 now differs more from `master`.
 
 ### Quick science check
 
 The everyday regression check: fixed cases, each compared with injected truth
 and with pinned `master`, which also reports RMS error, mask recall and the
 share of bright emission inside the mask, so a lost source shows even
-without truth. Run `minimal-1` (18 October); a 22nd case, ELAIS-N1's central
-2,048², has been added since. Completeness and reliability compare source
-rows, so an object that one finder splits into several rows lowers them
+without truth. Run `pybdsf-6ab4b6e` (22 November). Against `c70103b`,
+Hebog's columns are unchanged; `master` now completes the crowded SDC1 case
+and agrees far better on `negative-background`, while its agreement on
+`wide-extended-source` and the sparse LoTSS window's flux is lower.
+Completeness and reliability compare source rows, so an object that one finder splits into several rows lowers them
 without a source being missed.
 
 | Case | Hebog sources | Completeness vs truth (SNR ≥10) | Reliability vs truth | Completeness vs `master` | Reliability vs `master` | Mask IoU vs `master` | Bright emission in mask |
@@ -159,22 +166,23 @@ without a source being missed.
 | `extended-gaussians` | 3 | 1.000 | 1.000 | 1.000 | 1.000 | 0.923 | 1.000 |
 | `filament-and-ring` | 9 | 1.000 | 1.000 | 0.500 | 0.889 | 0.955 | 1.000 |
 | `edges-and-corners` | 7 | 1.000 | 1.000 | 1.000 | 1.000 | 0.933 | 1.000 |
-| `negative-background` | 2 | 1.000 | 1.000 | 1.000 | 1.000 | 0.541 | – |
+| `negative-background` | 2 | 1.000 | 1.000 | 1.000 | 1.000 | 0.870 | – |
 | `invalid-pixels` | 3 | 1.000 | 1.000 | 1.000 | 1.000 | 0.957 | 1.000 |
 | `varying-noise` | 4 | 1.000 | 1.000 | 0.500 | 1.000 | 0.562 | 1.000 |
 | `white-noise-snr-ladder` | 6 | 1.000 | 1.000 | 1.000 | 1.000 | 0.861 | 1.000 |
 | `dense-field` | 59 | 1.000 | 1.000 | 0.967 | 1.000 | 0.907 | 1.000 |
 | `empty-noise` | 0 | – | 1.000 | 1.000 | 1.000 | 1.000 | – |
 | `all-invalid` | 0 | – | 1.000 | – | – | – | – |
-| `crowded-field` | 994 | 0.998 | 1.000 | 0.985 | 0.997 | 0.888 | 1.000 |
-| `wide-extended-source` | 7 | 0.300 | 1.000 | 0.375 | 0.857 | 0.482 | 0.910 |
-| `crowded-giant-source` | 299 | 0.941 | 0.955 | 0.967 | 0.970 | 0.463 | 0.921 |
-| `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.972 | 0.816 | 1.000 |
-| `sdc1-b2-1000h-crowded` | 874 | – | – | no `master` reference | – | – | 1.000 |
-| `sdc1-b2-1000h-giant-source` | 343 | – | – | 0.669 | 0.895 | 0.301 | 0.443 |
-| `sdc1-b2-1000h-bright-neighbour` | 225 | – | – | 0.889 | 0.996 | 0.756 | 0.999 |
-| `lotss-dr3-1312-sparse` | 59 | – | – | 0.857 | 0.915 | 0.834 | 1.000 |
-| `lotss-dr3-1312-dense` | 105 | – | – | 0.807 | 0.914 | 0.793 | 1.000 |
+| `crowded-field` | 994 | 0.998 | 1.000 | 0.983 | 0.998 | 0.902 | 1.000 |
+| `wide-extended-source` | 7 | 0.300 | 1.000 | 0.400 | 0.857 | 0.474 | 0.910 |
+| `crowded-giant-source` | 299 | 0.941 | 0.955 | 0.970 | 0.967 | 0.458 | 0.921 |
+| `sdc1-b2-1000h-sparse` | 573 | – | – | 0.933 | 0.974 | 0.821 | 1.000 |
+| `sdc1-b2-1000h-crowded` | 874 | – | – | 0.919 | 0.976 | 0.861 | 1.000 |
+| `sdc1-b2-1000h-giant-source` | 343 | – | – | 0.688 | 0.889 | 0.295 | 0.443 |
+| `sdc1-b2-1000h-bright-neighbour` | 225 | – | – | 0.888 | 0.991 | 0.758 | 0.999 |
+| `lotss-dr3-1312-sparse` | 59 | – | – | 0.846 | 0.932 | 0.838 | 1.000 |
+| `lotss-dr3-1312-dense` | 105 | – | – | 0.802 | 0.924 | 0.794 | 1.000 |
+| `elais-n1-true-sky-2048` | 6,092 | – | – | 0.897 | 0.938 | 0.828 | 1.000 |
 
 On the whole 22,500² LOFAR-HD ELAIS-N1 mosaic, `continuum` finds 94.0% of
 the survey catalogue's 5,872 sources within 1.5″, and their median
@@ -198,31 +206,43 @@ integrated flux above 20σ is 0.999 of the survey's (18 October, run
 The gate compares the source-finding part of Rapthor's `filter_skymodel`
 step, from the task's start to LSMTool's `filter_sources` call, with pinned
 PyBDSF `master`. Matched runs use one x86-64 container under Rosetta, so only
-the ratios are matched. The 20 to 24 October runs pin Hebog 0.23.0
-(`continuum`, zero background), Rapthor `632f6211`, LSMTool `156ae6a` and
-PyBDSF `master` `c70103b`. The dense cell is a
-deep ELAIS-N1 5,000² window where `master` finds 24,780 sources; the sparse
-cell is a LoTSS-DR3 5,000² window with 2,469.
+the ratios are matched. The 23 November run pins Hebog 0.26.0
+(`continuum`, zero background), Rapthor `c91e157`, LSMTool `156ae6a` and
+PyBDSF `master` `6ab4b6e`; the 20 to 24 October runs pin Hebog 0.23.0,
+Rapthor `632f6211` and `master` `c70103b`. The dense cell is a deep
+ELAIS-N1 5,000² window where `master` finds 24,751 sources (24,780 at
+`c70103b`); the sparse cell is a LoTSS-DR3 5,000² window with 2,469.
 
 ### Where the gate stands
 
 | Run | Hebog / `master`, finder part | Date and source |
 | --- | --- | --- |
-| Dense cell, Rapthor's thread path, four cores, five measured runs | 2.26 [2.24, 2.28] against ≤0.50; complete step 2.03 | 22 October, run `step3-gate-elais-n1-deep-north-3600-5000` |
-| Dense cell, single-threaded Dask workers on 1, 2, 4 and 6 cores, two runs each | 1.03, 1.08, 1.07 and 1.00 | 22 to 24 October, runs `step3-sweep-…-<cores>-cores` |
-| Sparse cell, single-threaded Dask workers on 1, 4 and 6 cores, two runs each | 1.65, 1.74 and 1.72 against ≤1.05 (3.42 on the thread path) | 24 October, runs `step4-sweep-…-<cores>-cores` |
+| Dense cell, Rapthor's thread path, four cores, four measured runs against `6ab4b6e` | 1.59 [1.58, 1.60] against ≤0.50; complete step 1.52 | 23 November, run `pybdsf-6ab4b6e-dense-thread-night2` |
+| The same against `c70103b`, five measured runs | 2.26 [2.24, 2.28]; complete step 2.03 | 22 October, run `step3-gate-elais-n1-deep-north-3600-5000` |
+| Dense cell against `c70103b`, single-threaded Dask workers on 1, 2, 4 and 6 cores, two runs each | 1.03, 1.08, 1.07 and 1.00 | 22 to 24 October, runs `step3-sweep-…-<cores>-cores` |
+| Sparse cell against `c70103b`, single-threaded Dask workers on 1, 4 and 6 cores, two runs each | 1.65, 1.74 and 1.72 against ≤1.05 (3.42 on the thread path) | 24 October, runs `step4-sweep-…-<cores>-cores` |
 | Source-count ladder, thread path, four cores, two runs each | Sparse sectors 3.14 to 4.85; dense sectors 3.16 (14,126 sources) and 2.28 (24,780) | 20 and 21 October, runs `step3-ladder-<case>` |
 | 10,000² anchor, where `master` finds 9,276 sources, four Dask workers, one run | 1.23 | 16 October, run `screening-10000`, Hebog `16228cf1` (the 0.22.0 candidate) |
 
 Brackets are one-sided 95% bounds. Both finders' products repeat byte for
 byte, and Hebog's are identical on every worker count and on the thread path.
+
+The dense ratio fell because `6ab4b6e` takes 1,458 s on the dense cell
+against `c70103b`'s 963 s, most of the difference in fitting large islands
+of the wavelet residuals, not because Hebog got faster: its 2,319 s is 6%
+above 0.23.0's 2,179 s, not yet separated from the machine's drift. On the
+quick benchmark's 1,024² cases `6ab4b6e` is no slower. The run stopped at
+four of its five measured runs when the disk ran low; three pairs on the
+night before gave 1.63 [1.62, 1.66].
+
 The thread path is slow because Python's interpreter lock serialises Hebog's
 tasks: on the dense cell four threads finish 1.18 times faster than one,
 while four single-threaded Dask workers finish 2.63 times faster.
 
 ### Projection to the cluster's nodes
 
-A model fitted to these runs and to native profiles of 0.25.0 projects the
+A model fitted to the October runs and to native profiles of 0.25.0, with
+`master` at `c70103b`, projects the
 finder part on one 96-core node, with `master` on all of it as Rapthor runs
 it (13 November, `scripts/benchmark/fit_scaling_model.py` run
 `release-0.25.0`).

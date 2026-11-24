@@ -238,7 +238,7 @@
   },
   "maximum_separation_beams": 1.0,
   "reference": {
-    "container_image": "localhost/hebog-pybdsf-master:c70103be3-reconstructed",
+    "container_image": "localhost/hebog-pybdsf-master:6ab4b6e1b",
     "finder_id": "pinned-pybdsf-master",
     "ncores": 4
   },

@@ -108,8 +108,8 @@
         "thresh_isl": 3.0,
         "thresh_pix": 5.0
       },
-      "source_revision": "c70103be3ae9ae9908286f144e6ce956acc0ce5c",
-      "version": "1.14.2.dev40+gc70103be3"
+      "source_revision": "6ab4b6e1b4bda786523d856790b56110453564c2",
+      "version": "1.14.2.dev231+g6ab4b6e1b"
     },
     "released-pybdsf": {
       "package": "bdsf",

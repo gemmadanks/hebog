@@ -147,7 +147,7 @@ the reference identity and the case configuration), which explains a moved
 metric without being a regression.
 
 PyBDSF runs once per input in the local
-`localhost/hebog-pybdsf-master:c70103be3-reconstructed` Podman image. Its
+`localhost/hebog-pybdsf-master:6ab4b6e1b` Podman image. Its
 results are cached under `benchmark-results/quick-check/references`, keyed by
 the input and by the code the reference worker runs, so a Hebog algorithm
 change keeps the cache and a catalogue-normalisation change reruns it once.

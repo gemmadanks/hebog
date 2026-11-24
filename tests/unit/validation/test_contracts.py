@@ -95,7 +95,7 @@ def test_performance_matrix_gates_only_on_pinned_pybdsf_master() -> None:
 
     assert matrix.schema_version == 3
     assert matrix.pybdsf_master.commit_sha == (
-        "c70103be3ae9ae9908286f144e6ce956acc0ce5c"
+        "6ab4b6e1b4bda786523d856790b56110453564c2"
     )
     assert matrix.pybdsf_master.dense_minimum_sources == 10_000
     assert matrix.pybdsf_master.dense_maximum_ratio == 0.5

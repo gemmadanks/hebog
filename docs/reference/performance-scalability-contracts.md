@@ -26,7 +26,7 @@ a regression when the lower one-sided 95% bootstrap bound of the new/previous
 median ratio exceeds 1.05 without an approved trade-off.
 
 The deployment gate is the `pybdsf_master` record, against pinned PyBDSF
-`master` (`c70103b`) over the record's `measured_phase`, the
+`master` (`6ab4b6e`) over the record's `measured_phase`, the
 source-finding part of Rapthor's `filter_skymodel` step from the task's
 start to LSMTool's `filter_sources` call, which the finder controls. The
 upper one-sided 95% bound of the Hebog/PyBDSF median wall-time ratio must
