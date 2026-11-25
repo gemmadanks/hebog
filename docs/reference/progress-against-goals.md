@@ -14,7 +14,7 @@ are in [capability and status](release-status.md).
 | **Telescopes:** FITS continuum images from any telescope under a documented header contract, validated on LOFAR and SKA-Mid | The [input header contract](input-header-contract.md) is defined and tested. LOFAR (LoTSS-DR2 and DR3) and SKA-Mid (SDC1) images run, and MeerKAT MIGHTEE images fit the envelope. Beams wider than 10 pixels are refused; real Rapthor images have at most about 7. SKA-Low precursor data (GLEAM-X) needs the later 45,000-pixel tier. | In progress |
 | **Functionality:** a feature-flagged backend for Rapthor's `filter_skymodel` step | All 12 frozen public behaviours are implemented under the Serial, Thread and Dask executors. The Rapthor adapter writes the files Rapthor's step reads, and Rapthor's Hebog branch calls it, with a PyBDSF fallback and dual runs. | On a Rapthor branch; not merged |
 | **Science:** a truth-based gate on what Rapthor keeps, and a held-out parity study against pinned PyBDSF `master` | Rapthor's profile (`continuum` with a zero background) passes the truth-based gate: it loses 0.10% of the real components `master` keeps and finds a third as many false islands. Isolated-source position, flux and shape limits are met. Two bounded differences and one open defect remain. | Development evidence only |
-| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: on Rapthor's current thread path Hebog takes 1.59 times `master` `6ab4b6e`'s time on the dense cell, down from 2.26 against `c70103b` because `6ab4b6e` is slower there; against `c70103b` on single-threaded Dask workers, about 1.07 on the dense cell and 1.74 on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
+| **Performance:** the finder part of Rapthor's step at most 0.50 of `master`'s time on dense sectors (10,000 sources or more) and at most 1.05 on the rest, like for like on one node and, on dense sectors, also across the nodes Rapthor deploys | Measured, it fails: against `master` `6ab4b6e`, Hebog on four worker processes takes 0.53 of its time on the dense cell, just short of 0.50, and 2.60 times it on the sparse cell; on Rapthor's thread path, 1.59 and 5.66 times. Against `c70103b` these were 1.07, 1.74, 2.26 and 3.42: `6ab4b6e` takes half as long again as `c70103b` on the dense cell and 0.6 of its time on the sparse one. A projection from 5,000² cells had 0.25.0 meeting every limit on one cluster node if `master` used four cores of a dense sector's node; Rapthor's cluster runs give it 15 cores on sectors of 14,500 to 20,000 pixels a side, so that projection no longer holds. | Dense gate and parity failing |
 | **Scalability:** 22,500² images for 1.0.0, and one sector across 1 to 10 nodes with identical products | Tested to 22,500² (19 October). Products are identical across tilings and executors. Rapthor's initial images, up to 24,130 × 30,564, are tested next, with no size limit beyond what memory and scratch admit. Nothing has run beyond one machine. | Tested to 22,500²; cluster not run |
 | **Release:** PyPI, with portability, security, licensing, documentation and independent acceptance, under a 1.x compatibility policy | v0.26.0 (22 November) is on PyPI with attestations; its release check found catalogue, RMS and mask unchanged from 0.25.0, with two quick-benchmark cases inconclusive. CI covers Linux, macOS and Windows on Python 3.12 to 3.14. | Experimental `0.x` |
 
@@ -32,9 +32,9 @@ The largest risks to 1.0.0 are:
 No maintainer decision is pending. The next actions, as the plan orders
 them:
 
-1. **Agent:** measure the dense cell on Dask workers and the sparse cell
-   against `6ab4b6e`, with one pair on the October image to separate the
-   machine from the code; time Hebog and `master` on a real Rapthor sector.
+1. **Agent:** cut Hebog's time on both paths, timed natively on a crop of
+   the dense cell in minutes and confirmed by matched runs; time Hebog and
+   `master` on a real Rapthor sector.
 2. **Human:** push Rapthor's Hebog branch and approach the independent
    reviewers; file the Astropy report (drafted 5 October) and the PyBDSF
    report (drafted 20 October).
@@ -206,7 +206,7 @@ integrated flux above 20σ is 0.999 of the survey's (18 October, run
 The gate compares the source-finding part of Rapthor's `filter_skymodel`
 step, from the task's start to LSMTool's `filter_sources` call, with pinned
 PyBDSF `master`. Matched runs use one x86-64 container under Rosetta, so only
-the ratios are matched. The 23 November run pins Hebog 0.26.0
+the ratios are matched. The 23 to 25 November runs pin Hebog 0.26.0
 (`continuum`, zero background), Rapthor `c91e157`, LSMTool `156ae6a` and
 PyBDSF `master` `6ab4b6e`; the 20 to 24 October runs pin Hebog 0.23.0,
 Rapthor `632f6211` and `master` `c70103b`. The dense cell is a deep
@@ -217,23 +217,39 @@ ELAIS-N1 5,000² window where `master` finds 24,751 sources (24,780 at
 
 | Run | Hebog / `master`, finder part | Date and source |
 | --- | --- | --- |
-| Dense cell, Rapthor's thread path, four cores, four measured runs against `6ab4b6e` | 1.59 [1.58, 1.60] against ≤0.50; complete step 1.52 | 23 November, run `pybdsf-6ab4b6e-dense-thread-night2` |
-| The same against `c70103b`, five measured runs | 2.26 [2.24, 2.28]; complete step 2.03 | 22 October, run `step3-gate-elais-n1-deep-north-3600-5000` |
+| Dense cell, four single-threaded Dask workers, five measured runs against `6ab4b6e` | 0.526 [0.519, 0.572] against ≤0.50; complete step 0.62 | 25 November, run `pybdsf-6ab4b6e-dense-dask-4` |
+| Sparse cell, the same | 2.60 [2.48, 2.64] against ≤1.05; complete step 2.16 | 25 November, run `pybdsf-6ab4b6e-sparse-dask-4` |
+| Dense cell, Rapthor's thread path, four cores, four measured runs against `6ab4b6e` | 1.59 [1.58, 1.60]; complete step 1.52 | 23 November, run `pybdsf-6ab4b6e-dense-thread-night2` |
+| Sparse cell, the same, five measured runs | 5.66 [5.58, 5.71]; complete step 4.16 | 25 November, run `pybdsf-6ab4b6e-sparse-thread-2` |
+| Dense cell against `c70103b`, thread path, five measured runs | 2.26 [2.24, 2.28]; complete step 2.03 | 22 October, run `step3-gate-elais-n1-deep-north-3600-5000` |
 | Dense cell against `c70103b`, single-threaded Dask workers on 1, 2, 4 and 6 cores, two runs each | 1.03, 1.08, 1.07 and 1.00 | 22 to 24 October, runs `step3-sweep-…-<cores>-cores` |
-| Sparse cell against `c70103b`, single-threaded Dask workers on 1, 4 and 6 cores, two runs each | 1.65, 1.74 and 1.72 against ≤1.05 (3.42 on the thread path) | 24 October, runs `step4-sweep-…-<cores>-cores` |
+| Sparse cell against `c70103b`, single-threaded Dask workers on 1, 4 and 6 cores, two runs each | 1.65, 1.74 and 1.72 (3.42 on the thread path) | 24 October, runs `step4-sweep-…-<cores>-cores` |
 | Source-count ladder, thread path, four cores, two runs each | Sparse sectors 3.14 to 4.85; dense sectors 3.16 (14,126 sources) and 2.28 (24,780) | 20 and 21 October, runs `step3-ladder-<case>` |
 | 10,000² anchor, where `master` finds 9,276 sources, four Dask workers, one run | 1.23 | 16 October, run `screening-10000`, Hebog `16228cf1` (the 0.22.0 candidate) |
 
 Brackets are one-sided 95% bounds. Both finders' products repeat byte for
 byte, and Hebog's are identical on every worker count and on the thread path.
 
-The dense ratio fell because `6ab4b6e` takes 1,458 s on the dense cell
-against `c70103b`'s 963 s, most of the difference in fitting large islands
-of the wavelet residuals, not because Hebog got faster: its 2,319 s is 6%
-above 0.23.0's 2,179 s, not yet separated from the machine's drift. On the
-quick benchmark's 1,024² cases `6ab4b6e` is no slower. The run stopped at
-four of its five measured runs when the disk ran low; three pairs on the
-night before gave 1.63 [1.62, 1.66].
+Most of the change from `c70103b` is PyBDSF's. `6ab4b6e` takes 1,458 s on
+the dense cell against `c70103b`'s 963 s, most of the difference in fitting
+large islands of the wavelet residuals, and 148 s on the sparse cell against
+245 s. Hebog's own times moved less, in opposite directions on its two
+paths:
+
+- on Dask workers 0.26.0 is a fifth faster than 0.23.0 on the dense cell
+  (835 s against 1,037 s) and 7% faster on the sparse one;
+- on the thread path the matched cell took 14% longer: one pair of each on
+  25 November, on the same machine state, took 2,325 s and 2,042 s, while
+  `c70103b` ran 3% faster than in October. Hebog itself is not slower: on
+  a 2,500² crop of the cell, natively and inside each matched image, 0.26.0
+  is 12 to 14% faster than 0.23.0, and 5% faster natively on the whole
+  cell. The difference lies in Rapthor `c91e157`'s task or the harness.
+
+Rapthor `c91e157` runs Hebog's tasks on one worker process a core when its
+Dask workers are not daemonic, and on threads otherwise. In the dense
+Dask cell `master` ran slower than in the thread cells (1,588 s against
+1,458 s); against 1,458 s the ratio would be 0.57. The dense thread cell
+stopped at four of its five measured runs when the disk ran low.
 
 The thread path is slow because Python's interpreter lock serialises Hebog's
 tasks: on the dense cell four threads finish 1.18 times faster than one,
