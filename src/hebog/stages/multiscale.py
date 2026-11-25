@@ -614,9 +614,21 @@ def _publish_scale_labels(
                 partition,
                 image_shape_yx=image_shape_yx,
             )
-            values = np.zeros(mask.shape, dtype=np.int32)
-            for local_label, global_label in pairs:
-                values[local.labels == local_label] = global_label
+            # One lookup per pixel rather than one pass per label; labels
+            # the mapping omits stay unlabelled.
+            mapping = np.asarray(pairs, dtype=np.int64).reshape(-1, 2)
+            global_by_local = np.zeros(
+                int(
+                    max(
+                        local.labels.max(initial=0),
+                        mapping[:, 0].max(initial=0),
+                    )
+                )
+                + 1,
+                dtype=np.int32,
+            )
+            global_by_local[mapping[:, 0]] = mapping[:, 1]
+            values = global_by_local[local.labels]
             chunks.append(
                 sink.write_chunk(
                     product_name=f"scale-{order}-labels",
