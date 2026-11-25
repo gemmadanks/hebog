@@ -800,7 +800,9 @@ def _nearest_canonical_seed_ranks(
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64]]:
     """Find exact nearest owners with global-identity tie resolution."""
     seed_count = seed_ranks.size
-    neighbor_count = min(8, seed_count)
+    # Two neighbours show whether the nearest is tied; only tied candidates
+    # are queried again, with twice as many each time.
+    neighbor_count = min(2, seed_count)
     distances, indices = tree.query(candidate_points_yx, k=neighbor_count)
     distances = np.asarray(distances, dtype=np.float64).reshape(
         candidate_points_yx.shape[0], neighbor_count
