@@ -23,7 +23,7 @@ scientifically unqualified. The candidate is public composition v23 with
 | Telescopes | LOFAR and SKA-Mid images run under the input header contract | Validation in the parity study (task 29); a varying PSF measured and documented (task 15) |
 | Functionality | Complete in Hebog; Rapthor's Hebog branch runs it on today's worker layout | Push the branch (task 79); its distributed path (task 72); the operational trial (task 32) |
 | Science | Rapthor's profile passes the truth-based gate on development evidence | The candidate freeze (task 28); the powered parity study (task 29); the released-PyBDSF check (task 31) |
-| Performance | Measured, every sector fails its limit. The projection that 0.25.0 meets every limit on one node assumed `master` on four cores of a dense sector's node and sectors like the 5,000² ladder; Rapthor runs it on 15 cores, on sectors of 14,500 to 20,000 pixels a side | The Dask and sparse cells against current `master` `6ab4b6e` and matched benchmarks (task 23); task 72's re-measure and a model refitted to Rapthor's settings; the cluster run that measures the gate (task 30) |
+| Performance | Measured, every sector fails its limit. The projection that 0.25.0 meets every limit on one node assumed `master` on four cores of a dense sector's node and sectors like the 5,000² ladder; Rapthor runs it on 15 cores, on sectors of 14,500 to 20,000 pixels a side | Cutting Hebog's time on both paths (task 23); task 72's re-measure and a model refitted to Rapthor's settings; the cluster run that measures the gate (task 30) |
 | Scalability | Tested to 22,500², with products invariant across tilings and executors; nothing has run beyond one machine | Tested sizes in place of a size limit, up to Rapthor's initial images (task 22); planner bounds (task 24); the store (task 25); the cluster benchmark (tasks 27 and 30) |
 | Release | On PyPI; CI on Linux, macOS and Windows | Independent acceptance (task 33); 1.0.0 (task 34) |
 
@@ -31,8 +31,9 @@ scientifically unqualified. The candidate is public composition v23 with
   and the sources found; the development machine's limits; upstream churn;
   and three steps outside the agent's control: cluster time, Rapthor's
   worker layout and independent reviewers. See [risks](#risks).
-- **Next action.** Agent: a benchmark on a real Rapthor sector, the Dask
-  and sparse cells against `6ab4b6e` (task 23) and task 72's re-measure.
+- **Next action.** Agent: cut Hebog's time, timed natively on a crop of the
+  dense cell and confirmed by matched runs (task 23); a benchmark on a real
+  Rapthor sector and task 72's re-measure.
   Human: push Rapthor's Hebog branch (task 79) and approach the reviewers
   (task 33); file the Astropy report
   (`benchmark-results/upstream/astropy-wcs-d-exponent.md`) and the PyBDSF
@@ -246,7 +247,7 @@ The order:
 1. Push Rapthor's Hebog branch (task 79).
 2. One sector across the cluster (task 72): Rapthor's interim thread path
    cannot use a node's cores, so the distributed path comes first.
-3. Tested sizes and the gate (tasks 22, 23 and 82), with the store,
+3. Tested sizes and the gate (tasks 22 and 23), with the store,
    planner and cluster benchmark (tasks 24, 25 and 27).
 4. Science before the freeze (task 15).
 5. Qualification and 1.0.0 (tasks 28 to 34).
@@ -367,7 +368,7 @@ and demand allow.
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| Hebog's finder part is about 1.6 times `master` `6ab4b6e`'s time on the dense cell on Rapthor's thread path, was about `c70103b`'s on Dask workers, where the gate needs half, and about 1.7 times it on the sparse cell. Rapthor gives `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, larger than the local cells, where Hebog's per-pixel cost weighs most. `6ab4b6e` is faster than `c70103b` on small images but slower on the dense cell, so the dense ratio fell without Hebog changing. | The cluster gate fails on dense sectors, or sparse sectors stay slower than `master`. | Task 23 measures the Dask and sparse cells against `6ab4b6e` and cuts the largest constant factors; a real Rapthor sector and the cluster session refit the model at Rapthor's settings; task 72's increments raise occupancy and cut serial work; native code only through its gates; report the gap honestly at each milestone. |
+| Against `master` `6ab4b6e`, Hebog's finder part takes 0.53 of its time on the dense cell on worker processes, where the gate needs 0.50, and 2.6 times it on the sparse cell; on Rapthor's thread path 1.6 and 5.7 times. Rapthor gives `master` 15 cores on sectors of 14,500 to 20,000 pixels a side, larger than the local cells, where Hebog's per-pixel cost weighs most. | The cluster gate fails on dense sectors, or sparse sectors stay slower than `master`. | Task 23 cuts the largest constant factors, timed natively and confirmed by matched runs; a real Rapthor sector and the cluster session refit the model at Rapthor's settings; task 72's increments raise occupancy and cut serial work; native code only through its gates; report the gap honestly at each milestone. |
 | Hebog's mask makes Rapthor keep different components from `master`'s on deep LOFAR fields. | The truth-based gate fails where Hebog loses real sources. | `just rapthor-agreement` measures every lane against truth at each pin move and science change. |
 | One sector's speed-up is capped by serial work, memory per core, rounds of few tasks, the interpreter lock, or deadlock between concurrent sectors. | Cluster cores go unused and the gate is missed on occupancy. | Task 72's increments; the cluster benchmark reports where one sector stops scaling. |
 | Scaling inside Rapthor needs Rapthor to change its worker layout. | Rapthor's cluster run uses one core a node. | The standalone run on the same cluster is the scaling evidence meanwhile (task 27). |
