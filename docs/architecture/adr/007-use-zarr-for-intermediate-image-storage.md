@@ -87,8 +87,10 @@ backend at every size**.
   Zarr's `ChunkNotFoundError` at the Hebog boundary. The record's SHA-256
   checks every chunk read. Only compressed masks also carry CRC32C, so that
   damaged bytes fail before the decompressor reads them; numeric planes
-  dropped it in storage schema 5 (25 November 2026), since it only repeated
-  the SHA-256 check and cost 1.4% of the CPU of a dense 5,000² field.
+  dropped it in storage schema 5 (25 November 2026): the SHA-256 already
+  checks every value read, and the CRC32C cost 1.4% of the CPU of a dense
+  5,000² field. It also covered an edge chunk's bytes beyond the image,
+  which hold no value.
 - Accept identical sequential retries and reject different completed values.
   The versioned completion manifest rejects missing, duplicate, conflicting,
   mixed-run, wrong-owner, and inconsistent-dtype records, then validates every

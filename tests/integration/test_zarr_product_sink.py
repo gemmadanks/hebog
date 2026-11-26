@@ -914,18 +914,18 @@ def test_interrupted_generation_is_not_published_and_can_resume(
 def test_generation_validation_rejects_store_corruption_before_publish(
     tmp_path: Path,
 ) -> None:
-    """A complete record set cannot publish corrupt underlying bytes."""
+    """A complete record set cannot publish corrupt underlying bytes.
+
+    The damaged byte holds the chunk's first value. An edge chunk's bytes
+    beyond the image hold no value, so only a damaged value matters.
+    """
     root = tmp_path / "run.zarr"
     manifest = _manifest()
     sink = _sink(root, manifest)
     records = _write_product(sink, manifest, "rms")
-    chunk_path = next(
-        path
-        for path in root.rglob("*")
-        if path.is_file() and path.name != "zarr.json"
-    )
+    chunk_path = root / "rms" / "c" / "1" / "1"
     payload = bytearray(chunk_path.read_bytes())
-    payload[-1] ^= 1
+    payload[0] ^= 1
     chunk_path.write_bytes(payload)
 
     with pytest.raises(InvalidProductGenerationError, match="invalid"):
