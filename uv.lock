@@ -646,8 +646,8 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "astropy", specifier = ">=8.0.1,<9" },
-    { name = "distributed", specifier = ">=2026.7.1" },
+    { name = "astropy", specifier = ">=7.1.1,<9" },
+    { name = "distributed", specifier = ">=2026.3.0" },
     { name = "numpy", specifier = ">=2.0.2,<3" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "scipy", specifier = ">=1.15,<2" },
