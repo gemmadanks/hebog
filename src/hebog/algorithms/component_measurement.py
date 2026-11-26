@@ -980,6 +980,9 @@ def _residual_groups_in_feature(  # noqa: PLR0913, PLR0917
     indexes = _feature_components(labels, feature)
     if len(indexes) <= 1:
         return ()
+    # A parent holds many fits, so its window's labels are collected once
+    # rather than searched for each fit.
+    window_labels = frozenset(np.unique(labels).tolist())
     model, _ = _model_and_groups(
         tuple(
             (index, fit)
@@ -987,7 +990,7 @@ def _residual_groups_in_feature(  # noqa: PLR0913, PLR0917
             if isinstance(fit, ValidCompactGaussianFit)
             and index in protected_labels
             and "fit-at-bound" not in fit.quality_flags
-            and np.any(labels == index)
+            and index in window_labels
         ),
         bounds,
     )
