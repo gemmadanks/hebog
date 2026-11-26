@@ -159,10 +159,10 @@ The rules the sink enforces:
   follows the image's side, not its area. A sink caches its array handles,
   the index and at most four row records in one process, and a pickled copy
   starts empty.
-- Storage schema 4 stores numeric planes uncompressed with CRC32C and boolean
-  masks with Zstandard level 1 plus CRC32C; every chunk also carries its
-  logical SHA-256. Bounded consumers reuse at most four validated chunks
-  while assembling windows, in a worker-local cache.
+- Storage schema 5 stores numeric planes uncompressed and boolean masks with
+  Zstandard level 1 plus CRC32C; every chunk also carries its logical
+  SHA-256, which every read checks. Bounded consumers reuse at most four
+  validated chunks while assembling windows, in a worker-local cache.
 - `iter_completed_row_blocks` streams a product into FITS one full-width tile
   row at a time, validating each chunk once; a budget below one tile row
   fails before any bytes are written.

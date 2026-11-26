@@ -78,14 +78,17 @@ backend at every size**.
 - Map zero-origin canonical tile cores one-to-one onto Zarr chunks. Shifted
   scientific partitions require canonical-output reconciliation before
   storage writes.
-- Use explicit little-endian bytes, CRC32C, fill value zero, and
+- Use explicit little-endian bytes, fill value zero, and
   `write_empty_chunks=True`. Numeric planes are uncompressed after the Phase 3
   complete-stage profile showed material compression overhead; boolean masks
   retain Zstandard level 1. Codec and concurrency settings remain measurable
   implementation choices, not scientific semantics.
 - Set `read_missing_chunks=False` and `write_empty_chunks=True`. Translate
-  Zarr's `ChunkNotFoundError` at the Hebog boundary. CRC32C detects encoded
-  corruption and the record's SHA-256 checks logical content.
+  Zarr's `ChunkNotFoundError` at the Hebog boundary. The record's SHA-256
+  checks every chunk read. Only compressed masks also carry CRC32C, so that
+  damaged bytes fail before the decompressor reads them; numeric planes
+  dropped it in storage schema 5 (25 November 2026), since it only repeated
+  the SHA-256 check and cost 1.4% of the CPU of a dense 5,000² field.
 - Accept identical sequential retries and reject different completed values.
   The versioned completion manifest rejects missing, duplicate, conflicting,
   mixed-run, wrong-owner, and inconsistent-dtype records, then validates every
@@ -143,7 +146,7 @@ size-based storage switch.
   `ProductGenerationManifest` records and their exact-set invariants, and the
   row records and index a generation is published as.
 - Integration tests cover initialization, aligned and edge writes, NaNs,
-  all-fill and missing chunks, CRC32C corruption, logical checksum
+  all-fill and missing chunks, corrupt stored bytes, logical checksum
   disagreement, retries, invalid geometry and dtype, changed policy, shifted
   origins, interrupted-run resumption, immutable completion conflicts, and
   corrupt completion metadata.
