@@ -240,10 +240,10 @@ paths:
   (835 s against 1,037 s) and 7% faster on the sparse one;
 - on the thread path the matched cell took 14% longer: one pair of each on
   25 November, on the same machine state, took 2,325 s and 2,042 s, while
-  `c70103b` ran 3% faster than in October. Hebog itself is not slower: on
-  a 2,500² crop of the cell, natively and inside each matched image, 0.26.0
-  is 12 to 14% faster than 0.23.0, and 5% faster natively on the whole
-  cell. The difference lies in Rapthor `c91e157`'s task or the harness.
+  `c70103b` ran 3% faster than in October. Standalone controls favour Hebog
+  0.26.0: on a 2,500² crop, natively and inside each matched image, it is
+  12 to 14% faster than 0.23.0, and 5% faster natively on the whole cell.
+  These controls do not yet isolate the full-cell task-level slowdown.
 
 Rapthor `c91e157` runs Hebog's tasks on one worker process a core when its
 Dask workers are not daemonic, and on threads otherwise. In the dense
