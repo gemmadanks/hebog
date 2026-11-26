@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from itertools import pairwise
 from math import ceil
 from typing import cast
@@ -38,6 +39,7 @@ from hebog.algorithms.fitting import (
 )
 from hebog.algorithms.measurement import measure_compact_moments
 from hebog.algorithms.multiscale import (
+    BeamShapePixels,
     ResidualAtrousPlan,
     ScaleFilterBank,
     ScaleFilterResponse,
@@ -479,12 +481,22 @@ def _matched_responses(
 
 def _adequacy_filter_bank(plan: ResidualAtrousPlan) -> ScaleFilterBank:
     """Use one filter definition for both read halos and adequacy checks."""
+    return _beam_matched_filter_bank(plan.beam, plan.noise_correlation)
+
+
+# Every parent of an image shares its beam and noise correlation, and a
+# bank's kernels are read-only, so one bank serves them all.
+@lru_cache(maxsize=8)
+def _beam_matched_filter_bank(
+    beam: BeamShapePixels, noise_correlation: BeamShapePixels | None
+) -> ScaleFilterBank:
+    """Build the beam-aware matched filters for one beam."""
     return build_scale_filter_bank(
-        plan.beam,
+        beam,
         family="beam-aware-matched-filter",
         scales=((1, 1.0), (2, 2.0), (3, 4.0)),
         truncation_sigma=4.0,
-        noise_correlation=plan.noise_correlation,
+        noise_correlation=noise_correlation,
     )
 
 
