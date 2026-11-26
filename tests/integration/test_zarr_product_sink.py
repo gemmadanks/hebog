@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pickle
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
@@ -1159,6 +1160,39 @@ def test_a_store_from_an_older_hebog_fails_clearly(tmp_path: Path) -> None:
         )
     with pytest.raises(InvalidProductGenerationError, match="not published"):
         _sink(root, manifest).read_generation()
+
+
+def test_a_published_store_from_an_older_hebog_fails_clearly_on_read(
+    tmp_path: Path,
+) -> None:
+    """Stages read their inputs without initializing them.
+
+    Schema 4 publishes the same completion index as schema 5, so only the
+    group's schema tells a reader that the store came from an older Hebog.
+    """
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    group = zarr.open_group(store=root, mode="a")
+    group.attrs["hebog_storage_schema_version"] = 4
+    tile = manifest.tiles[0]
+    reads: tuple[Callable[[ZarrProductSink], object], ...] = (
+        lambda reader: reader.read_generation(),
+        lambda reader: reader.read_completed_window("rms", tile.core_bounds),
+        lambda reader: reader.read_chunk(records[0]),
+        lambda reader: list(
+            reader.iter_completed_row_blocks("rms", max_block_bytes=1024)
+        ),
+        lambda reader: reader.write_chunk(
+            product_name="rms", tile=tile, values=_values_for(0)
+        ),
+    )
+
+    for read in reads:
+        with pytest.raises(InvalidProductChunkError, match="storage schema 4"):
+            read(_sink(root, manifest))
 
 
 def test_a_window_read_parses_only_the_completion_records_of_its_rows(
