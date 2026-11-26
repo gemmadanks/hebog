@@ -50,16 +50,22 @@ _ZARR_FORMAT = 3
 _COMPLETION_KEY = ".hebog/completed-generation-v2.json"
 _ROW_RECORD_PREFIX = ".hebog/completed-generation-v2/row-"
 _GROUP_ATTRIBUTES: dict[str, Any] = {
-    "hebog_storage_schema_version": 4,
+    "hebog_storage_schema_version": 5,
     "zarr_format": _ZARR_FORMAT,
 }
 
 
 def _compressors(dtype: np.dtype[Any]) -> tuple[Any, ...]:
-    """Compress boolean masks but avoid wasting CPU on numeric planes."""
+    """Compress boolean masks but avoid wasting CPU on numeric planes.
+
+    Every read checks the values against the chunk record's SHA-256, so an
+    uncompressed plane needs no codec checksum. A CRC32C still guards the
+    compressed masks, so that damaged bytes fail as corrupt rather than as
+    the decompressor's own error.
+    """
     if dtype == np.dtype(np.bool_):
         return (ZstdCodec(level=1), Crc32cCodec())
-    return (Crc32cCodec(),)
+    return ()
 
 
 def _compression_policy(dtype: np.dtype[Any]) -> str:
@@ -70,7 +76,6 @@ def _compression_policy(dtype: np.dtype[Any]) -> str:
 _ARRAY_ATTRIBUTES: dict[str, Any] = {
     "hebog_missing_chunk_policy": "error",
     "hebog_write_empty_chunks": True,
-    "hebog_checksum_codec": "crc32c",
 }
 
 
@@ -413,9 +418,9 @@ class ZarrProductSink:
     ) -> ProductChunk:
         """Write one aligned chunk or content-validate an existing retry.
 
-        Fresh LocalStore writes are atomic and use the required CRC32C codec.
-        Their content SHA-256 is validated in the mandatory full-generation
-        check before a completion marker can be published.
+        Fresh LocalStore writes are atomic. Their content SHA-256 is
+        validated in the mandatory full-generation check before a completion
+        marker can be published.
         """
         self._require_canonical_tile(tile)
         array = self._open_array(product_name)
