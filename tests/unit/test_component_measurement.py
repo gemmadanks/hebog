@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 import tracemalloc
+from collections.abc import Iterator
 from dataclasses import fields, replace
 from typing import Any, Literal, cast
 
@@ -1349,4 +1350,64 @@ def test_morphology_work_limits_apply_before_context_model_allocation(
             minimum_support_fraction=0.5,
         )
         == ()
+    )
+
+
+@pytest.fixture
+def empty_filter_bank_cache() -> Iterator[None]:
+    """Keep the module's bank cache from carrying entries between tests."""
+    measurement._beam_matched_filter_bank.cache_clear()
+    yield
+    measurement._beam_matched_filter_bank.cache_clear()
+
+
+@pytest.mark.usefixtures("empty_filter_bank_cache")
+def test_parents_with_one_beam_share_one_filter_bank() -> None:
+    """Equal beams and noise correlations reuse the bank built first."""
+    first = measurement._beam_matched_filter_bank(
+        BeamShapePixels(4.0, 3.0, 0.0), BeamShapePixels(4.0, 3.0, 0.0)
+    )
+    second = measurement._beam_matched_filter_bank(
+        BeamShapePixels(4.0, 3.0, 0.0), BeamShapePixels(4.0, 3.0, 0.0)
+    )
+
+    assert second is first
+
+
+@pytest.mark.usefixtures("empty_filter_bank_cache")
+def test_each_noise_correlation_gets_its_own_filter_bank() -> None:
+    """A cached bank keeps the noise gains of the correlation it was built for.
+
+    With no correlation the correlated gain falls back to the independent
+    one, so a bank shared across correlations would misstate every SNR.
+    """
+    beam = BeamShapePixels(4.0, 3.0, 0.0)
+    correlations = (beam, None, BeamShapePixels(6.0, 4.0, 30.0))
+
+    cached = [
+        measurement._beam_matched_filter_bank(beam, correlation)
+        for correlation in correlations
+    ]
+    uncached = [
+        measurement._beam_matched_filter_bank.__wrapped__(beam, correlation)
+        for correlation in correlations
+    ]
+
+    assert [bank.noise_correlation for bank in cached] == list(correlations)
+    gains = [
+        [
+            (item.independent_noise_gain, item.correlated_noise_gain)
+            for item in bank.filters
+        ]
+        for bank in cached
+    ]
+    assert gains == [
+        [
+            (item.independent_noise_gain, item.correlated_noise_gain)
+            for item in bank.filters
+        ]
+        for bank in uncached
+    ]
+    assert len({tuple(bank_gains) for bank_gains in gains}) == len(
+        correlations
     )
