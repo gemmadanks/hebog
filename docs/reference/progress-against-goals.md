@@ -245,8 +245,11 @@ paths:
   12 to 14% faster than 0.23.0, and 5% faster natively on the whole cell.
   These controls do not yet isolate the full-cell task-level slowdown.
 
-Rapthor `c91e157` runs Hebog's tasks on one worker process a core when its
-Dask workers are not daemonic, and on threads otherwise. In the dense
+The Dask cells above use the benchmark harness's local executor override,
+not Rapthor's native process-worker path; they are screening measurements,
+not gate evidence. Rapthor `c91e157` uses one worker process per core for
+multi-core, non-daemonic Prefect execution; synchronous, single-core and
+daemonic execution uses threads. In the dense
 Dask cell `master` ran slower than in the thread cells (1,588 s against
 1,458 s); against 1,458 s the ratio would be 0.57. The dense thread cell
 stopped at four of its five measured runs when the disk ran low.
