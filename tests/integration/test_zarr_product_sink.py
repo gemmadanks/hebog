@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pickle
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
@@ -19,6 +20,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 import zarr
+from zarr.codecs import Crc32cCodec, ZstdCodec
 from zarr.errors import ChunkNotFoundError
 from zarr.storage import _local
 
@@ -140,7 +142,7 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
     assert array.attrs["hebog_write_empty_chunks"] is True
     assert array.attrs["hebog_generation_id"] == "run-001"
     assert array.attrs["hebog_compression_policy"] == "none"
-    assert group.attrs["hebog_storage_schema_version"] == 4
+    assert group.attrs["hebog_storage_schema_version"] == 5
     assert group.attrs["partition_schema_version"] == 1
     assert group.attrs["partition_origin_yx"] == [0, 0]
     assert group.attrs["generation_id"] == "run-001"
@@ -153,7 +155,10 @@ def test_initializes_one_strict_zarr_v3_array_per_product(
 def test_compresses_boolean_masks_but_not_numeric_planes(
     tmp_path: Path,
 ) -> None:
-    """Product-role codec policy avoids wasting CPU on numeric planes."""
+    """Product-role codec policy avoids wasting CPU on numeric planes.
+
+    Numeric chunks carry no CRC32C: every read checks the SHA-256.
+    """
     root = tmp_path / "run.zarr"
     sink = _sink(root)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
@@ -163,6 +168,8 @@ def test_compresses_boolean_masks_but_not_numeric_planes(
 
     assert group["rms"].attrs["hebog_compression_policy"] == "none"
     assert group["mask"].attrs["hebog_compression_policy"] == "zstd-1"
+    assert group["rms"].compressors == ()
+    assert group["mask"].compressors == (ZstdCodec(level=1), Crc32cCodec())
 
 
 def test_initialization_rejects_conflicting_group_or_array_metadata(
@@ -445,11 +452,11 @@ def test_read_generation_validates_the_marker_and_reads_no_chunk(
     chunk_path.write_bytes(payload)
 
     assert reader.read_generation() == _index_of(published)
-    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+    with pytest.raises(InvalidProductChunkError, match="SHA-256"):
         reader.read_completed_window("rms", tile.core_bounds)
-    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+    with pytest.raises(InvalidProductChunkError, match="SHA-256"):
         reader.read_chunk(corrupt_record)
-    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+    with pytest.raises(InvalidProductChunkError, match="SHA-256"):
         list(
             reader.iter_completed_row_blocks(
                 "rms",
@@ -686,16 +693,29 @@ def test_first_chunk_write_defers_content_reread_until_generation_publish(
     assert read_count == 1
 
 
-def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
-    """The configured codec detects mutations to encoded chunk bytes."""
+@pytest.mark.parametrize("damaged_byte", [0, -1])
+@pytest.mark.parametrize(
+    ("product_name", "values"),
+    [
+        ("rms", _values_for(0)),
+        ("mask", np.isnan(_values_for(0))),
+    ],
+)
+def test_rejects_corrupt_stored_bytes(
+    tmp_path: Path,
+    product_name: str,
+    values: npt.NDArray[np.generic],
+    damaged_byte: int,
+) -> None:
+    """A read detects mutations to raw and compressed chunk bytes."""
     root = tmp_path / "run.zarr"
     manifest = _manifest()
     sink = _sink(root, manifest)
-    sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
+    sink.initialize_product(product_name=product_name, dtype=values.dtype)
     record = sink.write_chunk(
-        product_name="rms",
+        product_name=product_name,
         tile=manifest.tiles[0],
-        values=_values_for(0),
+        values=values,
     )
     stored_chunks = tuple(
         path
@@ -705,10 +725,10 @@ def test_crc32c_rejects_corrupt_stored_bytes(tmp_path: Path) -> None:
     assert len(stored_chunks) == 1
     chunk_path = stored_chunks[0]
     payload = bytearray(chunk_path.read_bytes())
-    payload[-1] ^= 1
+    payload[damaged_byte] ^= 0xFF
     chunk_path.write_bytes(payload)
 
-    with pytest.raises(InvalidProductChunkError, match="corrupt"):
+    with pytest.raises(InvalidProductChunkError):
         sink.read_chunk(record)
 
 
@@ -894,18 +914,18 @@ def test_interrupted_generation_is_not_published_and_can_resume(
 def test_generation_validation_rejects_store_corruption_before_publish(
     tmp_path: Path,
 ) -> None:
-    """A complete record set cannot publish corrupt underlying bytes."""
+    """A complete record set cannot publish corrupt underlying bytes.
+
+    The damaged byte holds the chunk's first value. An edge chunk's bytes
+    beyond the image hold no value, so only a damaged value matters.
+    """
     root = tmp_path / "run.zarr"
     manifest = _manifest()
     sink = _sink(root, manifest)
     records = _write_product(sink, manifest, "rms")
-    chunk_path = next(
-        path
-        for path in root.rglob("*")
-        if path.is_file() and path.name != "zarr.json"
-    )
+    chunk_path = root / "rms" / "c" / "1" / "1"
     payload = bytearray(chunk_path.read_bytes())
-    payload[-1] ^= 1
+    payload[0] ^= 1
     chunk_path.write_bytes(payload)
 
     with pytest.raises(InvalidProductGenerationError, match="invalid"):
@@ -1129,7 +1149,7 @@ def test_a_store_from_an_older_hebog_fails_clearly(tmp_path: Path) -> None:
     sink = _sink(root, manifest)
     sink.initialize_product(product_name="rms", dtype=np.dtype("<f8"))
     group = zarr.open_group(store=root, mode="a")
-    group.attrs["hebog_storage_schema_version"] = 3
+    group.attrs["hebog_storage_schema_version"] = 4
     (root / ".hebog").mkdir()
     (root / ".hebog" / "completed-generation-v1.json").write_bytes(b"{}\n")
 
@@ -1140,6 +1160,39 @@ def test_a_store_from_an_older_hebog_fails_clearly(tmp_path: Path) -> None:
         )
     with pytest.raises(InvalidProductGenerationError, match="not published"):
         _sink(root, manifest).read_generation()
+
+
+def test_a_published_store_from_an_older_hebog_fails_clearly_on_read(
+    tmp_path: Path,
+) -> None:
+    """Stages read their inputs without initializing them.
+
+    Schema 4 publishes the same completion index as schema 5, so only the
+    group's schema tells a reader that the store came from an older Hebog.
+    """
+    root = tmp_path / "run.zarr"
+    manifest = _manifest()
+    sink = _sink(root, manifest)
+    records = _write_product(sink, manifest, "rms")
+    sink.publish_generation(product_names=("rms",), chunks=records)
+    group = zarr.open_group(store=root, mode="a")
+    group.attrs["hebog_storage_schema_version"] = 4
+    tile = manifest.tiles[0]
+    reads: tuple[Callable[[ZarrProductSink], object], ...] = (
+        lambda reader: reader.read_generation(),
+        lambda reader: reader.read_completed_window("rms", tile.core_bounds),
+        lambda reader: reader.read_chunk(records[0]),
+        lambda reader: list(
+            reader.iter_completed_row_blocks("rms", max_block_bytes=1024)
+        ),
+        lambda reader: reader.write_chunk(
+            product_name="rms", tile=tile, values=_values_for(0)
+        ),
+    )
+
+    for read in reads:
+        with pytest.raises(InvalidProductChunkError, match="storage schema 4"):
+            read(_sink(root, manifest))
 
 
 def test_a_window_read_parses_only_the_completion_records_of_its_rows(

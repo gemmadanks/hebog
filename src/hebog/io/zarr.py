@@ -50,16 +50,22 @@ _ZARR_FORMAT = 3
 _COMPLETION_KEY = ".hebog/completed-generation-v2.json"
 _ROW_RECORD_PREFIX = ".hebog/completed-generation-v2/row-"
 _GROUP_ATTRIBUTES: dict[str, Any] = {
-    "hebog_storage_schema_version": 4,
+    "hebog_storage_schema_version": 5,
     "zarr_format": _ZARR_FORMAT,
 }
 
 
 def _compressors(dtype: np.dtype[Any]) -> tuple[Any, ...]:
-    """Compress boolean masks but avoid wasting CPU on numeric planes."""
+    """Compress boolean masks but avoid wasting CPU on numeric planes.
+
+    Every read checks the values against the chunk record's SHA-256, so an
+    uncompressed plane needs no codec checksum. A CRC32C still guards the
+    compressed masks, so that damaged bytes fail as corrupt rather than as
+    the decompressor's own error.
+    """
     if dtype == np.dtype(np.bool_):
         return (ZstdCodec(level=1), Crc32cCodec())
-    return (Crc32cCodec(),)
+    return ()
 
 
 def _compression_policy(dtype: np.dtype[Any]) -> str:
@@ -70,7 +76,6 @@ def _compression_policy(dtype: np.dtype[Any]) -> str:
 _ARRAY_ATTRIBUTES: dict[str, Any] = {
     "hebog_missing_chunk_policy": "error",
     "hebog_write_empty_chunks": True,
-    "hebog_checksum_codec": "crc32c",
 }
 
 
@@ -179,6 +184,7 @@ class ZarrProductSink:
         self._root = root.resolve()
         self._manifest = manifest
         self._generation_id = generation_id
+        self._storage_schema_checked = False
         self._array_cache: dict[str, Any] = {}
         self._published_index_cache: ProductGenerationIndex | None = None
         self._row_cache: OrderedDict[int, ProductGenerationRow] = OrderedDict()
@@ -198,6 +204,7 @@ class ZarrProductSink:
         product rejects it.
         """
         state = self.__dict__.copy()
+        state["_storage_schema_checked"] = False
         state["_array_cache"] = {}
         state["_published_index_cache"] = None
         state["_row_cache"] = OrderedDict()
@@ -325,6 +332,29 @@ class ZarrProductSink:
             }
         )
 
+    def _require_storage_schema(self) -> None:
+        """Reject a store that another Hebog storage schema wrote.
+
+        :meth:`initialize_product` checks every group attribute, but a stage
+        reads its inputs without initializing them, so each sink checks the
+        schema once, when it first opens the index or an array.
+        """
+        if self._storage_schema_checked:
+            return
+        group = zarr.open_group(
+            store=LocalStore(self._root, read_only=True),
+            mode="r",
+            zarr_format=_ZARR_FORMAT,
+        )
+        found = group.attrs.get("hebog_storage_schema_version")
+        expected = _GROUP_ATTRIBUTES["hebog_storage_schema_version"]
+        if found != expected:
+            raise InvalidProductChunkError(
+                f"Zarr store has storage schema {found}, not {expected}; "
+                "start a new run"
+            )
+        self._storage_schema_checked = True
+
     def _open_array(self, product_name: str) -> Any:
         """Open a pre-created product without racing metadata creation.
 
@@ -347,6 +377,7 @@ class ZarrProductSink:
             raise InvalidProductChunkError(
                 f"Zarr product {product_name!r} is not initialized"
             ) from error
+        self._require_storage_schema()
         validated = self._require_array_metadata(
             array,
             product_name=product_name,
@@ -413,9 +444,9 @@ class ZarrProductSink:
     ) -> ProductChunk:
         """Write one aligned chunk or content-validate an existing retry.
 
-        Fresh LocalStore writes are atomic and use the required CRC32C codec.
-        Their content SHA-256 is validated in the mandatory full-generation
-        check before a completion marker can be published.
+        Fresh LocalStore writes are atomic. Their content SHA-256 is
+        validated in the mandatory full-generation check before a completion
+        marker can be published.
         """
         self._require_canonical_tile(tile)
         array = self._open_array(product_name)
@@ -649,6 +680,7 @@ class ZarrProductSink:
             raise InvalidProductGenerationError(
                 "product generation is not published"
             )
+        self._require_storage_schema()
         try:
             index = ProductGenerationIndex.from_json_bytes(stored.to_bytes())
         except ValueError as error:
