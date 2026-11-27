@@ -52,7 +52,7 @@ a Python 3.12 to 3.14 environment:
 <!-- x-release-please-start-version -->
 
 ```shell
-pip install hebog==0.26.0
+pip install hebog==0.26.1
 ```
 
 <!-- x-release-please-end -->

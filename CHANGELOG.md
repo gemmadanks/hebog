@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.26.1](https://github.com/gemmadanks/hebog/compare/v0.26.0...v0.26.1) (2026-11-27)
+
+
+### ⚡ Performance
+
+* find sources in dense fields faster ([#226](https://github.com/gemmadanks/hebog/issues/226)) ([23c563c](https://github.com/gemmadanks/hebog/commit/23c563ce6e4542b61a8962a23fa101cbfb83d995))
+* group extended emission in crowded fields with less repeated work ([#228](https://github.com/gemmadanks/hebog/issues/228)) ([3e966a8](https://github.com/gemmadanks/hebog/commit/3e966a8ebb9ef62edc8ac69bda43dab9f2902859))
+* skip a repeated checksum when reading intermediate image planes ([#227](https://github.com/gemmadanks/hebog/issues/227)) ([5fc3c3b](https://github.com/gemmadanks/hebog/commit/5fc3c3bfc4b21e61ecf97017941199570ce36ee3))
+
+
+### 📚 Documentation
+
+* record the 0.26.0 release check and add the notebook refresh to it ([#222](https://github.com/gemmadanks/hebog/issues/222)) ([ae97098](https://github.com/gemmadanks/hebog/commit/ae970983dc8d4dac795ef81014929067e0ab7117))
+* report Hebog's speed against PyBDSF master 6ab4b6e on Dask workers and sparse fields ([#225](https://github.com/gemmadanks/hebog/issues/225)) ([e28f836](https://github.com/gemmadanks/hebog/commit/e28f8360e137d5e73ea47944f821f3a3da705009))
+
+
+### 📦 Build
+
+* let Hebog install beside Astropy 7.1 and Dask 2026.3 ([#229](https://github.com/gemmadanks/hebog/issues/229)) ([b897557](https://github.com/gemmadanks/hebog/commit/b897557e6d2262fc2e29e93ec2d3a54a7a823943))
+
+
+### 🧪 Tests
+
+* measure Hebog against PyBDSF master at 6ab4b6e ([#224](https://github.com/gemmadanks/hebog/issues/224)) ([5e5f80c](https://github.com/gemmadanks/hebog/commit/5e5f80cb16f4a4fc4f76f3221e62b13b577cde34))
+
 ## [0.26.0](https://github.com/gemmadanks/hebog/compare/v0.25.0...v0.26.0) (2026-11-22)
 
 
